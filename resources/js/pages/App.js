@@ -1,190 +1,208 @@
-import React from 'react';
-import AdminWorkspace from '../sections/AdminWorkspace.js';
-import PortalWorkspace from '../sections/PortalWorkspace.js';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Box, Card, CardContent, Fade, List, ListItem, ListItemText, Skeleton, Typography } from '@mui/material';
+import Grid from '@mui/material/Grid2';
 
-const h = React.createElement;
+const LazyLineChart = lazy(() => import('@mui/x-charts/LineChart').then((module) => ({ default: module.LineChart })));
 
-const formatDate = (date) =>
-    new Intl.DateTimeFormat('ar', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-    }).format(date);
+import CustomChartTooltip from '@/components/charts/tooltip/custom-chart-tooltip.jsx';
+import usePageTitle from '@/hooks/use-page-title.js';
+import { apiRequest } from '@/lib/api.js';
 
-const greetingMessage = (date) => {
-    const hour = date.getHours();
-    if (hour < 12) {
-        return 'صباح مُفعم بالجاهزية.';
-    }
-    if (hour < 17) {
-        return 'نهار مليء بالرحلات والقرارات.';
-    }
-    return 'مساء الأداء العالي لأسطولك.';
+const orderMetricsConfig = (t) => [
+    { key: 'totalOrders', label: t('dashboard-total-orders') },
+    { key: 'pendingOrders', label: t('dashboard-pending-orders') },
+    { key: 'successfulOrders', label: t('dashboard-successful-orders') },
+    { key: 'rejectedOrders', label: t('dashboard-rejected-orders') },
+    { key: 'openTickets', label: t('dashboard-open-tickets') },
+];
+
+const salesMetricsConfig = (t) => [
+    { key: 'totalSales', label: t('dashboard-total-sales') },
+    { key: 'totalRevenue', label: t('dashboard-total-revenue') },
+];
+
+const cardSx = {
+    borderRadius: 3,
+    border: '1px solid rgba(255,255,255,0.12)',
+    background: 'linear-gradient(135deg, rgba(15,23,42,0.95), rgba(15,23,42,0.8))',
+    color: 'white',
+    boxShadow: '0 20px 45px rgba(15,23,42,0.45)',
 };
 
-const heroCopy = {
-    admin: (mode, greeting) => ({
-        badge: mode === 'login' ? 'بوابة المشرفين' : 'لوحة تحكم المشرف',
-        title:
-            mode === 'login'
-                ? 'تسجيل دخول فوري وإدارة متقدمة'
-                : 'قرارات ذكية لإدارة الأسطول التنفيذي',
-        description:
-            mode === 'login'
-                ? 'أدخل إلى مركز التحكم لمراقبة المركبات، الجداول، وطلبات الصيانة المباشرة.'
-                : `${greeting} جميع مؤشرات الأداء يتم تحديثها تلقائياً كل بضع دقائق.`,
-    }),
-    portal: (mode, greeting) => ({
-        badge: 'بوابة العملاء',
-        title:
-            mode === 'login'
-                ? 'تجربة حجز مترفة للضيوف والشركاء'
-                : 'لوحة متابعة فورية لرحلات العملاء',
-        description:
-            mode === 'login'
-                ? 'سجّل دخولك لتتبع الطلبات، إدارة العضويات، واستلام الإشعارات بلغتك المفضلة.'
-                : `${greeting} نُظهر لك أين السائق، حالة الطلب، ورصيدك مباشرةً.`,
-    }),
-    showcase: () => ({
-        badge: 'CAR FLEET OS',
-        title: 'لوحتان ذكيتان لإدارة الأسطول والعملاء',
-        description: 'واجهة موحّدة لعرض لوحة المشرف ولوحة العملاء جنباً إلى جنب لمعاينة التجربة.',
-    }),
-};
+const chartSkeleton = (
+    <Skeleton
+        variant="rectangular"
+        height={300}
+        animation="wave"
+        sx={{ borderRadius: 2, bgcolor: 'rgba(255,255,255,0.08)' }}
+    />
+);
 
-const navSets = {
-    admin: (mode) => [
-        { label: 'تسجيل الدخول', href: '/admin/login', key: 'login', active: mode === 'login' },
-        { label: 'لوحة التحكم', href: '/admin', key: 'dashboard', active: mode !== 'login' },
-        { label: 'طلبات الحجز', href: '#orders', key: 'orders', disabled: true },
-        { label: 'إعدادات النظام', href: '#settings', key: 'settings', disabled: true },
-    ],
-    portal: (mode) => [
-        { label: 'دخول العملاء', href: '/', key: 'login', active: mode === 'login' },
-        { label: 'لوحة المتابعة', href: '/portal/dashboard', key: 'dashboard', active: mode !== 'login' },
-        { label: 'برنامج الولاء', href: '#loyalty', key: 'loyalty', disabled: true },
-        { label: 'الدعم المباشر', href: '#support', key: 'support', disabled: true },
-    ],
-};
-
-const PrimaryNav = ({ items, brand }) => {
-    if (!items || items.length === 0) {
-        return null;
+const formatChange = (change) => {
+    if (!change) {
+        return '0';
     }
 
-    return h(
-        'div',
-        {
-            className:
-                'flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between',
-        },
-        h(
-            'div',
-            { className: 'flex items-center gap-3 text-sm font-semibold text-white' },
-            h(
-                'div',
-                { className: 'flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-lg' },
-                '🚘'
-            ),
-            h('div', null, h('p', { className: 'text-xs text-slate-400' }, 'CAR FLEET BOOKING'), h('p', null, brand))
-        ),
-        h(
-            'nav',
-            { className: 'flex flex-wrap gap-2 text-sm' },
-            items.map((item) =>
-                item.disabled
-                    ? h(
-                          'span',
-                          {
-                              key: item.key,
-                              className:
-                                  'cursor-not-allowed rounded-full border border-white/5 px-4 py-2 text-slate-500 backdrop-blur-md',
-                          },
-                          item.label
-                      )
-                    : h(
-                          'a',
-                          {
-                              key: item.key,
-                              href: item.href,
-                              className: `rounded-full border px-4 py-2 transition ${
-                                  item.active
-                                      ? 'border-white/50 bg-white/10 text-white shadow-lg'
-                                      : 'border-white/5 text-slate-300 hover:border-white/20 hover:text-white'
-                              }`,
-                          },
-                          item.label
-                      )
-            )
-        )
+    const value = Number(change.value ?? 0);
+    const prefix = value >= 0 ? '+' : '';
+    const suffix = change.unit === 'percent' ? '%' : '';
+
+    return `${prefix}${value}${suffix}`;
+};
+
+function MetricCard({ data, label }) {
+    const change = data?.change;
+    const hasCount = typeof data?.count === 'number';
+    const primaryValue = hasCount ? data.count : data?.amount ?? 0;
+
+    return (
+        <Card sx={cardSx}>
+            <CardContent>
+                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)', mb: 1 }}>
+                    {label}
+                </Typography>
+                <Typography variant="h3" component="p" sx={{ fontWeight: 600, mb: 1 }}>
+                    {primaryValue.toLocaleString('ar-EG')}
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'rgba(94,234,212,0.9)' }}>
+                    {formatChange(change)} {change?.period ? `/ ${change.period}` : ''}
+                </Typography>
+            </CardContent>
+        </Card>
     );
-};
+}
 
-const Header = ({ hero, heroDate, navItems, brand }) =>
-    h(
-        'header',
-        { className: 'flex flex-col gap-6 rounded-3xl border border-white/10 bg-white/5 p-6 sm:p-10' },
-        h(PrimaryNav, { items: navItems, brand }),
-        h(
-            'div',
-            { className: 'flex flex-col gap-3 text-center sm:text-left' },
-            h('p', { className: 'text-sm uppercase tracking-[0.3em] text-slate-400' }, hero.badge),
-            h('h1', { className: 'text-3xl sm:text-4xl font-semibold text-white' }, hero.title),
-            h('p', { className: 'text-base text-slate-300 max-w-3xl' }, hero.description)
-        ),
-        h(
-            'div',
-            { className: 'flex flex-wrap items-center gap-4 justify-center sm:justify-between text-slate-200 text-sm' },
-            h(
-                'div',
-                { className: 'flex items-center gap-3 rounded-full bg-white/10 px-4 py-2 text-xs sm:text-sm' },
-                h('span', { className: 'inline-flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse' }),
-                h('span', null, 'منصة متصلة بالزمن الحقيقي')
-            ),
-            h('div', { className: 'text-xs sm:text-sm text-slate-300' }, heroDate)
-        )
+export default function App() {
+    const { t, i18n } = useTranslation();
+    usePageTitle(t('dashboard-title'));
+
+    const [orders, setOrders] = useState(null);
+    const [announcements, setAnnouncements] = useState([]);
+    const [sales, setSales] = useState(null);
+    const [salesSeries, setSalesSeries] = useState([]);
+    const [salesLoading, setSalesLoading] = useState(true);
+
+    const loadDashboard = async () => {
+        setSalesLoading(true);
+        try {
+            const [ordersRes, announcementsRes, salesRes] = await Promise.all([
+                apiRequest('/dashboard/orders', { auth: true }),
+                apiRequest('/dashboard/announcements', { auth: true }),
+                apiRequest('/dashboard/sales', { auth: true }),
+            ]);
+
+            setOrders(ordersRes?.data?.totals ?? null);
+            setAnnouncements(announcementsRes?.data?.announcements ?? []);
+            setSales(salesRes?.data?.totals ?? null);
+            setSalesSeries(salesRes?.data?.series ?? []);
+        } catch (error) {
+            console.error('Failed to load dashboard data', error);
+        } finally {
+            setSalesLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadDashboard();
+    }, [i18n.language]);
+
+    const orderMetrics = useMemo(() => orderMetricsConfig(t), [t]);
+    const salesMetrics = useMemo(() => salesMetricsConfig(t), [t]);
+
+    const salesChartData = useMemo(
+        () => salesSeries.map(({ month, totalSales }) => ({ month, totalSales })),
+        [salesSeries]
     );
 
-export default function App({ page = 'showcase', mode = 'dashboard' }) {
-    const now = React.useMemo(() => new Date(), []);
-    const greeting = React.useMemo(() => greetingMessage(now), [now]);
-    const heroDate = React.useMemo(() => formatDate(now), [now]);
-    const hero = (heroCopy[page] ?? heroCopy.showcase)(mode, greeting);
-    const navItems = navSets[page]?.(mode) ?? [];
-    const brand = page === 'admin' ? 'لوحة تحكم المشرف' : page === 'portal' ? 'بوابة العملاء' : 'العرض المتكامل';
+    return (
+        <Box sx={{ backgroundColor: '#020617', minHeight: '100vh', py: 6, px: { xs: 2, md: 6 } }}>
+            <Grid container spacing={4} sx={{ maxWidth: 1400, margin: '0 auto' }}>
+                <Grid size={12}>
+                    <Typography variant="h3" component="h1" sx={{ color: 'white', fontWeight: 600 }}>
+                        {t('dashboard-title')}
+                    </Typography>
+                </Grid>
 
-    const content =
-        page === 'admin'
-            ? h('div', { className: 'space-y-8' }, h(AdminWorkspace))
-            : page === 'portal'
-              ? h('div', { className: 'space-y-8' }, h(PortalWorkspace))
-              : h('div', { className: 'grid gap-8 lg:grid-cols-2' }, h(AdminWorkspace), h(PortalWorkspace));
+                {orderMetrics.map((metric) => (
+                    <Grid key={metric.key} size={{ xs: 12, sm: 6, lg: 3 }}>
+                        <MetricCard data={orders?.[metric.key]} label={metric.label} />
+                    </Grid>
+                ))}
 
-    return h(
-        'div',
-        { className: 'bg-slate-950 text-slate-100 min-h-screen font-sans' },
-        h(
-            'div',
-            { className: 'relative isolate overflow-hidden py-10 sm:py-16 min-h-screen' },
-            h('div', {
-                className: 'absolute inset-0 -z-20 bg-gradient-to-br from-blue-900/70 via-slate-950 to-slate-950',
-            }),
-            h('div', {
-                className: 'absolute inset-x-0 -top-48 -z-10 blur-3xl opacity-30',
-                style: {
-                    background:
-                        'radial-gradient(circle at 20% 20%, rgba(59,130,246,.8), transparent 60%), radial-gradient(circle at 80% 0%, rgba(14,165,233,.5), transparent 55%)',
-                    height: '480px',
-                },
-            }),
-            h(
-                'main',
-                { className: 'relative z-10 mx-auto max-w-6xl px-4 sm:px-6 space-y-10 pb-16' },
-                h(Header, { hero, heroDate, navItems, brand }),
-                page === 'showcase'
-                    ? content
-                    : h('div', { className: 'max-w-4xl mx-auto w-full' }, content)
-            )
-        )
+                {salesMetrics.map((metric) => (
+                    <Grid key={metric.key} size={{ xs: 12, sm: 6, lg: 3 }}>
+                        <MetricCard data={sales?.[metric.key]} label={metric.label} />
+                    </Grid>
+                ))}
+
+                <Grid size={{ xs: 12, md: 6 }}>
+                    <Card sx={cardSx}>
+                        <CardContent>
+                            <Typography variant="h6" sx={{ mb: 2, color: 'rgba(255,255,255,0.75)' }}>
+                                {t('dashboard-sales')}
+                            </Typography>
+                            {salesLoading ? (
+                                chartSkeleton
+                            ) : (
+                                <Suspense fallback={chartSkeleton}>
+                                    <Fade in timeout={400}>
+                                        <Box>
+                                            <LazyLineChart
+                                                height={300}
+                                                dataset={salesChartData}
+                                                xAxis={[{ dataKey: 'month', scaleType: 'band' }]}
+                                                series={[
+                                                    {
+                                                        dataKey: 'totalSales',
+                                                        label: t('dashboard-total-sales'),
+                                                        color: '#60a5fa',
+                                                    },
+                                                ]}
+                                                margin={{ left: 20, right: 20 }}
+                                                grid={{ horizontal: true }}
+                                                slots={{ tooltip: CustomChartTooltip }}
+                                            />
+                                        </Box>
+                                    </Fade>
+                                </Suspense>
+                            )}
+                        </CardContent>
+                    </Card>
+                </Grid>
+
+                <Grid size={{ xs: 12, md: 6 }}>
+                    <Card sx={cardSx}>
+                        <CardContent>
+                            <Typography variant="h6" sx={{ mb: 2, color: 'rgba(255,255,255,0.75)' }}>
+                                {t('dashboard-announcements')}
+                            </Typography>
+                            <List>
+                                {announcements.length > 0 ? (
+                                    announcements.map((announcement) => (
+                                        <ListItem key={announcement.id} sx={{ px: 0 }}>
+                                            <ListItemText
+                                                primary={announcement.title}
+                                                secondary={announcement.message}
+                                                primaryTypographyProps={{
+                                                    sx: { color: 'white', fontWeight: 600 },
+                                                }}
+                                                secondaryTypographyProps={{
+                                                    sx: { color: 'rgba(255,255,255,0.65)' },
+                                                }}
+                                            />
+                                        </ListItem>
+                                    ))
+                                ) : (
+                                    <ListItem sx={{ px: 0 }}>
+                                        <ListItemText primary={t('dashboard-no-announcements')} />
+                                    </ListItem>
+                                )}
+                            </List>
+                        </CardContent>
+                    </Card>
+                </Grid>
+            </Grid>
+        </Box>
     );
 }
