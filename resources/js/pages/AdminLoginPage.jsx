@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Alert, Box, Button, Link, Stack, TextField } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import LoginLayout from '../components/LoginLayout.jsx';
 import TokenPreview from '../components/TokenPreview.jsx';
 import { loginAdmin } from '../services/auth.js';
+import { setAdminSession } from '../services/session.js';
 
 const initialState = { login: '', password: '' };
 
@@ -11,6 +13,7 @@ const AdminLoginPage = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [payload, setPayload] = useState(null);
+    const navigate = useNavigate();
 
     const handleChange = (event) => {
         const { name, value } = event.target;
@@ -24,8 +27,9 @@ const AdminLoginPage = () => {
 
         try {
             const response = await loginAdmin(form);
-            localStorage.setItem('admin_session', JSON.stringify(response));
+            setAdminSession(response);
             setPayload(response);
+            navigate('/admin/dashboard', { replace: true });
         } catch (err) {
             setPayload(null);
             setError(err.message);
@@ -35,14 +39,21 @@ const AdminLoginPage = () => {
     };
 
     return (
-        <LoginLayout title="منطقة التحكم" subtitle="دخول آمن لإدارة الأسطول ومتابعة العمليات لحظة بلحظة.">
+        <LoginLayout
+            title="Admin Control Room"
+            subtitle="Secure access to monitor fleet health and live bookings."
+        >
             <Stack component="form" spacing={3} onSubmit={handleSubmit}>
                 {error && <Alert severity="error">{error}</Alert>}
-                {payload && <Alert severity="success">مرحباً أيها المشرف! البيانات أدناه جاهزة للاستهلاك في الواجهة.</Alert>}
+                {payload && (
+                    <Alert severity="success">
+                        Welcome back! Your session details are available below.
+                    </Alert>
+                )}
 
                 <TextField
                     name="login"
-                    label="البريد الإلكتروني / اسم المستخدم"
+                    label="Email or username"
                     value={form.login}
                     onChange={handleChange}
                     required
@@ -51,7 +62,7 @@ const AdminLoginPage = () => {
                 />
                 <TextField
                     name="password"
-                    label="كلمة المرور"
+                    label="Password"
                     type="password"
                     value={form.password}
                     onChange={handleChange}
@@ -60,16 +71,16 @@ const AdminLoginPage = () => {
                     InputLabelProps={{ shrink: true }}
                 />
                 <Button type="submit" variant="contained" size="large" disabled={loading}>
-                    {loading ? 'جار التحقق...' : 'تسجيل الدخول كمسؤول'}
+                    {loading ? 'Checking credentials…' : 'Sign in as admin'}
                 </Button>
                 <Link href="/" underline="hover" sx={{ textAlign: 'center' }}>
-                    العودة إلى بوابة العملاء
+                    Back to the customer portal
                 </Link>
             </Stack>
 
             {payload && (
                 <Box mt={5}>
-                    <TokenPreview title="بيانات جلسة المشرف" payload={payload} />
+                    <TokenPreview title="Admin session payload" payload={payload} />
                 </Box>
             )}
         </LoginLayout>

@@ -25,24 +25,24 @@ class DashboardController extends Controller
 
         $metrics = [
             [
-                'label' => 'معدل إشغال الأسطول',
+                'label' => 'Fleet utilization',
                 'value' => sprintf('%d%%', $totalCars ? round(($activeBookings / max($totalCars, 1)) * 100) : 0),
-                'detail' => 'مقارنة بعدد المركبات الجاهزة',
-                'trend' => sprintf('%d مركبة نشطة الآن', $activeBookings),
+                'detail' => 'Share of vehicles currently dispatched',
+                'trend' => sprintf('%d trips live now', $activeBookings),
                 'accent' => 'emerald',
             ],
             [
-                'label' => 'حجوزات اليوم',
+                'label' => "Today's bookings",
                 'value' => (string) $bookingsToday,
-                'detail' => 'طلبات مسجلة منذ الصباح',
-                'trend' => sprintf('+%d عملاء جدد', $newUsersToday),
+                'detail' => 'Requests logged since midnight',
+                'trend' => sprintf('+%d new riders today', $newUsersToday),
                 'accent' => 'sky',
             ],
             [
-                'label' => 'مركبات متاحة',
+                'label' => 'Available vehicles',
                 'value' => (string) $availableCars,
-                'detail' => 'خارج حالة الصيانة',
-                'trend' => sprintf('%d تحت الصيانة', $inactiveCars),
+                'detail' => 'Ready and not under maintenance',
+                'trend' => sprintf('%d temporarily offline', $inactiveCars),
                 'accent' => 'amber',
             ],
         ];
@@ -56,11 +56,11 @@ class DashboardController extends Controller
                 $meta = $this->activityMeta($booking->status);
 
                 return [
-                    'title' => sprintf('رحلة %s (%s)', $booking->car->name, $booking->car->number),
-                    'time' => optional($booking->updated_at)->diffForHumans($now, true) ?? 'الآن',
+                    'title' => sprintf('Trip %s (%s)', $booking->car->name, $booking->car->number),
+                    'time' => optional($booking->updated_at)->diffForHumans($now, true) ?? 'now',
                     'badge' => $meta['badge'],
                     'tone' => $meta['tone'],
-                    'description' => sprintf('%s مع %s.', $meta['description'], $booking->user->name),
+                    'description' => sprintf('%s with %s.', $meta['description'], $booking->user->name),
                 ];
             })
             ->values();
@@ -81,24 +81,24 @@ class DashboardController extends Controller
     {
         return match ($status) {
             BookingStatus::ACTIVE => [
-                'badge' => 'قيد التنفيذ',
+                'badge' => 'In progress',
                 'tone' => 'sky',
-                'description' => 'تم إرسال السائق وهو في الطريق',
+                'description' => 'Driver dispatched and en route',
             ],
             BookingStatus::CLOSED => [
-                'badge' => 'أُنجزت',
+                'badge' => 'Completed',
                 'tone' => 'emerald',
-                'description' => 'أُغلقت الرحلة بنجاح',
+                'description' => 'Trip closed successfully',
             ],
             BookingStatus::CANCELLED => [
-                'badge' => 'ألغيت',
+                'badge' => 'Cancelled',
                 'tone' => 'rose',
-                'description' => 'تم إلغاء الحجز من العميل',
+                'description' => 'Client cancelled the request',
             ],
             default => [
-                'badge' => 'مُستحدث',
+                'badge' => 'New booking',
                 'tone' => 'sky',
-                'description' => 'تم تسجيل الحجز للتو',
+                'description' => 'Request logged moments ago',
             ],
         };
     }
@@ -151,18 +151,18 @@ class DashboardController extends Controller
 
         return array_values(array_filter([
             $topCar ? [
-                'title' => 'السيارة الأكثر طلباً',
-                'body' => sprintf('%s سجلت %d حجوزات مؤكدة.', $topCar->name, $topCar->bookings_count),
+                'title' => 'Most requested car',
+                'body' => sprintf('%s handled %d confirmed bookings.', $topCar->name, $topCar->bookings_count),
                 'icon' => '🚗',
             ] : null,
             [
-                'title' => 'متوسط زمن الرحلة',
-                'body' => sprintf('%.0f دقيقة بين الانطلاق والوصول خلال آخر 30 يوماً.', $avgDuration),
+                'title' => 'Average trip duration',
+                'body' => sprintf('%.0f minutes from dispatch to drop-off (last 30 days).', $avgDuration),
                 'icon' => '⏱️',
             ],
             [
-                'title' => 'آخر تحديث تشغيلي',
-                'body' => sprintf('تمت مزامنة البيانات في %s.', $now->timezone(config('app.timezone'))->format('H:i')), 
+                'title' => 'Last operational sync',
+                'body' => sprintf('Data refreshed at %s.', $now->timezone(config('app.timezone'))->format('H:i')),
                 'icon' => '🛰️',
             ],
         ]));

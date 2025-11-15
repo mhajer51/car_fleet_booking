@@ -67,3 +67,32 @@ export const Navigate = ({ to, replace = false }) => {
     }, [navigate, replace, to]);
     return null;
 };
+
+export const useNavigate = () => {
+    const { navigate } = useContext(RouterContext);
+    return navigate;
+};
+
+export const useLocation = () => {
+    const { path } = useContext(RouterContext);
+    return { pathname: path };
+};
+
+export const Link = ({ to, children, ...props }) => {
+    const navigate = useNavigate();
+
+    const handleClick = (event) => {
+        if (event.metaKey || event.ctrlKey) {
+            return;
+        }
+
+        event.preventDefault();
+        navigate(to);
+    };
+
+    return (
+        <a href={to} onClick={handleClick} {...props}>
+            {children}
+        </a>
+    );
+};
