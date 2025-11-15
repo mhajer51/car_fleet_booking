@@ -7,6 +7,19 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## Fleet dashboards
+
+The repository ships with two Arabic-first dashboards that mirror the requested URLs:
+
+| Route | Purpose |
+| --- | --- |
+| `http://car_fleet_booking.localhost/` | بوابة العملاء مع نموذج تسجيل الدخول ولوحة المقاييس للعملاء. |
+| `/portal/dashboard` | نسخة لوحة العملاء الكاملة بدون عناصر الهبوط. |
+| `/admin/login` | صفحة تسجيل الدخول للإدارة مع قائمة تنقل وواجهة مصادقة متعددة العوامل. |
+| `/admin` | لوحة تحكم المشرف مع القوائم، البطاقات التحليلية، ومراقبة حالة الأسطول. |
+
+كلا الواجهتين تستخدمان نفس حزمة Vite/React وتعرضان عناصر تسجيل الدخول، القوائم، والرسوم البيانية من دون الحاجة إلى خادم واجهة مستقل.
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
@@ -20,6 +33,34 @@ Laravel is a web application framework with expressive, elegant syntax. We belie
 - [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
 
 Laravel is accessible, powerful, and provides tools required for large, robust applications.
+
+## Local dashboard preview
+
+The dual admin / client dashboards ship with the default Laravel stack plus a Vite-based front-end build. If you run into a
+`localhost refused to connect` error, it usually means no local web server is running yet. Use the following flow to boot the
+stack end-to-end:
+
+1. Install PHP dependencies and prepare the Laravel app:
+   ```bash
+   composer install
+   cp .env.example .env
+   php artisan key:generate
+   ```
+2. Install the JavaScript dependencies: `npm install`.
+3. Start both Laravel (`php artisan serve`) and the Vite dev server in watch mode with one command:
+   ```bash
+   npm run dev:full
+   ```
+   This will expose Laravel on [http://localhost:8000](http://localhost:8000) and the hot-reload assets on port `5173`, removing
+   the need to start the processes separately.
+4. To share a static build, run `npm run build` followed by `npm run preview`. The preview server (port `4173`) hosts the already
+   compiled assets and is the easiest way to open the `public/preview.html` file without launching PHP.
+5. Prefer to keep everything behind `php artisan serve`? After you run `npm run build` once, you can simply start Laravel again –
+   the `dashboard` view powering both `/` and `/admin` auto-detects the compiled Vite manifest and loads the hashed CSS/JS directly without depending on the
+   Vite dev server. If the manifest is missing, a friendly Arabic message reminds you to build first.
+
+The `public/preview.html` file now reads from the generated Vite manifest, so once `npm run build` finishes you can simply hit
+`http://localhost:4173/preview.html` (via `npm run preview`) or serve the `public` folder with any simple static server.
 
 ## Learning Laravel
 
