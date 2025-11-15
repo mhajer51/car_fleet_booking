@@ -32,16 +32,16 @@ import AdminLayout from '../components/AdminLayout.jsx';
 import { createAdminBooking, fetchAdminBookings, fetchAdminCars, fetchAdminUsers } from '../services/admin.js';
 
 const STATUS_OPTIONS = [
-    { label: 'كل الحالات', value: 'all' },
-    { label: 'نشطة', value: 'active' },
-    { label: 'مغلقة', value: 'closed' },
-    { label: 'ملغية', value: 'cancelled' },
+    { label: 'All statuses', value: 'all' },
+    { label: 'Active', value: 'active' },
+    { label: 'Closed', value: 'closed' },
+    { label: 'Cancelled', value: 'cancelled' },
 ];
 
 const statusTone = {
-    active: { label: 'نشط', color: '#0f766e', bg: 'rgba(16,185,129,.12)' },
-    closed: { label: 'مغلق', color: '#1d4ed8', bg: 'rgba(59,130,246,.12)' },
-    cancelled: { label: 'ملغي', color: '#b91c1c', bg: 'rgba(248,113,113,.12)' },
+    active: { label: 'Active', color: '#0f766e', bg: 'rgba(16,185,129,.12)' },
+    closed: { label: 'Closed', color: '#1d4ed8', bg: 'rgba(59,130,246,.12)' },
+    cancelled: { label: 'Cancelled', color: '#b91c1c', bg: 'rgba(248,113,113,.12)' },
 };
 
 const initialForm = {
@@ -60,7 +60,7 @@ const formatDate = (value) => {
     }
 
     try {
-        return new Date(value).toLocaleString('ar-EG', {
+        return new Date(value).toLocaleString('en-US', {
             dateStyle: 'medium',
             timeStyle: 'short',
         });
@@ -198,22 +198,22 @@ const AdminBookingsPage = () => {
         setMessage('');
 
         if (form.mode === 'existing' && !form.userId) {
-            setFormError('يرجى اختيار مستخدم للحجز.');
+            setFormError('Please choose a user for this booking.');
             return;
         }
 
         if (form.mode === 'guest' && !form.guestName.trim()) {
-            setFormError('يرجى كتابة اسم الضيف.');
+            setFormError('Please enter the guest name.');
             return;
         }
 
         if (!form.carId) {
-            setFormError('حدد المركبة قبل متابعة الحجز.');
+            setFormError('Please choose a car before continuing.');
             return;
         }
 
         if (!form.startDate) {
-            setFormError('حدد تاريخ بداية الحجز.');
+            setFormError('Please set the booking start date.');
             return;
         }
 
@@ -233,7 +233,7 @@ const AdminBookingsPage = () => {
         setCreating(true);
         try {
             await createAdminBooking(payload);
-            setMessage('تم إنشاء الحجز بنجاح.');
+            setMessage('Booking created successfully.');
             closeDialog();
             loadBookings();
         } catch (err) {
@@ -246,18 +246,18 @@ const AdminBookingsPage = () => {
     const actions = (
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <Button variant="outlined" onClick={loadBookings} disabled={loading}>
-                تحديث القائمة
+                Refresh
             </Button>
             <Button variant="contained" onClick={openDialog}>
-                حجز جديد
+                New Booking
             </Button>
         </Stack>
     );
 
     return (
         <AdminLayout
-            title="الحجوزات"
-            description="سجل الرحلات مع إمكانية التصفية السريعة وتأكيد الحجوزات الجديدة."
+            title="Bookings"
+            description="Review reservation history, filter quickly, and confirm new trips."
             actions={actions}
         >
             {error && (
@@ -276,12 +276,12 @@ const AdminBookingsPage = () => {
                     <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #e2e8f0' }}>
                         <CardContent>
                             <Typography variant="h6" fontWeight={700} gutterBottom>
-                                عوامل التصفية
+                                Filters
                             </Typography>
                             <Stack spacing={2}>
                                 <TextField
                                     select
-                                    label="حالة الحجز"
+                                    label="Booking status"
                                     value={filters.status}
                                     onChange={(event) => updateFilter('status', event.target.value)}
                                 >
@@ -298,7 +298,7 @@ const AdminBookingsPage = () => {
                                     getOptionLabel={(option) => option?.name ?? ''}
                                     loading={lookupsLoading}
                                     renderInput={(params) => (
-                                        <TextField {...params} label="المستخدم" placeholder="بحث بالاسم" />
+                                        <TextField {...params} label="User" placeholder="Search by name" />
                                     )}
                                 />
                                 <Autocomplete
@@ -308,18 +308,18 @@ const AdminBookingsPage = () => {
                                     getOptionLabel={(option) => option?.name ?? ''}
                                     loading={lookupsLoading}
                                     renderInput={(params) => (
-                                        <TextField {...params} label="المركبة" placeholder="بحث بالاسم" />
+                                        <TextField {...params} label="Car" placeholder="Search by name" />
                                     )}
                                 />
                                 <TextField
-                                    label="من تاريخ"
+                                    label="From date"
                                     type="date"
                                     InputLabelProps={{ shrink: true }}
                                     value={filters.from_date}
                                     onChange={(event) => updateFilter('from_date', event.target.value)}
                                 />
                                 <TextField
-                                    label="إلى تاريخ"
+                                    label="To date"
                                     type="date"
                                     InputLabelProps={{ shrink: true }}
                                     value={filters.to_date}
@@ -327,10 +327,10 @@ const AdminBookingsPage = () => {
                                 />
                                 <Stack direction="row" spacing={2}>
                                     <Button variant="contained" fullWidth onClick={loadBookings} disabled={loading}>
-                                        تطبيق
+                                        Apply filters
                                     </Button>
                                     <Button variant="text" fullWidth onClick={resetFilters}>
-                                        إعادة تعيين
+                                        Reset
                                     </Button>
                                 </Stack>
                             </Stack>
@@ -344,10 +344,10 @@ const AdminBookingsPage = () => {
                             <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'center' }} spacing={2} mb={3}>
                                 <Box>
                                     <Typography variant="h6" fontWeight={700}>
-                                        جدول الحجوزات
+                                        Bookings table
                                     </Typography>
                                     <Typography variant="body2" color="text.secondary">
-                                        {totalRecords} حجز • عرض {visibleRange.from} - {visibleRange.to}
+                                        {totalRecords} bookings • Showing {visibleRange.from} - {visibleRange.to}
                                     </Typography>
                                 </Box>
                             </Stack>
@@ -356,12 +356,12 @@ const AdminBookingsPage = () => {
                                 <Table>
                                     <TableHead>
                                         <TableRow>
-                                            <TableCell>المعرف</TableCell>
-                                            <TableCell>المستخدم</TableCell>
-                                            <TableCell>المركبة</TableCell>
-                                            <TableCell>البداية</TableCell>
-                                            <TableCell>النهاية</TableCell>
-                                            <TableCell>الحالة</TableCell>
+                                            <TableCell>ID</TableCell>
+                                            <TableCell>User</TableCell>
+                                            <TableCell>Car</TableCell>
+                                            <TableCell>Start</TableCell>
+                                            <TableCell>End</TableCell>
+                                            <TableCell>Status</TableCell>
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
@@ -371,7 +371,7 @@ const AdminBookingsPage = () => {
                                                     <Stack alignItems="center" py={4} spacing={1}>
                                                         <CircularProgress size={24} />
                                                         <Typography variant="body2" color="text.secondary">
-                                                            يتم تحميل الحجوزات…
+                                                            Loading bookings…
                                                         </Typography>
                                                     </Stack>
                                                 </TableCell>
@@ -380,7 +380,7 @@ const AdminBookingsPage = () => {
                                             <TableRow>
                                                 <TableCell colSpan={6} align="center">
                                                     <Typography color="text.secondary" py={3}>
-                                                        لا توجد حجوزات مطابقة.
+                                                        No bookings match your filters.
                                                     </Typography>
                                                 </TableCell>
                                             </TableRow>
@@ -434,20 +434,20 @@ const AdminBookingsPage = () => {
             </Grid>
 
             <Dialog open={dialogOpen} onClose={closeDialog} fullWidth maxWidth="sm" component="form" onSubmit={submitBooking}>
-                <DialogTitle>حجز جديد</DialogTitle>
+                <DialogTitle>New booking</DialogTitle>
                 <DialogContent dividers>
                     <Stack spacing={3} mt={1}>
                         <Stack spacing={1}>
                             <Typography variant="subtitle2" color="text.secondary">
-                                نوع العميل
+                                Customer type
                             </Typography>
                             <RadioGroup
                                 row
                                 value={form.mode}
                                 onChange={(event) => handleFormChange('mode', event.target.value)}
                             >
-                                <FormControlLabel value="existing" control={<Radio />} label="مستخدم مسجل" />
-                                <FormControlLabel value="guest" control={<Radio />} label="ضيف" />
+                                <FormControlLabel value="existing" control={<Radio />} label="Existing user" />
+                                <FormControlLabel value="guest" control={<Radio />} label="Guest" />
                             </RadioGroup>
                         </Stack>
 
@@ -457,11 +457,11 @@ const AdminBookingsPage = () => {
                                 value={users.find((user) => user.id === Number(form.userId)) ?? null}
                                 onChange={(_event, value) => handleFormChange('userId', value?.id ?? '')}
                                 getOptionLabel={(option) => option?.name ?? ''}
-                                renderInput={(params) => <TextField {...params} label="المستخدم" required />}
+                                renderInput={(params) => <TextField {...params} label="User" required />}
                             />
                         ) : (
                             <TextField
-                                label="اسم الضيف"
+                                label="Guest name"
                                 value={form.guestName}
                                 onChange={(event) => handleFormChange('guestName', event.target.value)}
                                 required
@@ -470,13 +470,13 @@ const AdminBookingsPage = () => {
 
                         <TextField
                             select
-                            label="المركبة"
+                            label="Car"
                             value={form.carId}
                             onChange={(event) => handleFormChange('carId', event.target.value)}
                             required
                         >
                             <MenuItem value="" disabled>
-                                اختر المركبة
+                                Select a car
                             </MenuItem>
                             {cars.map((car) => (
                                 <MenuItem key={car.id} value={car.id}>
@@ -487,7 +487,7 @@ const AdminBookingsPage = () => {
 
                         <TextField
                             type="datetime-local"
-                            label="بداية الحجز"
+                            label="Start date"
                             value={form.startDate}
                             onChange={(event) => handleFormChange('startDate', event.target.value)}
                             InputLabelProps={{ shrink: true }}
@@ -496,7 +496,7 @@ const AdminBookingsPage = () => {
 
                         <TextField
                             type="datetime-local"
-                            label="نهاية الحجز"
+                            label="End date"
                             value={form.endDate}
                             onChange={(event) => handleFormChange('endDate', event.target.value)}
                             InputLabelProps={{ shrink: true }}
@@ -510,7 +510,7 @@ const AdminBookingsPage = () => {
                                     onChange={(event) => handleFormChange('openBooking', event.target.checked)}
                                 />
                             }
-                            label="حجز مفتوح بدون موعد تسليم"
+                            label="Open booking without return date"
                         />
 
                         {formError && (
@@ -519,9 +519,9 @@ const AdminBookingsPage = () => {
                     </Stack>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={closeDialog}>إلغاء</Button>
+                    <Button onClick={closeDialog}>Cancel</Button>
                     <Button type="submit" variant="contained" disabled={creating}>
-                        {creating ? 'جاري الإنشاء…' : 'تأكيد الحجز'}
+                        {creating ? 'Creating…' : 'Confirm booking'}
                     </Button>
                 </DialogActions>
             </Dialog>

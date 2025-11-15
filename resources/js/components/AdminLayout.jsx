@@ -17,7 +17,7 @@ const NAV_LINKS = [
     { label: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
     { label: 'Users', href: '/admin/users', icon: '👥' },
     { label: 'Cars', href: '/admin/cars', icon: '🚗' },
-    { label: 'الحجوزات', href: '/admin/bookings', icon: '📅' },
+    { label: 'Bookings', href: '/admin/bookings', icon: '📅' },
 ];
 
 const AdminLayout = ({ title, description, actions, children }) => {
