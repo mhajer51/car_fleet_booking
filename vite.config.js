@@ -13,8 +13,7 @@ export default defineConfig({
     ],
     resolve: {
         alias: {
-            react: fileURLToPath(new URL('./resources/js/lib/react-lite.js', import.meta.url)),
-            'react-dom/client': fileURLToPath(new URL('./resources/js/lib/react-lite-dom.js', import.meta.url)),
+            '@': fileURLToPath(new URL('./resources/js', import.meta.url)),
         },
     },
 });

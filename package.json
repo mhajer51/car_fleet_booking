@@ -4,7 +4,7 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite --host 0.0.0.0 --port 5173"
+        "dev": "vite --host 0.0.0.0 --port 5173",
         "preview": "vite preview --host 0.0.0.0 --port 4173",
         "dev:full": "concurrently -k \"php artisan serve --host=0.0.0.0 --port=8000\" \"vite --host 0.0.0.0 --port=5173\""
     },
@@ -15,5 +15,15 @@
         "laravel-vite-plugin": "^2.0.0",
         "tailwindcss": "^4.0.0",
         "vite": "^7.0.7"
+    },
+    "dependencies": {
+        "@emotion/react": "^11.13.5",
+        "@emotion/styled": "^11.13.5",
+        "@mui/material": "^6.1.2",
+        "@mui/x-charts": "^7.24.0",
+        "i18next": "^24.2.1",
+        "react": "^18.3.1",
+        "react-dom": "^18.3.1",
+        "react-i18next": "^15.4.0"
     }
 }
