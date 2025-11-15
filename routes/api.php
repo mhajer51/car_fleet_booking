@@ -1,12 +1,12 @@
 <?php
 
-use App\\Http\\Controllers\\Api\\AuthController;
 use App\\Http\\Controllers\\Api\\BookingController;
 use App\\Http\\Controllers\\Api\\CarController;
+use App\\Http\\Controllers\\User\\AuthController as UserAuthController;
 use Illuminate\\Support\\Facades\\Route;
 
 Route::prefix('auth')->group(function (): void {
-    Route::post('login/user', [AuthController::class, 'loginUser'])
+    Route::post('login/user', [UserAuthController::class, 'login'])
         ->name('api.user.login');
 });
 
