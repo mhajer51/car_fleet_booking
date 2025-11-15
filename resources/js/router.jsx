@@ -6,7 +6,6 @@ import AdminCarsPage from './pages/AdminCarsPage.jsx';
 import UserLoginPage from './pages/UserLoginPage.jsx';
 import UserDashboardPage from './pages/UserDashboardPage.jsx';
 import UserBookingsPage from './pages/UserBookingsPage.jsx';
-import UserCarsPage from './pages/UserCarsPage.jsx';
 import RequireAdmin from './components/RequireAdmin.jsx';
 import RequireUser from './components/RequireUser.jsx';
 
