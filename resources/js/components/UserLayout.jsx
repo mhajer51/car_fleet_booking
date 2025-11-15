@@ -16,7 +16,6 @@ import { clearUserSession, getUserSession } from '../services/session.js';
 const NAV_LINKS = [
     { label: 'الرئيسية', href: '/portal/dashboard', icon: '🏠' },
     { label: 'الحجوزات', href: '/portal/bookings', icon: '📅' },
-    { label: 'السيارات المتاحة', href: '/portal/cars', icon: '🚘' },
 ];
 
 const UserLayout = ({ title, description, actions, children }) => {
