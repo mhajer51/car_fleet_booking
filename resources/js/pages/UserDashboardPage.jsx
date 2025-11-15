@@ -100,30 +100,7 @@ const SuggestionsCard = ({ suggestions }) => (
     </Card>
 );
 
-const HeatmapCard = ({ heatmap }) => (
-    <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #e2e8f0', height: '100%' }}>
-        <CardContent>
-            <Typography variant="h6" gutterBottom fontWeight={600}>
-                نشاط المدن
-            </Typography>
-            <Stack spacing={2}>
-                {heatmap.map((zone) => (
-                    <Box key={zone.label}>
-                        <Stack direction="row" justifyContent="space-between" alignItems="center">
-                            <Typography fontWeight={600}>{zone.label}</Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                {zone.value}%
-                            </Typography>
-                        </Stack>
-                        <Box sx={{ mt: 1, height: 10, borderRadius: 999, backgroundColor: '#e2e8f0', overflow: 'hidden' }}>
-                            <Box sx={{ width: `${zone.value}%`, height: '100%', backgroundColor: '#0ea5e9' }} />
-                        </Box>
-                    </Box>
-                ))}
-            </Stack>
-        </CardContent>
-    </Card>
-);
+
 
 const UserDashboardPage = () => {
     const [data, setData] = useState(null);
@@ -190,9 +167,6 @@ const UserDashboardPage = () => {
                         </Grid>
                         <Grid item xs={12} md={6}>
                             <SuggestionsCard suggestions={data.suggestions ?? []} />
-                        </Grid>
-                        <Grid item xs={12}>
-                            <HeatmapCard heatmap={data.heatmap ?? []} />
                         </Grid>
                     </Grid>
                 </Stack>

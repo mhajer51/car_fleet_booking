@@ -29,14 +29,6 @@ const AppRouter = () => (
                 </RequireUser>
             }
         />
-        <Route
-            path="/portal/cars"
-            element={
-                <RequireUser>
-                    <UserCarsPage />
-                </RequireUser>
-            }
-        />
         <Route path="/admin" element={<AdminLoginPage />} />
         <Route
             path="/admin/dashboard"
