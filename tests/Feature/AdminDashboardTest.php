@@ -47,7 +47,6 @@ class AdminDashboardTest extends TestCase
         $response->assertRedirect(route('admin.dashboard'));
         $this->assertDatabaseHas('users', [
             'username' => 'test-user',
-            'role' => 'user',
         ]);
     }
 

@@ -17,10 +17,10 @@ class DatabaseSeeder extends Seeder
             'email' => 'fleet-admin@example.com',
         ]);
 
-        User::factory()->admin()->create([
-            'name' => 'Fleet Admin',
-            'username' => 'admin',
-            'email' => 'admin@example.com',
+        User::factory()->create([
+            'name' => 'Fleet User',
+            'username' => 'user',
+            'email' => 'user@example.com',
             'employee_number' => 'EMP0001',
         ]);
 

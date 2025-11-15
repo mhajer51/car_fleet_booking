@@ -25,10 +25,7 @@ class AdminDashboardController extends Controller
 
     public function storeUser(StoreManagedUserRequest $request): RedirectResponse
     {
-        $data = $request->validated();
-        $data['role'] = 'user';
-
-        User::create($data);
+        User::create($request->validated());
 
         return redirect()->route('admin.dashboard')->with('status', 'User created successfully.');
     }
