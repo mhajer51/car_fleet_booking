@@ -10,7 +10,7 @@ export default defineConfig({
             input: [
                 'resources/css/app.css',
                 'resources/js/app.jsx',
-                // لو عندك ملف منفصل للـ admin مثلاً:
+                // Add additional entry points (for example, an admin bundle) if needed:
                 // 'resources/js/admin.jsx',
             ],
             refresh: true,
@@ -22,7 +22,7 @@ export default defineConfig({
     resolve: {
         alias: {
             '@': fileURLToPath(new URL('./resources/js', import.meta.url)),
-            // هذا إذا كنت فعلاً تستخدم ملف محلي بدل باكدج react-router-dom
+            // Uncomment if you truly need to rely on the local react-router-dom shim:
             'react-router-dom': fileURLToPath(
                 new URL('./resources/js/lib/react-router-dom.jsx', import.meta.url)
             ),
@@ -33,7 +33,7 @@ export default defineConfig({
         host: '0.0.0.0',
         port: 5173,
         hmr: {
-            host: 'car_fleet_booking.localhost', // نفس الدومين اللي تفتحه في المتصفح
+            host: 'car_fleet_booking.localhost', // Match the domain opened in the browser
             protocol: 'ws',
             port: 5173,
         },

@@ -25,10 +25,10 @@ import {
 import { getUserSession } from '../services/session.js';
 
 const STATUS_OPTIONS = [
-    { value: '', label: 'جميع الحالات' },
-    { value: 'active', label: 'نشط' },
-    { value: 'closed', label: 'مغلق' },
-    { value: 'cancelled', label: 'ملغي' },
+    { value: '', label: 'All statuses' },
+    { value: 'active', label: 'Active' },
+    { value: 'closed', label: 'Closed' },
+    { value: 'cancelled', label: 'Cancelled' },
 ];
 
 const initialFilters = {
@@ -48,7 +48,7 @@ const formatDate = (value) => {
     if (!value) return '—';
     try {
         const date = new Date(value);
-        return new Intl.DateTimeFormat('ar-SA', {
+        return new Intl.DateTimeFormat('en-US', {
             dateStyle: 'medium',
             timeStyle: 'short',
         }).format(date);
@@ -58,9 +58,9 @@ const formatDate = (value) => {
 };
 
 const statusTone = {
-    active: { label: 'نشط', color: '#0ea5e9' },
-    closed: { label: 'مغلق', color: '#22c55e' },
-    cancelled: { label: 'ملغي', color: '#f97316' },
+    active: { label: 'Active', color: '#0ea5e9' },
+    closed: { label: 'Closed', color: '#22c55e' },
+    cancelled: { label: 'Cancelled', color: '#f97316' },
 };
 
 const UserBookingsPage = () => {
@@ -187,7 +187,7 @@ const UserBookingsPage = () => {
                 car_id: bookingForm.car_id ? Number(bookingForm.car_id) : null,
                 end_date: bookingForm.open_booking ? null : bookingForm.end_date || null,
             });
-            setMessage('تم تسجيل الحجز بنجاح.');
+            setMessage('Booking saved successfully.');
             setBookingForm(initialBooking);
             loadBookings();
             loadCars();
@@ -205,7 +205,7 @@ const UserBookingsPage = () => {
         setMessage('');
         try {
             await returnUserBooking(bookingId);
-            setMessage('تم إغلاق الحجز وتسليم المركبة.');
+            setMessage('The booking was closed and the vehicle was returned.');
             loadBookings();
             loadCars();
         } catch (err) {
@@ -218,26 +218,26 @@ const UserBookingsPage = () => {
     const actions = (
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <Button variant="outlined" onClick={() => loadBookings()} disabled={loading}>
-                تحديث السجل
+                Refresh log
             </Button>
             <Button variant="outlined" onClick={() => loadCars()} disabled={creating || carsLoading}>
-                تحديث السيارات
+                Refresh cars
             </Button>
         </Stack>
     );
 
     const carHelperText = !bookingForm.start_date
-        ? 'حدد تاريخ بداية الحجز لعرض السيارات المتاحة.'
+        ? 'Select a start date to display the available cars.'
         : carsLoading
-            ? 'يتم تحديث السيارات المتاحة…'
+            ? 'Updating the available cars…'
             : !cars.length
-                ? 'لا توجد سيارات متاحة في الفترة المحددة.'
+                ? 'No cars are available for the selected dates.'
                 : '';
 
     return (
         <UserLayout
-            title="حجوزاتي"
-            description="أنشئ حجوزات جديدة وتابع حالة رحلاتك المفتوحة."
+            title="My bookings"
+            description="Create new bookings and monitor your open trips."
             actions={actions}
         >
             {error && (
@@ -257,13 +257,13 @@ const UserBookingsPage = () => {
                         <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #e2e8f0' }}>
                             <CardContent>
                                 <Typography variant="h6" fontWeight={700} gutterBottom>
-                                    تصفية السجل
+                                    Filter log
                                 </Typography>
                                 <Stack component="form" spacing={2} onSubmit={applyFilters}>
                                     <TextField
                                         select
                                         name="status"
-                                        label="الحالة"
+                                        label="Status"
                                         value={filters.status}
                                         onChange={handleFilterChange}
                                         InputLabelProps={{ shrink: true }}
@@ -276,7 +276,7 @@ const UserBookingsPage = () => {
                                     </TextField>
                                     <TextField
                                         name="from"
-                                        label="من"
+                                        label="From"
                                         type="date"
                                         value={filters.from}
                                         onChange={handleFilterChange}
@@ -284,7 +284,7 @@ const UserBookingsPage = () => {
                                     />
                                     <TextField
                                         name="to"
-                                        label="إلى"
+                                        label="To"
                                         type="date"
                                         value={filters.to}
                                         onChange={handleFilterChange}
@@ -292,10 +292,10 @@ const UserBookingsPage = () => {
                                     />
                                     <Stack direction="row" spacing={2}>
                                         <Button type="submit" variant="contained" fullWidth disabled={loading}>
-                                            تطبيق
+                                            Apply
                                         </Button>
                                         <Button variant="text" fullWidth onClick={resetFilters}>
-                                            إعادة تعيين
+                                            Reset
                                         </Button>
                                     </Stack>
                                 </Stack>
@@ -305,13 +305,13 @@ const UserBookingsPage = () => {
                         <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #e2e8f0' }}>
                             <CardContent>
                                 <Typography variant="h6" fontWeight={700} gutterBottom>
-                                    حجز جديد
+                                    New booking
                                 </Typography>
                                 <Stack component="form" spacing={2} onSubmit={submitBooking}>
                                     <TextField
                                         select
                                         name="car_id"
-                                        label="اختر السيارة"
+                                        label="Choose a car"
                                         value={bookingForm.car_id}
                                         onChange={handleBookingChange}
                                         required
@@ -320,16 +320,16 @@ const UserBookingsPage = () => {
                                         InputLabelProps={{ shrink: true }}
                                     >
                                         <MenuItem value="" disabled>
-                                            اختر المركبة المتاحة
+                                            Pick an available vehicle
                                         </MenuItem>
                                         {carsLoading && (
                                             <MenuItem value="" disabled>
-                                                يتم تحميل السيارات…
+                                                Loading cars…
                                             </MenuItem>
                                         )}
                                         {!carsLoading && bookingForm.start_date && !cars.length && (
                                             <MenuItem value="" disabled>
-                                                لا توجد سيارات لهذه الفترة
+                                                No cars are available for this range
                                             </MenuItem>
                                         )}
                                         {!carsLoading &&
@@ -341,7 +341,7 @@ const UserBookingsPage = () => {
                                     </TextField>
                                     <TextField
                                         name="start_date"
-                                        label="بداية الحجز"
+                                        label="Start date"
                                         type="datetime-local"
                                         value={bookingForm.start_date}
                                         onChange={handleBookingChange}
@@ -350,7 +350,7 @@ const UserBookingsPage = () => {
                                     />
                                     <TextField
                                         name="end_date"
-                                        label="نهاية الحجز"
+                                        label="End date"
                                         type="datetime-local"
                                         value={bookingForm.end_date}
                                         onChange={handleBookingChange}
@@ -359,10 +359,10 @@ const UserBookingsPage = () => {
                                     />
                                     <FormControlLabel
                                         control={<Checkbox checked={bookingForm.open_booking} onChange={handleOpenToggle} />}
-                                        label="رحلة مفتوحة بدون موعد تسليم"
+                                        label="Open trip without a return date"
                                     />
                                     <Button type="submit" variant="contained" disabled={creating}>
-                                        {creating ? 'يتم إنشاء الحجز…' : 'تأكيد الحجز'}
+                                        {creating ? 'Creating booking…' : 'Confirm booking'}
                                     </Button>
                                 </Stack>
                             </CardContent>
@@ -374,14 +374,14 @@ const UserBookingsPage = () => {
                     <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #e2e8f0', minHeight: 420 }}>
                         <CardContent>
                             <Typography variant="h6" fontWeight={700} gutterBottom>
-                                سجل الحجوزات
+                                Booking history
                             </Typography>
 
                             {loading && (
                                 <Stack alignItems="center" py={6}>
                                     <CircularProgress />
                                     <Typography mt={2} color="text.secondary">
-                                        يتم تحميل البيانات…
+                                        Loading data…
                                     </Typography>
                                 </Stack>
                             )}
@@ -389,10 +389,10 @@ const UserBookingsPage = () => {
                             {!loading && !bookings.length && (
                                 <Box textAlign="center" py={8}>
                                     <Typography fontWeight={600} gutterBottom>
-                                        لا توجد حجوزات مطابقة
+                                        No bookings match the filters
                                     </Typography>
                                     <Typography color="text.secondary">
-                                        استخدم النموذج الجانبي لإنشاء أول رحلة لك.
+                                        Use the form on the left to schedule your first trip.
                                     </Typography>
                                 </Box>
                             )}
@@ -418,13 +418,13 @@ const UserBookingsPage = () => {
                                                 <Grid container spacing={2} mt={1}>
                                                     <Grid item xs={12} sm={6}>
                                                         <Typography variant="caption" color="text.secondary">
-                                                            البداية
+                                                            Start
                                                         </Typography>
                                                         <Typography fontWeight={600}>{formatDate(booking.start_date)}</Typography>
                                                     </Grid>
                                                     <Grid item xs={12} sm={6}>
                                                         <Typography variant="caption" color="text.secondary">
-                                                            النهاية
+                                                            End
                                                         </Typography>
                                                         <Typography fontWeight={600}>{formatDate(booking.end_date)}</Typography>
                                                     </Grid>
@@ -438,7 +438,7 @@ const UserBookingsPage = () => {
                                                             onClick={() => closeBooking(booking.id)}
                                                             disabled={returningId === booking.id}
                                                         >
-                                                            {returningId === booking.id ? 'يتم الإنهاء…' : 'تسليم السيارة'}
+                                                            {returningId === booking.id ? 'Completing…' : 'Return vehicle'}
                                                         </Button>
                                                     </Box>
                                                 )}

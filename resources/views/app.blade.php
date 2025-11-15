@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>منصة الحجز الذكية</title>
+        <title>Intelligent Booking Platform</title>
         @viteReactRefresh
         @vite('resources/js/app.jsx')
     </head>

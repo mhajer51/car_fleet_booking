@@ -30,24 +30,24 @@ class OverviewController extends Controller
 
         $metrics = [
             [
-                'label' => 'حجوزات اليوم',
+                'label' => 'Bookings today',
                 'value' => (string) $bookingsToday,
-                'detail' => 'إجمالي الطلبات المؤكدة',
-                'trend' => sprintf('%s%d عن الأمس', $this->trendPrefix($bookingsToday, $bookingsYesterday), abs($bookingsToday - $bookingsYesterday)),
+                'detail' => 'Total confirmed requests',
+                'trend' => sprintf('%s%d vs. yesterday', $this->trendPrefix($bookingsToday, $bookingsYesterday), abs($bookingsToday - $bookingsYesterday)),
                 'accent' => 'violet',
             ],
             [
-                'label' => 'السيارات الجاهزة',
+                'label' => 'Vehicles ready',
                 'value' => (string) $availableCars,
-                'detail' => 'مركبات متاحة للإطلاق',
-                'trend' => sprintf('%d%% إشغال', $totalCars ? round(($activeBookings / max($totalCars, 1)) * 100) : 0),
+                'detail' => 'Cars available to deploy',
+                'trend' => sprintf('%d%% utilization', $totalCars ? round(($activeBookings / max($totalCars, 1)) * 100) : 0),
                 'accent' => 'emerald',
             ],
             [
-                'label' => 'عملاء متصلون',
+                'label' => 'Connected clients',
                 'value' => (string) $engagedClients,
-                'detail' => 'نشطون خلال آخر ساعة',
-                'trend' => sprintf('+%d مستخدم جديد', $newUsersToday),
+                'detail' => 'Active during the last hour',
+                'trend' => sprintf('+%d new users', $newUsersToday),
                 'accent' => 'sky',
             ],
         ];
@@ -65,7 +65,7 @@ class OverviewController extends Controller
                 return [
                     'title' => sprintf('%s • %s', $booking->car->name, $booking->user->name),
                     'time' => $time,
-                    'location' => sprintf('السيارة %s • %s', $booking->car->model, $booking->car->number),
+                    'location' => sprintf('Vehicle %s • %s', $booking->car->model, $booking->car->number),
                     'status' => $this->statusLabel($booking->status),
                 ];
             })
@@ -92,17 +92,17 @@ class OverviewController extends Controller
     private function statusLabel(?BookingStatus $status): string
     {
         return match ($status) {
-            BookingStatus::ACTIVE => 'قيد التنفيذ',
-            BookingStatus::CLOSED => 'تم التسليم',
-            BookingStatus::CANCELLED => 'ألغيت',
-            default => 'جديد',
+            BookingStatus::ACTIVE => 'In progress',
+            BookingStatus::CLOSED => 'Returned',
+            BookingStatus::CANCELLED => 'Cancelled',
+            default => 'New',
         };
     }
 
     private function trendPrefix(int $current, int $previous): string
     {
         if ($current === $previous) {
-            return 'مستقر • ±';
+            return 'Stable • ±';
         }
 
         return $current > $previous ? '+' : '-';
@@ -113,25 +113,25 @@ class OverviewController extends Controller
         $suggestions = [];
 
         if ($totalCars > 0 && $availableCars < max(1, (int) ceil($totalCars * 0.3))) {
-            $suggestions[] = 'قم بإعادة توزيع المركبات إلى المدن ذات الطلب العالي للحفاظ على التوافر.';
+            $suggestions[] = 'Rebalance the fleet toward the highest-demand cities to preserve availability.';
         }
 
         if ($avgDuration > 60) {
-            $suggestions[] = 'قلّص زمن الرحلة بتحديد نقاط التسليم مسبقاً مع السائقين.';
+            $suggestions[] = 'Shorten trip durations by predefining drop-off checkpoints with drivers.';
         } else {
-            $suggestions[] = 'زمن الرحلة تحت السيطرة، استمر في تفعيل وضع الحجز السريع.';
+            $suggestions[] = 'Trip durations look healthy—keep the express booking mode enabled.';
         }
 
         $suggestions[] = $bookingsToday === 0
-            ? 'فعّل حملة ترحيبية لتحفيز العملاء على فتح حجوزات اليوم.'
-            : 'شارك العملاء النشطين برسالة شكر مع تفاصيل الحجز المباشر.';
+            ? 'Launch a welcome campaign to nudge customers toward opening bookings today.'
+            : 'Share a thank-you note with active customers highlighting instant booking perks.';
 
         return $suggestions;
     }
 
     private function buildHeatmap(): array
     {
-        $cities = ['الرياض', 'جدة', 'الدمام'];
+        $cities = ['Riyadh', 'Jeddah', 'Dammam'];
         $cityTotals = array_fill_keys($cities, 0);
 
         $bookings = Booking::query()->select(['id', 'user_id'])->get();
