@@ -4,25 +4,20 @@ namespace Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\User>
+ * @extends Factory<\App\Models\Admin>
  */
-class UserFactory extends Factory
+class AdminFactory extends Factory
 {
-    protected static ?string $password;
-
     public function definition(): array
     {
         return [
             'name' => fake()->name(),
             'username' => fake()->unique()->userName(),
             'email' => fake()->unique()->safeEmail(),
-            'employee_number' => fake()->unique()->numerify('EMP####'),
-            'password' => static::$password ??= Hash::make('password'),
+            'password' => Hash::make('password'),
             'is_active' => true,
-            'remember_token' => Str::random(10),
         ];
     }
 }
