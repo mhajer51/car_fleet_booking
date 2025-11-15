@@ -4,17 +4,17 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Concerns\HandlesAccountAuthentication;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\User\UserLoginRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class AuthController extends Controller
 {
     use HandlesAccountAuthentication;
 
-    public function login(Request $request): JsonResponse
+    public function login(UserLoginRequest $request): JsonResponse
     {
-        $credentials = $this->validateCredentials($request);
+        $credentials = $request->validated();
 
         $user = $this->findAccount($credentials['login'], User::class);
 

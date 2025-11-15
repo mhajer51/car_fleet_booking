@@ -4,17 +4,17 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Concerns\HandlesAccountAuthentication;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\AdminLoginRequest;
 use App\Models\Admin;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class AuthController extends Controller
 {
     use HandlesAccountAuthentication;
 
-    public function login(Request $request): JsonResponse
+    public function login(AdminLoginRequest $request): JsonResponse
     {
-        $credentials = $this->validateCredentials($request);
+        $credentials = $request->validated();
 
         $admin = $this->findAccount($credentials['login'], Admin::class);
 
