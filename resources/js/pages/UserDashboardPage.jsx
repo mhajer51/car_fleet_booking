@@ -105,40 +105,6 @@ const TimelineCard = ({ timeline }) => (
     </Card>
 );
 
-const SuggestionsCard = ({ suggestions }) => (
-    <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #e2e8f0', height: '100%' }}>
-        <CardContent>
-            <Typography variant="h6" gutterBottom fontWeight={600}>
-                Instant recommendations
-            </Typography>
-            <List dense>
-                {suggestions.length === 0 && (
-                    <Typography color="text.secondary" px={1}>
-                        We will surface tactical actions here once bookings start flowing.
-                    </Typography>
-                )}
-                {suggestions.map((suggestion, index) => (
-                    <ListItem key={`${suggestion}-${index}`} sx={{ alignItems: 'flex-start' }}>
-                        <ListItemAvatar sx={{ minWidth: 36 }}>
-                            <Avatar
-                                sx={{
-                                    bgcolor: alpha('#f59e0b', 0.12),
-                                    color: '#b45309',
-                                    width: 32,
-                                    height: 32,
-                                    fontSize: 16,
-                                }}
-                            >
-                                💡
-                            </Avatar>
-                        </ListItemAvatar>
-                        <ListItemText primary={suggestion} primaryTypographyProps={{ fontSize: 14, lineHeight: 1.4 }} />
-                    </ListItem>
-                ))}
-            </List>
-        </CardContent>
-    </Card>
-);
 
 const TrendCard = ({ trend }) => {
     const labels = trend.map((item) => item.label);
@@ -482,7 +448,6 @@ const UserDashboardPage = () => {
                         </Grid>
                     </Grid>
 
-                    <SuggestionsCard suggestions={data.suggestions ?? []} />
                 </Stack>
             )}
         </UserLayout>
