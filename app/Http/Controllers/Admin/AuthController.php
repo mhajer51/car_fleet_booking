@@ -12,6 +12,7 @@ class AuthController extends Controller
 
     public function login(AdminLoginRequest $request): JsonResponse
     {
+        dd(33);
         $credentials = $request->validated();
 
         $admin = $this->findAccount($credentials['login'], Admin::class);

@@ -5,7 +5,7 @@ namespace App\Http\Controllers\User;
 use App\Enums\BookingStatus;
 use App\Exceptions\BookingConflictException;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreBookingRequest;
+use App\Http\Requests\User\StoreBookingRequest;
 use App\Models\Booking;
 use App\Models\Car;
 use App\Models\User;

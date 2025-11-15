@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Admin;
 
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Exceptions\HttpResponseException;
 
 class AdminLoginRequest extends FormRequest
 {
@@ -17,5 +19,13 @@ class AdminLoginRequest extends FormRequest
             'login' => ['required', 'string'],
             'password' => ['required', 'string'],
         ];
+    }
+
+    protected function failedValidation(Validator $validator)
+    {
+        $errors = $validator->errors();
+        throw new HttpResponseException(
+            apiResponse('Validation failed', $errors->toArray(), 422)
+        );
     }
 }

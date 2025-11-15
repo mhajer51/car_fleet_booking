@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Admin\Car;
 
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Exceptions\HttpResponseException;
 
 class AdminCarStoreRequest extends FormRequest
 {
@@ -20,5 +22,13 @@ class AdminCarStoreRequest extends FormRequest
             'number' => ['required', 'string', 'max:255', 'unique:cars,number'],
             'is_active' => ['sometimes', 'boolean'],
         ];
+    }
+
+    protected function failedValidation(Validator $validator)
+    {
+        $errors = $validator->errors();
+        throw new HttpResponseException(
+            apiResponse('Validation failed', $errors->toArray(), 422)
+        );
     }
 }

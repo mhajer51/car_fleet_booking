@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Admin\User;
 
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Validation\Rule;
 
 class AdminUserUpdateRequest extends FormRequest
@@ -25,5 +27,13 @@ class AdminUserUpdateRequest extends FormRequest
             'role' => ['sometimes', 'string', Rule::in(['admin', 'user'])],
             'is_active' => ['sometimes', 'boolean'],
         ];
+    }
+
+    protected function failedValidation(Validator $validator)
+    {
+        $errors = $validator->errors();
+        throw new HttpResponseException(
+            apiResponse('Validation failed', $errors->toArray(), 422)
+        );
     }
 }
