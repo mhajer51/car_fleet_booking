@@ -22,8 +22,16 @@ class LoginApiTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertJsonPath('user.id', $user->id)
-            ->assertJsonPath('message', 'User logged in successfully.');
+            ->assertJsonPath('message', 'User logged in successfully.')
+            ->assertJsonPath('data.user.id', $user->id)
+            ->assertJsonStructure([
+                'data' => [
+                    'token',
+                    'token_type',
+                    'expires_in',
+                    'user' => ['id', 'name', 'email', 'username', 'employee_number'],
+                ],
+            ]);
     }
 
     public function test_admin_can_login_with_email(): void
@@ -37,8 +45,16 @@ class LoginApiTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertJsonPath('admin.id', $admin->id)
-            ->assertJsonPath('message', 'Admin logged in successfully.');
+            ->assertJsonPath('message', 'Admin logged in successfully.')
+            ->assertJsonPath('data.admin.id', $admin->id)
+            ->assertJsonStructure([
+                'data' => [
+                    'token',
+                    'token_type',
+                    'expires_in',
+                    'admin' => ['id', 'name', 'email', 'username'],
+                ],
+            ]);
     }
 
     public function test_user_cannot_login_with_invalid_credentials(): void
@@ -50,7 +66,7 @@ class LoginApiTest extends TestCase
             'password' => 'wrong-password',
         ]);
 
-        $response->assertStatus(422)->assertJsonValidationErrors('login');
+        $response->assertStatus(401)->assertJsonPath('message', 'Invalid credentials provided.');
     }
 
     public function test_inactive_accounts_are_rejected(): void
