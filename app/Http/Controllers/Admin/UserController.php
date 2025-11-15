@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ToggleStatusRequest;
 use App\Http\Requests\Admin\User\AdminUserStoreRequest;
 use App\Http\Requests\Admin\User\AdminUserUpdateRequest;
+use App\Models\Car;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 
@@ -18,7 +19,8 @@ class UserController extends Controller
             ->get()
             ->map(fn (User $user) => $this->transformUser($user));
 
-        return response()->json(['users' => $users]);
+
+        return apiResponse('successfully.',compact('users'));
     }
 
     public function store(AdminUserStoreRequest $request): JsonResponse
@@ -34,10 +36,10 @@ class UserController extends Controller
             'is_active' => $data['is_active'] ?? true,
         ]);
 
-        return response()->json([
-            'message' => 'User created successfully.',
-            'user' => $this->transformUser($user),
-        ], 201);
+        $user = $this->transformUser($user);
+
+        return apiResponse('User created successfully.',compact('user'));
+
     }
 
     public function update(AdminUserUpdateRequest $request, User $user): JsonResponse
@@ -58,20 +60,22 @@ class UserController extends Controller
 
         $user->update($payload);
 
-        return response()->json([
-            'message' => 'User updated successfully.',
-            'user' => $this->transformUser($user->fresh()),
-        ]);
+
+        $user = $this->transformUser($user->fresh());
+
+        return apiResponse('User updated successfully.',compact('user'));
+
     }
 
     public function updateStatus(ToggleStatusRequest $request, User $user): JsonResponse
     {
         $user->update($request->validated());
 
-        return response()->json([
-            'message' => 'User status updated successfully.',
-            'user' => $this->transformUser($user->fresh()),
-        ]);
+        $user = $this->transformUser($user->fresh());
+
+
+        return apiResponse('User status updated successfully.',compact('user'));
+
     }
 
     private function transformUser(User $user): array

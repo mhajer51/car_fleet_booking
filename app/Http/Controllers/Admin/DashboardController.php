@@ -48,11 +48,13 @@ class DashboardController extends Controller
                 ];
             });
 
-        return response()->json([
+
+        return apiResponse('Admin logged in successfully.',[
             'users_total' => User::count(),
             'cars_total' => Car::count(),
             'active_bookings_today' => $activeBookingsToday,
             'latest_bookings' => $latestBookings,
         ]);
+
     }
 }

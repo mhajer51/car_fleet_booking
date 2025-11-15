@@ -57,6 +57,8 @@ class BookingController extends Controller
             ];
         });
 
-        return response()->json(['bookings' => $bookings]);
+
+        return apiResponse('successfully.',compact('bookings'));
+
     }
 }

@@ -19,7 +19,9 @@ class CarController extends Controller
             ->get()
             ->map(fn (Car $car) => $this->transformCar($car, $car->active_bookings_count));
 
-        return response()->json(['cars' => $cars]);
+
+        return apiResponse('successfully.',compact('cars'));
+
     }
 
     public function store(AdminCarStoreRequest $request): JsonResponse
@@ -34,10 +36,10 @@ class CarController extends Controller
             'is_active' => $data['is_active'] ?? true,
         ]);
 
-        return response()->json([
-            'message' => 'Car created successfully.',
-            'car' => $this->transformCar($car, 0),
-        ], 201);
+
+        $car = $this->transformCar($car, 0);
+        return apiResponse('Car created successfully.',compact('car'));
+
     }
 
     public function update(AdminCarUpdateRequest $request, Car $car): JsonResponse
@@ -48,10 +50,11 @@ class CarController extends Controller
 
         $car->refresh()->loadCount('activeBookings');
 
-        return response()->json([
-            'message' => 'Car updated successfully.',
-            'car' => $this->transformCar($car, $car->active_bookings_count),
-        ]);
+        $car = $this->transformCar($car, $car->active_bookings_count);
+
+
+        return apiResponse('Car updated successfully.',compact('car'));
+
     }
 
     public function updateStatus(ToggleStatusRequest $request, Car $car): JsonResponse
@@ -60,10 +63,11 @@ class CarController extends Controller
 
         $car->refresh()->loadCount('activeBookings');
 
-        return response()->json([
-            'message' => 'Car status updated successfully.',
-            'car' => $this->transformCar($car, $car->active_bookings_count),
-        ]);
+
+        $car = $this->transformCar($car, $car->active_bookings_count);
+
+        return apiResponse('Car status updated successfully.',compact('car'));
+
     }
 
     private function transformCar(Car $car, ?int $activeBookingCount = null): array
