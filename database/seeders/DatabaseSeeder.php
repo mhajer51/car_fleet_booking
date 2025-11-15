@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Admin;
 use App\Models\Car;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -10,6 +11,12 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        Admin::factory()->create([
+            'name' => 'Super Admin',
+            'username' => 'fleet-admin',
+            'email' => 'fleet-admin@example.com',
+        ]);
+
         User::factory()->admin()->create([
             'name' => 'Fleet Admin',
             'username' => 'admin',
