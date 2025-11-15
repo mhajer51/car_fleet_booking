@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getAdminSession, getUserSession } from '../services/session.js';
 
 const guessApiBaseUrl = () => {
     if (import.meta.env?.VITE_API_BASE_URL) {
@@ -34,24 +35,37 @@ http.interceptors.response.use(
     },
 );
 
+const resolveToken = (url) => {
+    const path = url ?? '';
+
+    const adminSession = getAdminSession();
+    const userSession = getUserSession();
+
+    const targetsAdmin = path.startsWith('/admin');
+    const targetsUser = path.startsWith('/user');
+
+    if (targetsAdmin) {
+        return adminSession?.token ?? null;
+    }
+
+    if (targetsUser) {
+        return userSession?.token ?? null;
+    }
+
+    return adminSession?.token ?? userSession?.token ?? null;
+};
+
 http.interceptors.request.use((config) => {
-    if (typeof window !== 'undefined') {
-        const raw = window.localStorage.getItem('admin_session');
-        if (raw) {
-            try {
-                const session = JSON.parse(raw);
-                if (session?.token) {
-                    config.headers.Authorization = `Bearer ${session.token}`;
-                } else {
-                    delete config.headers.Authorization;
-                }
-            } catch (error) {
-                window.localStorage.removeItem('admin_session');
-                delete config.headers.Authorization;
-            }
-        } else {
-            delete config.headers.Authorization;
-        }
+    if (typeof window === 'undefined') {
+        return config;
+    }
+
+    const token = resolveToken(config.url);
+
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    } else {
+        delete config.headers.Authorization;
     }
 
     return config;

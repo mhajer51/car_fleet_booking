@@ -4,11 +4,39 @@ import AdminDashboardPage from './pages/AdminDashboardPage.jsx';
 import AdminUsersPage from './pages/AdminUsersPage.jsx';
 import AdminCarsPage from './pages/AdminCarsPage.jsx';
 import UserLoginPage from './pages/UserLoginPage.jsx';
+import UserDashboardPage from './pages/UserDashboardPage.jsx';
+import UserBookingsPage from './pages/UserBookingsPage.jsx';
+import UserCarsPage from './pages/UserCarsPage.jsx';
 import RequireAdmin from './components/RequireAdmin.jsx';
+import RequireUser from './components/RequireUser.jsx';
 
 const AppRouter = () => (
     <Routes>
         <Route path="/" element={<UserLoginPage />} />
+        <Route
+            path="/portal/dashboard"
+            element={
+                <RequireUser>
+                    <UserDashboardPage />
+                </RequireUser>
+            }
+        />
+        <Route
+            path="/portal/bookings"
+            element={
+                <RequireUser>
+                    <UserBookingsPage />
+                </RequireUser>
+            }
+        />
+        <Route
+            path="/portal/cars"
+            element={
+                <RequireUser>
+                    <UserCarsPage />
+                </RequireUser>
+            }
+        />
         <Route path="/admin" element={<AdminLoginPage />} />
         <Route
             path="/admin/dashboard"
