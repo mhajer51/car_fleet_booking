@@ -21,33 +21,37 @@ class OverviewController extends Controller
         $activeBookings = Booking::query()->active()->count();
         $totalCars = Car::query()->count();
         $availableCars = Car::query()->available()->count();
+        $inactiveCars = Car::query()->where('is_active', false)->count();
         $engagedClients = Booking::query()
             ->where('updated_at', '>=', $now->clone()->subHour())
             ->distinct('user_id')
             ->count();
         $engagedClients = $engagedClients ?: min(User::count(), max(1, $activeBookings));
         $newUsersToday = User::query()->whereDate('created_at', $today)->count();
+        $totalBookings = Booking::query()->count();
+        $completedBookings = Booking::query()->where('status', BookingStatus::CLOSED)->count();
+        $cancelledBookings = Booking::query()->where('status', BookingStatus::CANCELLED)->count();
 
         $metrics = [
             [
-                'label' => 'حجوزات اليوم',
+                'label' => 'Bookings today',
                 'value' => (string) $bookingsToday,
-                'detail' => 'إجمالي الطلبات المؤكدة',
-                'trend' => sprintf('%s%d عن الأمس', $this->trendPrefix($bookingsToday, $bookingsYesterday), abs($bookingsToday - $bookingsYesterday)),
+                'detail' => 'Total confirmed requests',
+                'trend' => sprintf('%s%d vs. yesterday', $this->trendPrefix($bookingsToday, $bookingsYesterday), abs($bookingsToday - $bookingsYesterday)),
                 'accent' => 'violet',
             ],
             [
-                'label' => 'السيارات الجاهزة',
+                'label' => 'Vehicles ready',
                 'value' => (string) $availableCars,
-                'detail' => 'مركبات متاحة للإطلاق',
-                'trend' => sprintf('%d%% إشغال', $totalCars ? round(($activeBookings / max($totalCars, 1)) * 100) : 0),
+                'detail' => 'Cars available to deploy',
+                'trend' => sprintf('%d%% utilization', $totalCars ? round(($activeBookings / max($totalCars, 1)) * 100) : 0),
                 'accent' => 'emerald',
             ],
             [
-                'label' => 'عملاء متصلون',
+                'label' => 'Connected clients',
                 'value' => (string) $engagedClients,
-                'detail' => 'نشطون خلال آخر ساعة',
-                'trend' => sprintf('+%d مستخدم جديد', $newUsersToday),
+                'detail' => 'Active during the last hour',
+                'trend' => sprintf('+%d new users', $newUsersToday),
                 'accent' => 'sky',
             ],
         ];
@@ -65,7 +69,7 @@ class OverviewController extends Controller
                 return [
                     'title' => sprintf('%s • %s', $booking->car->name, $booking->user->name),
                     'time' => $time,
-                    'location' => sprintf('السيارة %s • %s', $booking->car->model, $booking->car->number),
+                    'location' => sprintf('Vehicle %s • %s', $booking->car->model, $booking->car->number),
                     'status' => $this->statusLabel($booking->status),
                 ];
             })
@@ -80,29 +84,46 @@ class OverviewController extends Controller
         $suggestions = $this->buildSuggestions($availableCars, $totalCars, (int) round($avgDuration), $bookingsToday);
 
         $heatmap = $this->buildHeatmap();
+        $trend = $this->buildTrend();
+        $statusBreakdown = $this->buildStatusBreakdown($totalBookings);
+        $topVehicles = $this->buildTopVehicles();
+        $performance = $this->buildPerformance(
+            $totalCars,
+            $activeBookings,
+            (int) round($avgDuration),
+            $totalBookings,
+            $completedBookings,
+            $cancelledBookings
+        );
+        $capacity = $this->buildCapacity($availableCars, $activeBookings, $inactiveCars);
 
         return response()->json([
             'metrics' => $metrics,
             'timeline' => $timeline,
             'suggestions' => $suggestions,
             'heatmap' => $heatmap,
+            'trend' => $trend,
+            'statusBreakdown' => $statusBreakdown,
+            'topVehicles' => $topVehicles,
+            'performance' => $performance,
+            'capacity' => $capacity,
         ]);
     }
 
     private function statusLabel(?BookingStatus $status): string
     {
         return match ($status) {
-            BookingStatus::ACTIVE => 'قيد التنفيذ',
-            BookingStatus::CLOSED => 'تم التسليم',
-            BookingStatus::CANCELLED => 'ألغيت',
-            default => 'جديد',
+            BookingStatus::ACTIVE => 'In progress',
+            BookingStatus::CLOSED => 'Returned',
+            BookingStatus::CANCELLED => 'Cancelled',
+            default => 'New',
         };
     }
 
     private function trendPrefix(int $current, int $previous): string
     {
         if ($current === $previous) {
-            return 'مستقر • ±';
+            return 'Stable • ±';
         }
 
         return $current > $previous ? '+' : '-';
@@ -113,25 +134,25 @@ class OverviewController extends Controller
         $suggestions = [];
 
         if ($totalCars > 0 && $availableCars < max(1, (int) ceil($totalCars * 0.3))) {
-            $suggestions[] = 'قم بإعادة توزيع المركبات إلى المدن ذات الطلب العالي للحفاظ على التوافر.';
+            $suggestions[] = 'Rebalance the fleet toward the highest-demand cities to preserve availability.';
         }
 
         if ($avgDuration > 60) {
-            $suggestions[] = 'قلّص زمن الرحلة بتحديد نقاط التسليم مسبقاً مع السائقين.';
+            $suggestions[] = 'Shorten trip durations by predefining drop-off checkpoints with drivers.';
         } else {
-            $suggestions[] = 'زمن الرحلة تحت السيطرة، استمر في تفعيل وضع الحجز السريع.';
+            $suggestions[] = 'Trip durations look healthy—keep the express booking mode enabled.';
         }
 
         $suggestions[] = $bookingsToday === 0
-            ? 'فعّل حملة ترحيبية لتحفيز العملاء على فتح حجوزات اليوم.'
-            : 'شارك العملاء النشطين برسالة شكر مع تفاصيل الحجز المباشر.';
+            ? 'Launch a welcome campaign to nudge customers toward opening bookings today.'
+            : 'Share a thank-you note with active customers highlighting instant booking perks.';
 
         return $suggestions;
     }
 
     private function buildHeatmap(): array
     {
-        $cities = ['الرياض', 'جدة', 'الدمام'];
+        $cities = ['Riyadh', 'Jeddah', 'Dammam'];
         $cityTotals = array_fill_keys($cities, 0);
 
         $bookings = Booking::query()->select(['id', 'user_id'])->get();
@@ -161,5 +182,101 @@ class OverviewController extends Controller
             ])
             ->values()
             ->all();
+    }
+
+    private function buildTrend(): array
+    {
+        $end = now()->clone()->endOfDay();
+        $start = $end->clone()->subDays(6)->startOfDay();
+
+        $records = Booking::query()
+            ->whereBetween('start_date', [$start, $end])
+            ->selectRaw('DATE(start_date) as day, COUNT(*) as total')
+            ->groupBy('day')
+            ->pluck('total', 'day');
+
+        $trend = [];
+
+        for ($date = $start->clone(); $date->lte($end); $date->addDay()) {
+            $trend[] = [
+                'label' => $date->format('D'),
+                'value' => (int) ($records[$date->toDateString()] ?? 0),
+                'fullDate' => $date->toDateString(),
+            ];
+        }
+
+        return $trend;
+    }
+
+    private function buildStatusBreakdown(int $totalBookings): array
+    {
+        $totals = Booking::query()
+            ->selectRaw('status, COUNT(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        return collect(BookingStatus::cases())
+            ->map(function (BookingStatus $status) use ($totals, $totalBookings) {
+                $count = (int) ($totals[$status->value] ?? 0);
+                $percentage = $totalBookings > 0 ? (int) round(($count / $totalBookings) * 100) : 0;
+
+                return [
+                    'label' => $this->statusLabel($status),
+                    'value' => $count,
+                    'percentage' => $percentage,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    private function buildTopVehicles(): array
+    {
+        return Booking::query()
+            ->selectRaw('car_id, COUNT(*) as total')
+            ->with(['car:id,name,model,number'])
+            ->groupBy('car_id')
+            ->orderByDesc('total')
+            ->limit(4)
+            ->get()
+            ->map(function (Booking $booking) {
+                return [
+                    'vehicle' => $booking->car?->name ?? 'Unassigned',
+                    'model' => $booking->car?->model,
+                    'identifier' => $booking->car?->number,
+                    'trips' => (int) $booking->total,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    private function buildPerformance(
+        int $totalCars,
+        int $activeBookings,
+        int $avgDuration,
+        int $totalBookings,
+        int $completedBookings,
+        int $cancelledBookings
+    ): array {
+        $completionRate = $totalBookings > 0 ? (int) round(($completedBookings / $totalBookings) * 100) : 0;
+        $serviceLevel = $totalBookings > 0 ? (int) round((($totalBookings - $cancelledBookings) / $totalBookings) * 100) : 100;
+        $utilizationRate = $totalCars > 0 ? (int) round(($activeBookings / $totalCars) * 100) : 0;
+
+        return [
+            'utilizationRate' => $utilizationRate,
+            'avgTripMinutes' => $avgDuration,
+            'completionRate' => $completionRate,
+            'serviceLevel' => $serviceLevel,
+        ];
+    }
+
+    private function buildCapacity(int $availableCars, int $activeBookings, int $inactiveCars): array
+    {
+        return [
+            'available' => $availableCars,
+            'engaged' => $activeBookings,
+            'inactive' => $inactiveCars,
+        ];
     }
 }

@@ -9,16 +9,16 @@
 
 ## Fleet dashboards
 
-The repository ships with two Arabic-first dashboards that mirror the requested URLs:
+The repository ships with two dashboards that mirror the requested URLs:
 
 | Route | Purpose |
 | --- | --- |
-| `http://car_fleet_booking.localhost/` | بوابة العملاء مع نموذج تسجيل الدخول ولوحة المقاييس للعملاء. |
-| `/portal/dashboard` | نسخة لوحة العملاء الكاملة بدون عناصر الهبوط. |
-| `/admin/login` | صفحة تسجيل الدخول للإدارة مع قائمة تنقل وواجهة مصادقة متعددة العوامل. |
-| `/admin` | لوحة تحكم المشرف مع القوائم، البطاقات التحليلية، ومراقبة حالة الأسطول. |
+| `http://car_fleet_booking.localhost/` | Customer portal with the landing view, login form, and customer metrics. |
+| `/portal/dashboard` | Full customer dashboard minus the landing hero elements. |
+| `/admin/login` | Admin login screen with navigation and MFA prompts. |
+| `/admin` | Admin control panel with navigation, analytic cards, and fleet monitoring widgets. |
 
-كلا الواجهتين تستخدمان نفس حزمة Vite/React وتعرضان عناصر تسجيل الدخول، القوائم، والرسوم البيانية من دون الحاجة إلى خادم واجهة مستقل.
+Both experiences use the same Vite/React bundle and render login components, menus, and charts without a standalone front-end server.
 
 ## About Laravel
 
