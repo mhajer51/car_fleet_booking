@@ -12,3 +12,13 @@ export const fetchAdminCars = (params = {}) =>
     http
         .get('/admin/cars', { params })
         .then((response) => response.data?.data ?? response.data);
+
+export const fetchAdminBookings = (params = {}) =>
+    http
+        .get('/admin/bookings', { params })
+        .then((response) => response.data?.data ?? response.data);
+
+export const createAdminBooking = (payload) =>
+    http
+        .post('/admin/bookings', payload)
+        .then((response) => response.data?.data ?? response.data);

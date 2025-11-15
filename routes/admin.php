@@ -30,6 +30,7 @@ Route::prefix('admin')->group(function (): void {
         });
 
         Route::get('bookings', [AdminBookingController::class, 'index'])->name('bookings.index');
+        Route::post('bookings', [AdminBookingController::class, 'store'])->name('bookings.store');
     });
 
 });
