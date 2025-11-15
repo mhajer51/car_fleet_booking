@@ -14,5 +14,5 @@ export const createUserBooking = (payload) =>
 export const returnUserBooking = (bookingId) =>
     http.post(`/user/bookings/${bookingId}/return`).then((response) => unwrap(response));
 
-export const fetchAvailableCars = () =>
-    http.get('/user/cars/available').then((response) => unwrap(response));
+export const fetchAvailableCars = (params = {}) =>
+    http.get('/user/cars/available', { params }).then((response) => unwrap(response));
