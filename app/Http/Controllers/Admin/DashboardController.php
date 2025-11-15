@@ -49,7 +49,7 @@ class DashboardController extends Controller
             });
 
 
-        return apiResponse('Admin logged in successfully.',[
+        return apiResponse('successfully.',[
             'users_total' => User::count(),
             'cars_total' => Car::count(),
             'active_bookings_today' => $activeBookingsToday,
