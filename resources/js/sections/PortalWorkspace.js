@@ -4,6 +4,12 @@ import { useDashboardData } from '../hooks/useDashboardData.js';
 
 const h = React.createElement;
 
+const portalActions = [
+    { label: 'احجز رحلة فورية', detail: 'خلال أقل من 60 ثانية', icon: '⚡️', tone: 'from-violet-500/20' },
+    { label: 'تتبع السائق', detail: 'مشاركة الموقع المباشر', icon: '📍', tone: 'from-sky-500/20' },
+    { label: 'ارفع طلب VIP', detail: 'منسق شخصي 24/7', icon: '👑', tone: 'from-amber-500/20' },
+];
+
 const Metric = ({ metric }) =>
     h(
         'div',
@@ -52,6 +58,24 @@ const HeatBar = ({ item }) =>
         )
     );
 
+const QuickActions = () =>
+    h(
+        'div',
+        { className: 'grid gap-3 sm:grid-cols-3' },
+        portalActions.map((action) =>
+            h(
+                'div',
+                {
+                    key: action.label,
+                    className: `rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200 backdrop-blur bg-gradient-to-br ${action.tone}`,
+                },
+                h('div', { className: 'text-2xl' }, action.icon),
+                h('p', { className: 'mt-3 text-base font-semibold text-white' }, action.label),
+                h('p', { className: 'text-xs text-slate-300' }, action.detail)
+            )
+        )
+    );
+
 export default function PortalWorkspace() {
     const { data } = useDashboardData('portal');
     const metrics = data?.metrics ?? [];
@@ -71,6 +95,7 @@ export default function PortalWorkspace() {
             ),
             h('h2', { className: 'text-2xl font-semibold text-white' }, 'بوابة العملاء الفاخرة')
         ),
+        h(QuickActions),
         h(LoginPanel, {
             role: 'portal',
             title: 'دخول العملاء والشركاء',

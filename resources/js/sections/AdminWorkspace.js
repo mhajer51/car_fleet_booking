@@ -10,6 +10,14 @@ const accentTone = {
     amber: 'from-amber-500/10 via-transparent to-transparent border-amber-400/30',
 };
 
+const adminMenu = [
+    { label: 'الرئيسية', description: 'مؤشرات لحظية', icon: '🏠', active: true },
+    { label: 'مراقبة الأسطول', description: 'حالة المركبات', icon: '🚘', badge: '68' },
+    { label: 'طلبات العملاء', description: 'الحجوزات اليومية', icon: '📨', badge: '124' },
+    { label: 'الصيانة والدعم', description: 'تذاكر مفتوحة', icon: '🛠️', badge: '6' },
+    { label: 'التقارير والتحليلات', description: 'ملفات شهرية', icon: '📊' },
+];
+
 const MetricCard = ({ metric }) =>
     h(
         'div',
@@ -89,6 +97,48 @@ const SplitBar = ({ split }) => {
     );
 };
 
+const AdminMenu = () =>
+    h(
+        'div',
+        { className: 'grid gap-3 sm:grid-cols-2' },
+        adminMenu.map((item) =>
+            h(
+                'div',
+                {
+                    key: item.label,
+                    className: `rounded-2xl border px-4 py-4 text-sm backdrop-blur bg-white/5 flex items-center justify-between gap-4 ${
+                        item.active ? 'border-white/40' : 'border-white/10'
+                    }`,
+                },
+                h(
+                    'div',
+                    { className: 'flex items-center gap-3' },
+                    h(
+                        'span',
+                        {
+                            className: `flex h-10 w-10 items-center justify-center rounded-2xl text-lg ${
+                                item.active ? 'bg-white/20' : 'bg-white/10'
+                            }`,
+                        },
+                        item.icon
+                    ),
+                    h('div', null,
+                        h('p', { className: 'text-base text-white' }, item.label),
+                        h('p', { className: 'text-xs text-slate-400' }, item.description)
+                    )
+                ),
+                item.badge &&
+                    h(
+                        'span',
+                        {
+                            className: 'rounded-full bg-white/10 px-3 py-1 text-xs text-slate-200',
+                        },
+                        item.badge
+                    )
+            )
+        )
+    );
+
 export default function AdminWorkspace() {
     const { data, status } = useDashboardData('admin');
     const metrics = data?.metrics ?? [];
@@ -107,6 +157,7 @@ export default function AdminWorkspace() {
             ),
             h('h2', { className: 'text-2xl font-semibold text-white' }, 'منصة التحكم الإدارية')
         ),
+        h(AdminMenu),
         h(LoginPanel, {
             role: 'admin',
             title: 'دخول المشرف العام',
