@@ -12,27 +12,9 @@ class AuthController extends Controller
 
     public function login(AdminLoginRequest $request): JsonResponse
     {
-        dd(33);
         $credentials = $request->validated();
 
-        $admin = $this->findAccount($credentials['login'], Admin::class);
 
-        $this->ensureAccountIsValid($admin, $credentials['login'], $credentials['password']);
 
-        if (! $admin->is_active) {
-            return response()->json([
-                'message' => 'Admin account is inactive.',
-            ], 403);
-        }
-
-        return response()->json([
-            'message' => 'Admin logged in successfully.',
-            'admin' => [
-                'id' => $admin->id,
-                'name' => $admin->name,
-                'username' => $admin->username,
-                'email' => $admin->email,
-            ],
-        ]);
     }
 }
