@@ -11,11 +11,13 @@ Route::prefix('user')->group(function (): void {
 
     Route::post('/', [UserAuthController::class, 'login'])->name('api.user.login');
 
-    Route::get('cars/available', [CarController::class, 'available']);
 
     Route::middleware('jwt:user,' . User::class)->group(function (): void {
         Route::get('bookings', [BookingController::class, 'index']);
         Route::post('bookings', [BookingController::class, 'store']);
         Route::post('bookings/{booking}/return', [BookingController::class, 'returnCar']);
+
+        Route::get('cars/available', [CarController::class, 'available']);
+
     });
 });

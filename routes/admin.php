@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('admin')->group(function (): void {
     Route::post('login', [AdminAuthController::class, 'login'])->name('api.admin.login');
 
-    Route::name('api')->middleware('jwt:admin,' . Admin::class)->group(function (): void {
+    Route::middleware('jwt:admin,' . Admin::class)->group(function (): void {
         Route::get('dashboard', AdminDashboardController::class)->name('dashboard');
 
         Route::prefix('users')->group(function (): void {

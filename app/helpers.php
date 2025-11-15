@@ -3,7 +3,6 @@
 if (!function_exists('apiResponse')) {
     function apiResponse($message='', $data = [],$status = 200,$errorDetails = null)
     {
-        $traceId = app('request')->attributes->get('trace_id', 'uuid-v4');
         if (is_object($data)) {
             $data = method_exists($data, 'toArray') ? $data->toArray() : (array) $data;
         } elseif (is_string($data)) {
@@ -15,7 +14,6 @@ if (!function_exists('apiResponse')) {
             'message' => $message,
             'status' => $status,
             'data' => $data,
-            "trace_id"=> $traceId
         ];
         if ($errorDetails) {
             $response['error'] = $errorDetails;
