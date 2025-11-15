@@ -69,11 +69,30 @@ class DashboardController extends Controller
 
         $highlights = $this->highlights($now);
 
+        $statusBreakdown = $this->statusBreakdown();
+
+        $dailyBookings = $this->dailyBookings($now);
+
+        $leaders = $this->topVehicles();
+
+        $meta = [
+            'fleet' => $totalCars,
+            'available' => $availableCars,
+            'activeBookings' => $activeBookings,
+            'bookingsToday' => $bookingsToday,
+            'newUsersToday' => $newUsersToday,
+            'totalUsers' => User::query()->count(),
+        ];
+
         return response()->json([
             'metrics' => $metrics,
             'activity' => $activity,
             'split' => $split,
             'highlights' => $highlights,
+            'statusBreakdown' => $statusBreakdown,
+            'dailyBookings' => $dailyBookings,
+            'leaders' => $leaders,
+            'meta' => $meta,
         ]);
     }
 
@@ -166,5 +185,83 @@ class DashboardController extends Controller
                 'icon' => '🛰️',
             ],
         ]));
+    }
+
+    private function statusBreakdown(): array
+    {
+        $counts = Booking::query()
+            ->selectRaw('status, COUNT(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status')
+            ->toArray();
+
+        return [
+            [
+                'label' => 'Active rides',
+                'status' => BookingStatus::ACTIVE->value,
+                'count' => (int) ($counts[BookingStatus::ACTIVE->value] ?? 0),
+                'tone' => 'sky',
+                'detail' => 'Currently en route',
+            ],
+            [
+                'label' => 'Completed trips',
+                'status' => BookingStatus::CLOSED->value,
+                'count' => (int) ($counts[BookingStatus::CLOSED->value] ?? 0),
+                'tone' => 'emerald',
+                'detail' => 'Closed without incidents',
+            ],
+            [
+                'label' => 'Cancelled',
+                'status' => BookingStatus::CANCELLED->value,
+                'count' => (int) ($counts[BookingStatus::CANCELLED->value] ?? 0),
+                'tone' => 'rose',
+                'detail' => 'Flagged by riders',
+            ],
+        ];
+    }
+
+    private function dailyBookings($now): array
+    {
+        $periodStart = $now->clone()->subDays(6)->startOfDay();
+
+        $records = Booking::query()
+            ->selectRaw('DATE(start_date) as day, COUNT(*) as total')
+            ->whereBetween('start_date', [$periodStart, $now])
+            ->groupBy('day')
+            ->orderBy('day')
+            ->get()
+            ->mapWithKeys(fn ($row) => [$row->day => (int) $row->total]);
+
+        return collect(range(0, 6))
+            ->map(function ($offset) use ($periodStart, $records) {
+                $day = $periodStart->clone()->addDays($offset);
+
+                return [
+                    'label' => $day->format('D'),
+                    'date' => $day->toDateString(),
+                    'value' => (int) ($records[$day->toDateString()] ?? 0),
+                ];
+            })
+            ->toArray();
+    }
+
+    private function topVehicles(): array
+    {
+        return Car::query()
+            ->withCount([
+                'bookings as completed_bookings_count' => fn ($query) => $query->where('status', BookingStatus::CLOSED->value),
+                'bookings as active_bookings_count' => fn ($query) => $query->where('status', BookingStatus::ACTIVE->value),
+            ])
+            ->orderByDesc('completed_bookings_count')
+            ->limit(3)
+            ->get()
+            ->map(fn (Car $car) => [
+                'name' => $car->name,
+                'number' => $car->number,
+                'completedTrips' => (int) $car->completed_bookings_count,
+                'activeTrips' => (int) $car->active_bookings_count,
+                'status' => $car->is_active ? 'Active' : 'Inactive',
+            ])
+            ->toArray();
     }
 }
