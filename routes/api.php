@@ -3,6 +3,7 @@
 use App\Http\Controllers\User\AuthController as UserAuthController;
 use App\Http\Controllers\User\BookingController;
 use App\Http\Controllers\User\CarController;
+use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
 
@@ -12,8 +13,9 @@ Route::prefix('user')->group(function (): void {
 
     Route::get('cars/available', [CarController::class, 'available']);
 
-    Route::get('bookings', [BookingController::class, 'index']);
-    Route::post('bookings', [BookingController::class, 'store']);
-    Route::post('bookings/{booking}/return', [BookingController::class, 'returnCar']);
-
+    Route::middleware('jwt:user,' . User::class)->group(function (): void {
+        Route::get('bookings', [BookingController::class, 'index']);
+        Route::post('bookings', [BookingController::class, 'store']);
+        Route::post('bookings/{booking}/return', [BookingController::class, 'returnCar']);
+    });
 });
