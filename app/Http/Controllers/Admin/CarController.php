@@ -8,19 +8,58 @@ use App\Http\Requests\Admin\Car\AdminCarUpdateRequest;
 use App\Http\Requests\Admin\ToggleStatusRequest;
 use App\Models\Car;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class CarController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $cars = Car::query()
-            ->withCount('activeBookings')
-            ->latest()
-            ->get()
-            ->map(fn (Car $car) => $this->transformCar($car, $car->active_bookings_count));
+        $perPage = (int) $request->integer('per_page', 10);
+        $perPage = $perPage > 0 ? min($perPage, 100) : 10;
 
+        $search = trim((string) $request->query('search', ''));
+        $status = $request->query('status');
+        $isActive = $request->query('is_active');
 
-        return apiResponse('successfully.',compact('cars'));
+        $query = Car::query()->withCount('activeBookings');
+
+        if ($search !== '') {
+            $query->where(function ($builder) use ($search): void {
+                $builder->where('name', 'like', "%{$search}%")
+                    ->orWhere('model', 'like', "%{$search}%")
+                    ->orWhere('color', 'like', "%{$search}%")
+                    ->orWhere('number', 'like', "%{$search}%");
+            });
+        }
+
+        if ($status === 'booked') {
+            $query->whereHas('activeBookings');
+        } elseif ($status === 'available') {
+            $query->whereDoesntHave('activeBookings');
+        }
+
+        if (! is_null($isActive)) {
+            $boolean = filter_var($isActive, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            if (! is_null($boolean)) {
+                $query->where('is_active', $boolean);
+            }
+        }
+
+        $paginator = $query->latest()->paginate($perPage);
+
+        $cars = $paginator->getCollection()->map(
+            fn (Car $car) => $this->transformCar($car, $car->active_bookings_count)
+        );
+
+        return apiResponse('Cars fetched successfully.', [
+            'cars' => $cars,
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'last_page' => $paginator->lastPage(),
+            ],
+        ]);
 
     }
 
