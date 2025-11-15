@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite';
+import { fileURLToPath, URL } from 'node:url';
 import laravel from 'laravel-vite-plugin';
 import tailwindcss from '@tailwindcss/vite';
 
@@ -10,4 +11,10 @@ export default defineConfig({
         }),
         tailwindcss(),
     ],
+    resolve: {
+        alias: {
+            react: fileURLToPath(new URL('./resources/js/lib/react-lite.js', import.meta.url)),
+            'react-dom/client': fileURLToPath(new URL('./resources/js/lib/react-lite-dom.js', import.meta.url)),
+        },
+    },
 });
