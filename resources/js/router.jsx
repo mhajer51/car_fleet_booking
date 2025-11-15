@@ -3,6 +3,7 @@ import AdminLoginPage from './pages/AdminLoginPage.jsx';
 import AdminDashboardPage from './pages/AdminDashboardPage.jsx';
 import AdminUsersPage from './pages/AdminUsersPage.jsx';
 import AdminCarsPage from './pages/AdminCarsPage.jsx';
+import AdminBookingsPage from './pages/AdminBookingsPage.jsx';
 import UserLoginPage from './pages/UserLoginPage.jsx';
 import UserDashboardPage from './pages/UserDashboardPage.jsx';
 import UserBookingsPage from './pages/UserBookingsPage.jsx';
@@ -50,6 +51,14 @@ const AppRouter = () => (
             element={
                 <RequireAdmin>
                     <AdminCarsPage />
+                </RequireAdmin>
+            }
+        />
+        <Route
+            path="/admin/bookings"
+            element={
+                <RequireAdmin>
+                    <AdminBookingsPage />
                 </RequireAdmin>
             }
         />
