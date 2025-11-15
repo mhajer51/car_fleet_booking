@@ -29,9 +29,32 @@ const http = axios.create({
 http.interceptors.response.use(
     (response) => response,
     (error) => {
-        const message = error.response?.data?.message || 'حدث خطأ غير متوقع. حاول مرة أخرى.';
+        const message = error.response?.data?.message || 'Something went wrong. Please try again.';
         return Promise.reject(new Error(message));
     },
 );
+
+http.interceptors.request.use((config) => {
+    if (typeof window !== 'undefined') {
+        const raw = window.localStorage.getItem('admin_session');
+        if (raw) {
+            try {
+                const session = JSON.parse(raw);
+                if (session?.token) {
+                    config.headers.Authorization = `Bearer ${session.token}`;
+                } else {
+                    delete config.headers.Authorization;
+                }
+            } catch (error) {
+                window.localStorage.removeItem('admin_session');
+                delete config.headers.Authorization;
+            }
+        } else {
+            delete config.headers.Authorization;
+        }
+    }
+
+    return config;
+});
 
 export default http;

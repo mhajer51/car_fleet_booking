@@ -3,6 +3,7 @@ import { Alert, Box, Button, Link, Stack, TextField, Typography } from '@mui/mat
 import LoginLayout from '../components/LoginLayout.jsx';
 import TokenPreview from '../components/TokenPreview.jsx';
 import { loginUser } from '../services/auth.js';
+import { setUserSession } from '../services/session.js';
 
 const initialState = { login: '', password: '' };
 
@@ -24,7 +25,7 @@ const UserLoginPage = () => {
 
         try {
             const response = await loginUser(form);
-            localStorage.setItem('user_session', JSON.stringify(response));
+            setUserSession(response);
             setPayload(response);
         } catch (err) {
             setPayload(null);
@@ -35,14 +36,18 @@ const UserLoginPage = () => {
     };
 
     return (
-        <LoginLayout title="مرحبا بعودتك" subtitle="قم بتسجيل الدخول للوصول إلى لوحة متابعة حجوزاتك.">
+        <LoginLayout title="Welcome back" subtitle="Sign in to view and manage your trips.">
             <Stack component="form" spacing={3} onSubmit={handleSubmit}>
                 {error && <Alert severity="error">{error}</Alert>}
-                {payload && <Alert severity="success">تم تسجيل الدخول بنجاح! تم تخزين التوكن في LocalStorage.</Alert>}
+                {payload && (
+                    <Alert severity="success">
+                        Signed in successfully! Your token has been saved locally.
+                    </Alert>
+                )}
 
                 <TextField
                     name="login"
-                    label="البريد الإلكتروني / اسم المستخدم / رقم الموظف"
+                    label="Email / username / employee number"
                     value={form.login}
                     onChange={handleChange}
                     required
@@ -51,7 +56,7 @@ const UserLoginPage = () => {
                 />
                 <TextField
                     name="password"
-                    label="كلمة المرور"
+                    label="Password"
                     type="password"
                     value={form.password}
                     onChange={handleChange}
@@ -60,19 +65,19 @@ const UserLoginPage = () => {
                     InputLabelProps={{ shrink: true }}
                 />
                 <Button type="submit" variant="contained" size="large" disabled={loading}>
-                    {loading ? 'جار التحقق...' : 'تسجيل الدخول'}
+                    {loading ? 'Authenticating…' : 'Sign in'}
                 </Button>
                 <Typography variant="body2" color="text.secondary" textAlign="center">
-                    لست مشرفاً؟ انتقل إلى{' '}
+                    Are you an admin?{' '}
                     <Link href="/admin" underline="hover">
-                        تسجيل دخول المشرف
+                        Go to the admin sign-in
                     </Link>
                 </Typography>
             </Stack>
 
             {payload && (
                 <Box mt={5}>
-                    <TokenPreview title="بيانات جلسة العميل" payload={payload} />
+                    <TokenPreview title="User session payload" payload={payload} />
                 </Box>
             )}
         </LoginLayout>
