@@ -15,6 +15,8 @@ class CarController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'model', 'color', 'number']);
 
-        return response()->json(['data' => $cars]);
+
+        return apiResponse('successfully.',compact('cars'));
+
     }
 }

@@ -58,7 +58,9 @@ class BookingController extends Controller
             ->orderByDesc('start_date')
             ->get();
 
-        return response()->json(['data' => $bookings]);
+
+        return apiResponse('successfully.',compact('bookings'));
+
     }
 
     public function store(StoreBookingRequest $request): JsonResponse
@@ -77,19 +79,19 @@ class BookingController extends Controller
             ], 422);
         }
 
-        return response()->json([
-            'message' => 'Car booked successfully.',
-            'data' => $booking->load(['user:id,name', 'car:id,name']),
-        ], 201);
+
+        $booking = $booking->load(['user:id,name', 'car:id,name']);
+
+        return apiResponse('Car booked successfully.',compact('booking'));
+
     }
 
     public function returnCar(Booking $booking): JsonResponse
     {
         $booking = $this->bookingService->close($booking);
 
-        return response()->json([
-            'message' => 'Booking closed successfully.',
-            'data' => $booking,
-        ]);
+
+        return apiResponse('Booking closed successfully.',compact('booking'));
+
     }
 }
