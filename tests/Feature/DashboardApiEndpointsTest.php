@@ -68,6 +68,11 @@ class DashboardApiEndpointsTest extends TestCase
                 'timeline',
                 'suggestions',
                 'heatmap',
+                'trend',
+                'statusBreakdown',
+                'topVehicles',
+                'performance' => ['utilizationRate', 'avgTripMinutes', 'completionRate', 'serviceLevel'],
+                'capacity' => ['available', 'engaged', 'inactive'],
             ]);
 
         $this->assertNotEmpty($response->json('timeline'));

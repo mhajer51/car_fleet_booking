@@ -21,12 +21,16 @@ class OverviewController extends Controller
         $activeBookings = Booking::query()->active()->count();
         $totalCars = Car::query()->count();
         $availableCars = Car::query()->available()->count();
+        $inactiveCars = Car::query()->where('is_active', false)->count();
         $engagedClients = Booking::query()
             ->where('updated_at', '>=', $now->clone()->subHour())
             ->distinct('user_id')
             ->count();
         $engagedClients = $engagedClients ?: min(User::count(), max(1, $activeBookings));
         $newUsersToday = User::query()->whereDate('created_at', $today)->count();
+        $totalBookings = Booking::query()->count();
+        $completedBookings = Booking::query()->where('status', BookingStatus::CLOSED)->count();
+        $cancelledBookings = Booking::query()->where('status', BookingStatus::CANCELLED)->count();
 
         $metrics = [
             [
@@ -80,12 +84,29 @@ class OverviewController extends Controller
         $suggestions = $this->buildSuggestions($availableCars, $totalCars, (int) round($avgDuration), $bookingsToday);
 
         $heatmap = $this->buildHeatmap();
+        $trend = $this->buildTrend();
+        $statusBreakdown = $this->buildStatusBreakdown($totalBookings);
+        $topVehicles = $this->buildTopVehicles();
+        $performance = $this->buildPerformance(
+            $totalCars,
+            $activeBookings,
+            (int) round($avgDuration),
+            $totalBookings,
+            $completedBookings,
+            $cancelledBookings
+        );
+        $capacity = $this->buildCapacity($availableCars, $activeBookings, $inactiveCars);
 
         return response()->json([
             'metrics' => $metrics,
             'timeline' => $timeline,
             'suggestions' => $suggestions,
             'heatmap' => $heatmap,
+            'trend' => $trend,
+            'statusBreakdown' => $statusBreakdown,
+            'topVehicles' => $topVehicles,
+            'performance' => $performance,
+            'capacity' => $capacity,
         ]);
     }
 
@@ -161,5 +182,101 @@ class OverviewController extends Controller
             ])
             ->values()
             ->all();
+    }
+
+    private function buildTrend(): array
+    {
+        $end = now()->clone()->endOfDay();
+        $start = $end->clone()->subDays(6)->startOfDay();
+
+        $records = Booking::query()
+            ->whereBetween('start_date', [$start, $end])
+            ->selectRaw('DATE(start_date) as day, COUNT(*) as total')
+            ->groupBy('day')
+            ->pluck('total', 'day');
+
+        $trend = [];
+
+        for ($date = $start->clone(); $date->lte($end); $date->addDay()) {
+            $trend[] = [
+                'label' => $date->format('D'),
+                'value' => (int) ($records[$date->toDateString()] ?? 0),
+                'fullDate' => $date->toDateString(),
+            ];
+        }
+
+        return $trend;
+    }
+
+    private function buildStatusBreakdown(int $totalBookings): array
+    {
+        $totals = Booking::query()
+            ->selectRaw('status, COUNT(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        return collect(BookingStatus::cases())
+            ->map(function (BookingStatus $status) use ($totals, $totalBookings) {
+                $count = (int) ($totals[$status->value] ?? 0);
+                $percentage = $totalBookings > 0 ? (int) round(($count / $totalBookings) * 100) : 0;
+
+                return [
+                    'label' => $this->statusLabel($status),
+                    'value' => $count,
+                    'percentage' => $percentage,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    private function buildTopVehicles(): array
+    {
+        return Booking::query()
+            ->selectRaw('car_id, COUNT(*) as total')
+            ->with(['car:id,name,model,number'])
+            ->groupBy('car_id')
+            ->orderByDesc('total')
+            ->limit(4)
+            ->get()
+            ->map(function (Booking $booking) {
+                return [
+                    'vehicle' => $booking->car?->name ?? 'Unassigned',
+                    'model' => $booking->car?->model,
+                    'identifier' => $booking->car?->number,
+                    'trips' => (int) $booking->total,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    private function buildPerformance(
+        int $totalCars,
+        int $activeBookings,
+        int $avgDuration,
+        int $totalBookings,
+        int $completedBookings,
+        int $cancelledBookings
+    ): array {
+        $completionRate = $totalBookings > 0 ? (int) round(($completedBookings / $totalBookings) * 100) : 0;
+        $serviceLevel = $totalBookings > 0 ? (int) round((($totalBookings - $cancelledBookings) / $totalBookings) * 100) : 100;
+        $utilizationRate = $totalCars > 0 ? (int) round(($activeBookings / $totalCars) * 100) : 0;
+
+        return [
+            'utilizationRate' => $utilizationRate,
+            'avgTripMinutes' => $avgDuration,
+            'completionRate' => $completionRate,
+            'serviceLevel' => $serviceLevel,
+        ];
+    }
+
+    private function buildCapacity(int $availableCars, int $activeBookings, int $inactiveCars): array
+    {
+        return [
+            'available' => $availableCars,
+            'engaged' => $activeBookings,
+            'inactive' => $inactiveCars,
+        ];
     }
 }
