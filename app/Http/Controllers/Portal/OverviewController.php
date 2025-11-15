@@ -29,8 +29,8 @@ class OverviewController extends Controller
         $engagedClients = $engagedClients ?: min(User::count(), max(1, $activeBookings));
         $newUsersToday = User::query()->whereDate('created_at', $today)->count();
         $totalBookings = Booking::query()->count();
-        $completedBookings = Booking::query()->where('status', BookingStatus::CLOSED)->count();
-        $cancelledBookings = Booking::query()->where('status', BookingStatus::CANCELLED)->count();
+        $completedBookings = Booking::query()->where('status', BookingStatus::CLOSED->value)->count();
+        $cancelledBookings = Booking::query()->where('status', BookingStatus::CANCELLED->value)->count();
 
         $metrics = [
             [
