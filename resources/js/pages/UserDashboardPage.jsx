@@ -56,7 +56,7 @@ const TimelineCard = ({ timeline }) => (
     <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #e2e8f0', height: '100%' }}>
         <CardContent>
             <Typography variant="h6" gutterBottom fontWeight={600}>
-                أحدث التحركات
+                Latest movements
             </Typography>
             <Stack spacing={2}>
                 {timeline.map((item, index) => (
@@ -86,7 +86,7 @@ const SuggestionsCard = ({ suggestions }) => (
     <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #e2e8f0', height: '100%' }}>
         <CardContent>
             <Typography variant="h6" gutterBottom fontWeight={600}>
-                توصيات فورية
+                Instant recommendations
             </Typography>
             <List dense>
                 {suggestions.map((suggestion, index) => (
@@ -126,14 +126,14 @@ const UserDashboardPage = () => {
 
     const actions = (
         <Button variant="outlined" onClick={load} disabled={loading}>
-            تحديث البيانات
+            Refresh data
         </Button>
     );
 
     return (
         <UserLayout
-            title="لوحة المؤشرات"
-            description="تابع نشاط حجوزاتك والسيارات المتاحة في الوقت الفعلي."
+            title="Performance dashboard"
+            description="Track booking activity and available cars in real time."
             actions={actions}
         >
             {error && (
@@ -146,7 +146,7 @@ const UserDashboardPage = () => {
                 <Stack alignItems="center" py={10}>
                     <CircularProgress />
                     <Typography mt={2} color="text.secondary">
-                        يتم تحديث بيانات الرحلات…
+                        Refreshing trip data…
                     </Typography>
                 </Stack>
             )}

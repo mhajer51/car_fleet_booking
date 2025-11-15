@@ -14,8 +14,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { clearUserSession, getUserSession } from '../services/session.js';
 
 const NAV_LINKS = [
-    { label: 'الرئيسية', href: '/portal/dashboard', icon: '🏠' },
-    { label: 'الحجوزات', href: '/portal/bookings', icon: '📅' },
+    { label: 'Dashboard', href: '/portal/dashboard', icon: '🏠' },
+    { label: 'Bookings', href: '/portal/bookings', icon: '📅' },
 ];
 
 const UserLayout = ({ title, description, actions, children }) => {
@@ -40,7 +40,7 @@ const UserLayout = ({ title, description, actions, children }) => {
             <AppBar position="sticky" elevation={0} color="inherit" sx={{ borderBottom: '1px solid #e2e8f0' }}>
                 <Toolbar sx={{ gap: 2, flexWrap: 'wrap' }}>
                     <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                        بوابة العملاء
+                        Customer Portal
                     </Typography>
 
                     <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center" sx={{ flexGrow: 1 }}>
@@ -63,14 +63,14 @@ const UserLayout = ({ title, description, actions, children }) => {
                     <Stack direction="row" spacing={1.5} alignItems="center">
                         <Stack sx={{ textAlign: 'left' }}>
                             <Typography variant="body2" fontWeight={600}>
-                                {session?.user?.name ?? 'ضيف'}
+                                {session?.user?.name ?? 'Guest'}
                             </Typography>
                             <Typography variant="caption" color="text.secondary">
-                                {session?.user?.email ?? session?.user?.username ?? 'بدون بريد'}
+                                {session?.user?.email ?? session?.user?.username ?? 'No email on file'}
                             </Typography>
                         </Stack>
                         <Avatar sx={{ width: 40, height: 40, bgcolor: 'primary.main' }}>{initials || 'US'}</Avatar>
-                        <IconButton color="error" onClick={handleLogout} aria-label="تسجيل الخروج">
+                        <IconButton color="error" onClick={handleLogout} aria-label="Sign out">
                             ⏻
                         </IconButton>
                     </Stack>
