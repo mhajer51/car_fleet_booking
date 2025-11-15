@@ -6,6 +6,7 @@ use App\Models\Admin;
 use App\Models\Car;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -13,8 +14,9 @@ class DatabaseSeeder extends Seeder
     {
         Admin::factory()->create([
             'name' => 'Super Admin',
-            'username' => 'fleet-admin',
+            'username' => 'admin',
             'email' => 'fleet-admin@example.com',
+            "password" => Hash::make("123qwe!@£QWE"),
         ]);
 
         User::factory()->create([
@@ -22,6 +24,7 @@ class DatabaseSeeder extends Seeder
             'username' => 'user',
             'email' => 'user@example.com',
             'employee_number' => 'EMP0001',
+            "password" => Hash::make("123qwe!@£QWE"),
         ]);
 
         User::factory(5)->create();
