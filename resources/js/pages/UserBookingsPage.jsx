@@ -74,6 +74,7 @@ const UserBookingsPage = () => {
     const [error, setError] = useState('');
     const [message, setMessage] = useState('');
     const [bookingForm, setBookingForm] = useState(initialBooking);
+    const [carsLoading, setCarsLoading] = useState(false);
 
     const loadBookings = async (customFilters = filters) => {
         setLoading(true);
@@ -91,12 +92,34 @@ const UserBookingsPage = () => {
         }
     };
 
-    const loadCars = async () => {
+    const buildAvailabilityParams = () => {
+        if (!bookingForm.start_date) {
+            return null;
+        }
+
+        const params = { start_date: bookingForm.start_date };
+        if (!bookingForm.open_booking && bookingForm.end_date) {
+            params.end_date = bookingForm.end_date;
+        }
+
+        return params;
+    };
+
+    const loadCars = async (range = null) => {
+        const params = range ?? buildAvailabilityParams();
+        if (!params) {
+            setCars([]);
+            return;
+        }
+
+        setCarsLoading(true);
         try {
-            const payload = await fetchAvailableCars();
+            const payload = await fetchAvailableCars(params);
             setCars(payload.cars ?? payload ?? []);
         } catch (err) {
             setCars([]);
+        } finally {
+            setCarsLoading(false);
         }
     };
 
@@ -105,6 +128,16 @@ const UserBookingsPage = () => {
         loadCars();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    useEffect(() => {
+        if (!bookingForm.start_date) {
+            setCars([]);
+            return;
+        }
+
+        loadCars(buildAvailabilityParams());
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [bookingForm.start_date, bookingForm.end_date, bookingForm.open_booking]);
 
     const handleFilterChange = (event) => {
         const { name, value } = event.target;
@@ -123,12 +156,23 @@ const UserBookingsPage = () => {
 
     const handleBookingChange = (event) => {
         const { name, value } = event.target;
-        setBookingForm((prev) => ({ ...prev, [name]: value }));
+        setBookingForm((prev) => {
+            const next = { ...prev, [name]: value };
+            if (name === 'start_date' || name === 'end_date') {
+                next.car_id = '';
+            }
+            return next;
+        });
     };
 
     const handleOpenToggle = (event) => {
         const checked = event.target.checked;
-        setBookingForm((prev) => ({ ...prev, open_booking: checked, end_date: checked ? '' : prev.end_date }));
+        setBookingForm((prev) => ({
+            ...prev,
+            car_id: '',
+            open_booking: checked,
+            end_date: checked ? '' : prev.end_date,
+        }));
     };
 
     const submitBooking = async (event) => {
@@ -176,11 +220,19 @@ const UserBookingsPage = () => {
             <Button variant="outlined" onClick={() => loadBookings()} disabled={loading}>
                 تحديث السجل
             </Button>
-            <Button variant="outlined" onClick={loadCars} disabled={creating}>
+            <Button variant="outlined" onClick={() => loadCars()} disabled={creating || carsLoading}>
                 تحديث السيارات
             </Button>
         </Stack>
     );
+
+    const carHelperText = !bookingForm.start_date
+        ? 'حدد تاريخ بداية الحجز لعرض السيارات المتاحة.'
+        : carsLoading
+            ? 'يتم تحديث السيارات المتاحة…'
+            : !cars.length
+                ? 'لا توجد سيارات متاحة في الفترة المحددة.'
+                : '';
 
     return (
         <UserLayout
@@ -263,16 +315,29 @@ const UserBookingsPage = () => {
                                         value={bookingForm.car_id}
                                         onChange={handleBookingChange}
                                         required
+                                        helperText={carHelperText}
+                                        disabled={!bookingForm.start_date || carsLoading}
                                         InputLabelProps={{ shrink: true }}
                                     >
                                         <MenuItem value="" disabled>
                                             اختر المركبة المتاحة
                                         </MenuItem>
-                                        {cars.map((car) => (
-                                            <MenuItem key={car.id} value={car.id}>
-                                                {car.name} • {car.model}
+                                        {carsLoading && (
+                                            <MenuItem value="" disabled>
+                                                يتم تحميل السيارات…
                                             </MenuItem>
-                                        ))}
+                                        )}
+                                        {!carsLoading && bookingForm.start_date && !cars.length && (
+                                            <MenuItem value="" disabled>
+                                                لا توجد سيارات لهذه الفترة
+                                            </MenuItem>
+                                        )}
+                                        {!carsLoading &&
+                                            cars.map((car) => (
+                                                <MenuItem key={car.id} value={car.id}>
+                                                    {car.name} • {car.model}
+                                                </MenuItem>
+                                            ))}
                                     </TextField>
                                     <TextField
                                         name="start_date"
