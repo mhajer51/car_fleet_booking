@@ -15,10 +15,12 @@ class Booking extends Model
 
     protected $fillable = [
         'user_id',
+        'guest_name',
         'car_id',
         'driver_id',
         'start_date',
         'end_date',
+        'note',
     ];
 
     protected $casts = [

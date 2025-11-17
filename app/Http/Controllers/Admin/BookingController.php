@@ -14,7 +14,6 @@ use App\Models\User;
 use App\Services\Bookings\BookingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 
 class BookingController extends Controller
 {
@@ -78,7 +77,10 @@ class BookingController extends Controller
 
         $user = isset($data['user_id'])
             ? User::findOrFail($data['user_id'])
-            : $this->createGuestUser($data['guest_name']);
+            : null;
+
+        $guestName = $user ? null : $data['guest_name'];
+        $note = $data['note'] ?? ($guestName ? sprintf('Guest booking by %s', $guestName) : null);
 
         $car = Car::findOrFail($data['car_id']);
         $driver = Driver::findOrFail($data['driver_id']);
@@ -86,7 +88,7 @@ class BookingController extends Controller
         $endDate = isset($data['end_date']) ? Carbon::parse($data['end_date']) : null;
 
         try {
-            $booking = $this->bookingService->create($user, $car, $driver, $startDate, $endDate);
+            $booking = $this->bookingService->create($user, $car, $driver, $startDate, $endDate, $guestName, $note);
         } catch (BookingConflictException $exception) {
             return response()->json([
                 'message' => $exception->getMessage(),
@@ -98,28 +100,18 @@ class BookingController extends Controller
         return apiResponse('Booking created successfully.', compact('booking'));
     }
 
-    private function createGuestUser(string $name): User
-    {
-        $identifier = 'guest_' . Str::lower(Str::random(10));
-
-        return User::create([
-            'name' => $name,
-            'username' => $identifier,
-            'email' => sprintf('%s@guest.local', $identifier),
-            'employee_number' => strtoupper(Str::random(10)),
-            'password' => Str::random(12),
-            'is_active' => true,
-        ]);
-    }
-
     private function transformBooking(Booking $booking): array
     {
         return [
             'id' => $booking->id,
-            'user' => [
+            'user' => $booking->user ? [
                 'id' => $booking->user->id,
                 'name' => $booking->user->name,
                 'username' => $booking->user->username,
+                'is_guest' => false,
+            ] : [
+                'name' => $booking->guest_name,
+                'is_guest' => true,
             ],
             'car' => [
                 'id' => $booking->car->id,
@@ -133,6 +125,8 @@ class BookingController extends Controller
             ],
             'start_date' => $booking->start_date,
             'end_date' => $booking->end_date,
+            'guest_name' => $booking->guest_name,
+            'note' => $booking->note,
             'status' => $booking->status->value,
         ];
     }

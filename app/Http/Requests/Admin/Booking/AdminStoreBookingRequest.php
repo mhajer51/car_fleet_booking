@@ -29,6 +29,7 @@ class AdminStoreBookingRequest extends FormRequest
             'driver_id' => ['required', 'integer', 'exists:drivers,id'],
             'start_date' => ['required', 'date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+            'note' => ['nullable', 'string', 'max:1000'],
             'open_booking' => ['sometimes', 'boolean'],
         ];
     }
