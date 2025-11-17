@@ -31,6 +31,7 @@ import {
     SvgIcon,
 } from '@mui/material';
 import AdminLayout from '../components/AdminLayout.jsx';
+import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import {
     createAdminDriver,
     fetchAdminDrivers,
@@ -83,8 +84,11 @@ const AdminDriversPage = () => {
         phone_number: '',
         is_active: true,
     });
+    const [formErrors, setFormErrors] = useState({});
     const [editingDriverId, setEditingDriverId] = useState(null);
     const [statusMenu, setStatusMenu] = useState({ id: null, anchorEl: null });
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     const totalRecords = meta?.total ?? 0;
 
@@ -144,6 +148,7 @@ const AdminDriversPage = () => {
         setForm({ name: '', license_number: '', phone_number: '', is_active: true });
         setEditingDriverId(null);
         setSubmitError('');
+        setFormErrors({});
         setDialogOpen(true);
     };
 
@@ -157,6 +162,7 @@ const AdminDriversPage = () => {
         });
         setEditingDriverId(driver.id);
         setSubmitError('');
+        setFormErrors({});
         setDialogOpen(true);
     };
 
@@ -172,12 +178,44 @@ const AdminDriversPage = () => {
         const value =
             field === 'is_active' ? event.target.value === 'true' || event.target.value === true : event.target.value;
         setForm((prev) => ({ ...prev, [field]: value }));
+        setFormErrors((prev) => ({ ...prev, [field]: undefined }));
     };
+
+    const validateForm = useCallback(() => {
+        const errors = {};
+
+        if (!form.name.trim()) {
+            errors.name = ['Full name is required.'];
+        }
+
+        if (!form.license_number.trim()) {
+            errors.license_number = ['License number is required.'];
+        } else if (form.license_number.trim().length < 5) {
+            errors.license_number = ['License number looks too short.'];
+        }
+
+        if (!form.phone_number.trim()) {
+            errors.phone_number = ['Phone number is required.'];
+        } else if (!/^\+?[0-9][0-9\s-]{6,}$/.test(form.phone_number.trim())) {
+            errors.phone_number = ['Enter a valid phone number.'];
+        }
+
+        return errors;
+    }, [form]);
 
     const handleSubmit = async (event) => {
         event.preventDefault();
         setSubmitting(true);
         setSubmitError('');
+
+        const errors = validateForm();
+        if (Object.keys(errors).length) {
+            setFormErrors(errors);
+            setSubmitting(false);
+            return;
+        }
+
+        setFormErrors({});
 
         try {
             if (dialogMode === 'create') {
@@ -189,26 +227,34 @@ const AdminDriversPage = () => {
             await load();
         } catch (err) {
             setSubmitError(err.message);
+
+            if (err?.response?.data?.data) {
+                setFormErrors(err.response.data.data);
+            }
         } finally {
             setSubmitting(false);
         }
     };
 
-    const handleDelete = async (driver) => {
-        const confirmed = window.confirm(
-            `Disable ${driver.name}? This will remove them from the active fleet without deleting their history.`
-        );
-        if (!confirmed) return;
+    const handleDelete = (driver) => {
+        setDeleteTarget(driver);
+    };
 
-        setStatusUpdating(driver.id);
+    const handleConfirmDelete = async () => {
+        if (!deleteTarget) return;
+        setDeleting(true);
+        setStatusUpdating(deleteTarget.id);
         setError('');
+
         try {
-            await updateAdminDriverStatus(driver.id, { is_active: false });
+            await updateAdminDriverStatus(deleteTarget.id, { is_active: false });
+            setDeleteTarget(null);
             await load();
         } catch (err) {
             setError(err.message);
         } finally {
             setStatusUpdating(null);
+            setDeleting(false);
         }
     };
 
@@ -450,18 +496,24 @@ const AdminDriversPage = () => {
                         onChange={handleFormChange('name')}
                         required
                         autoFocus
+                        error={!!formErrors.name}
+                        helperText={formErrors.name?.[0] || formErrors.name}
                     />
                     <TextField
                         label="License number"
                         value={form.license_number}
                         onChange={handleFormChange('license_number')}
                         required
+                        error={!!formErrors.license_number}
+                        helperText={formErrors.license_number?.[0] || formErrors.license_number}
                     />
                     <TextField
                         label="Phone number"
                         value={form.phone_number}
                         onChange={handleFormChange('phone_number')}
                         required
+                        error={!!formErrors.phone_number}
+                        helperText={formErrors.phone_number?.[0] || formErrors.phone_number}
                     />
                     <FormControl fullWidth>
                         <InputLabel id="driver-status-select">Status</InputLabel>
@@ -485,6 +537,22 @@ const AdminDriversPage = () => {
                     </Button>
                 </DialogActions>
             </Dialog>
+
+            <ConfirmDialog
+                open={!!deleteTarget}
+                title="Disable driver"
+                description={
+                    deleteTarget
+                        ? `Disable ${deleteTarget.name}? This will remove them from the active fleet without deleting their history.`
+                        : ''
+                }
+                confirmLabel="Disable"
+                cancelLabel="Cancel"
+                onCancel={() => setDeleteTarget(null)}
+                onConfirm={handleConfirmDelete}
+                loading={deleting}
+                tone="error"
+            />
         </AdminLayout>
     );
 };

@@ -24,6 +24,17 @@ class AdminCarStoreRequest extends FormRequest
         ];
     }
 
+    public function messages(): array
+    {
+        return [
+            'name.required' => 'Vehicle name is required.',
+            'model.required' => 'Vehicle model is required.',
+            'color.required' => 'Vehicle color is required.',
+            'number.required' => 'Plate number is required.',
+            'number.unique' => 'This plate number is already registered.',
+        ];
+    }
+
     protected function failedValidation(Validator $validator)
     {
         $errors = $validator->errors();

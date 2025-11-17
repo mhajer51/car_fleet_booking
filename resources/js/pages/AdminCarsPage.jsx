@@ -28,6 +28,7 @@ import {
     Switch, IconButton,
 } from '@mui/material';
 import AdminLayout from '../components/AdminLayout.jsx';
+import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import {
     createAdminCar,
     deleteAdminCar,
@@ -69,6 +70,7 @@ const AdminCarsPage = () => {
     const [formOpen, setFormOpen] = useState(false);
     const [formMode, setFormMode] = useState('create');
     const [formError, setFormError] = useState('');
+    const [formErrors, setFormErrors] = useState({});
     const [formValues, setFormValues] = useState({
         id: null,
         name: '',
@@ -140,6 +142,7 @@ const AdminCarsPage = () => {
         setFormMode('create');
         setFormValues({ id: null, name: '', model: '', color: '', number: '', is_active: true });
         setFormError('');
+        setFormErrors({});
         setFormOpen(true);
     };
 
@@ -147,17 +150,49 @@ const AdminCarsPage = () => {
         setFormMode('edit');
         setFormValues(car);
         setFormError('');
+        setFormErrors({});
         setFormOpen(true);
     };
 
     const handleFormChange = (field) => (event) => {
         const value = field === 'is_active' ? event.target.checked : event.target.value;
         setFormValues((prev) => ({ ...prev, [field]: value }));
+        setFormErrors((prev) => ({ ...prev, [field]: undefined }));
     };
 
+    const validateForm = useCallback(() => {
+        const errors = {};
+
+        if (!formValues.name.trim()) {
+            errors.name = ['Vehicle name is required.'];
+        }
+
+        if (!formValues.model.trim()) {
+            errors.model = ['Model is required.'];
+        }
+
+        if (!formValues.color.trim()) {
+            errors.color = ['Color is required.'];
+        }
+
+        if (!formValues.number.trim()) {
+            errors.number = ['Plate number is required.'];
+        }
+
+        return errors;
+    }, [formValues]);
+
     const handleFormSubmit = async () => {
+        const errors = validateForm();
+        if (Object.keys(errors).length) {
+            setFormErrors(errors);
+            setFormError('Please correct the highlighted fields.');
+            return;
+        }
+
         setSaving(true);
         setFormError('');
+        setFormErrors({});
 
         try {
             if (formMode === 'create') {
@@ -170,6 +205,10 @@ const AdminCarsPage = () => {
             await load();
         } catch (err) {
             setFormError(err.message);
+
+            if (err?.response?.data?.data) {
+                setFormErrors(err.response.data.data);
+            }
         } finally {
             setSaving(false);
         }
@@ -202,6 +241,8 @@ const AdminCarsPage = () => {
             await load();
         } catch (err) {
             setError(err.message);
+            setDeleting(false);
+        } finally {
             setDeleting(false);
         }
     };
@@ -391,24 +432,36 @@ const AdminCarsPage = () => {
                             value={formValues.name}
                             onChange={handleFormChange('name')}
                             fullWidth
+                            required
+                            error={!!formErrors.name}
+                            helperText={formErrors.name?.[0] || formErrors.name}
                         />
                         <TextField
                             label="Model"
                             value={formValues.model}
                             onChange={handleFormChange('model')}
                             fullWidth
+                            required
+                            error={!!formErrors.model}
+                            helperText={formErrors.model?.[0] || formErrors.model}
                         />
                         <TextField
                             label="Color"
                             value={formValues.color}
                             onChange={handleFormChange('color')}
                             fullWidth
+                            required
+                            error={!!formErrors.color}
+                            helperText={formErrors.color?.[0] || formErrors.color}
                         />
                         <TextField
                             label="Number"
                             value={formValues.number}
                             onChange={handleFormChange('number')}
                             fullWidth
+                            required
+                            error={!!formErrors.number}
+                            helperText={formErrors.number?.[0] || formErrors.number}
                         />
                         <FormControlLabel
                             control={<Switch checked={!!formValues.is_active} onChange={handleFormChange('is_active')} />}
@@ -426,25 +479,21 @@ const AdminCarsPage = () => {
                 </DialogActions>
             </Dialog>
 
-            <Dialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)} maxWidth="xs" fullWidth>
-                <DialogTitle>Delete vehicle</DialogTitle>
-                <DialogContent>
-                    <Typography>
-                        Are you sure you want to delete
-                        {' '}
-                        <strong>{deleteTarget?.name}</strong>
-                        ? This action cannot be undone.
-                    </Typography>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setDeleteTarget(null)} disabled={deleting}>
-                        Cancel
-                    </Button>
-                    <Button color="error" variant="contained" onClick={handleDelete} disabled={deleting}>
-                        Delete
-                    </Button>
-                </DialogActions>
-            </Dialog>
+            <ConfirmDialog
+                open={!!deleteTarget}
+                title="Delete vehicle"
+                description={
+                    deleteTarget
+                        ? `Are you sure you want to delete ${deleteTarget.name}? This action cannot be undone.`
+                        : ''
+                }
+                confirmLabel="Delete"
+                cancelLabel="Cancel"
+                onCancel={() => setDeleteTarget(null)}
+                onConfirm={handleDelete}
+                loading={deleting}
+                tone="error"
+            />
         </AdminLayout>
     );
 };

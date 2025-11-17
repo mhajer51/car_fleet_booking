@@ -23,6 +23,17 @@ class AdminDriverStoreRequest extends FormRequest
         ];
     }
 
+    public function messages(): array
+    {
+        return [
+            'name.required' => 'Full name is required.',
+            'license_number.required' => 'License number is required.',
+            'license_number.unique' => 'This license number is already assigned.',
+            'phone_number.required' => 'Phone number is required.',
+            'phone_number.unique' => 'This phone number is already registered.',
+        ];
+    }
+
     protected function failedValidation(Validator $validator)
     {
         $errors = $validator->errors();

@@ -9,6 +9,7 @@ use App\Http\Requests\Admin\ToggleStatusRequest;
 use App\Models\Car;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Database\QueryException;
 
 class CarController extends Controller
 {
@@ -67,13 +68,23 @@ class CarController extends Controller
     {
         $data = $request->validated();
 
-        $car = Car::create([
-            'name' => $data['name'],
-            'model' => $data['model'],
-            'color' => $data['color'],
-            'number' => $data['number'],
-            'is_active' => $data['is_active'] ?? true,
-        ]);
+        try {
+            $car = Car::create([
+                'name' => $data['name'],
+                'model' => $data['model'],
+                'color' => $data['color'],
+                'number' => $data['number'],
+                'is_active' => $data['is_active'] ?? true,
+            ]);
+        } catch (QueryException $exception) {
+            if ($this->isUniqueViolation($exception)) {
+                return apiResponse('Validation failed', [
+                    'number' => ['This plate number is already registered.'],
+                ], 422);
+            }
+
+            throw $exception;
+        }
 
 
         $car = $this->transformCar($car, 0);
@@ -85,7 +96,17 @@ class CarController extends Controller
     {
         $data = $request->validated();
 
-        $car->update($data);
+        try {
+            $car->update($data);
+        } catch (QueryException $exception) {
+            if ($this->isUniqueViolation($exception)) {
+                return apiResponse('Validation failed', [
+                    'number' => ['This plate number is already registered.'],
+                ], 422);
+            }
+
+            throw $exception;
+        }
 
         $car->refresh()->loadCount('activeBookings');
 
@@ -134,5 +155,11 @@ class CarController extends Controller
             'status' => $isBooked ? 'booked' : 'available',
             'is_active' => $car->is_active,
         ];
+    }
+
+    private function isUniqueViolation(QueryException $exception): bool
+    {
+        return in_array($exception->getCode(), ['23000', '23505'], true)
+            || in_array($exception->errorInfo[0] ?? null, ['23000', '23505'], true);
     }
 }

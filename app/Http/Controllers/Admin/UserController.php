@@ -9,6 +9,7 @@ use App\Http\Requests\Admin\User\AdminUserUpdateRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Database\QueryException;
 
 class UserController extends Controller
 {
@@ -56,15 +57,27 @@ class UserController extends Controller
     {
         $data = $request->validated();
 
-        $user = User::create([
-            'name' => $data['name'],
-            'username' => $data['username'],
-            'email' => $data['email'],
-            'employee_number' => $data['number_employ'],
-            'password' => $data['password'],
-            'role' => $data['role'],
-            'is_active' => $data['is_active'] ?? true,
-        ]);
+        try {
+            $user = User::create([
+                'name' => $data['name'],
+                'username' => $data['username'],
+                'email' => $data['email'],
+                'employee_number' => $data['number_employ'],
+                'password' => $data['password'],
+                'role' => $data['role'],
+                'is_active' => $data['is_active'] ?? true,
+            ]);
+        } catch (QueryException $exception) {
+            if ($this->isUniqueViolation($exception)) {
+                return apiResponse('Validation failed', [
+                    'username' => ['This username is already taken.'],
+                    'email' => ['This email is already registered.'],
+                    'number_employ' => ['This employee number is already registered.'],
+                ], 422);
+            }
+
+            throw $exception;
+        }
 
         $user = $this->transformUser($user);
 
@@ -89,7 +102,19 @@ class UserController extends Controller
             $payload['password'] = $data['password'];
         }
 
-        $user->update($payload);
+        try {
+            $user->update($payload);
+        } catch (QueryException $exception) {
+            if ($this->isUniqueViolation($exception)) {
+                return apiResponse('Validation failed', [
+                    'username' => ['This username is already taken.'],
+                    'email' => ['This email is already registered.'],
+                    'number_employ' => ['This employee number is already registered.'],
+                ], 422);
+            }
+
+            throw $exception;
+        }
 
 
         $user = $this->transformUser($user->fresh());
@@ -127,5 +152,11 @@ class UserController extends Controller
             'role' => $user->role,
             'is_active' => $user->is_active,
         ];
+    }
+
+    private function isUniqueViolation(QueryException $exception): bool
+    {
+        return in_array($exception->getCode(), ['23000', '23505'], true)
+            || in_array($exception->errorInfo[0] ?? null, ['23000', '23505'], true);
     }
 }
