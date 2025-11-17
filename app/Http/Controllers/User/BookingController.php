@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Booking\AdminBookingAvailabilityRequest;
 use App\Http\Requests\Admin\Booking\AdminBookingFilterRequest;
 use App\Http\Requests\User\StoreBookingRequest;
+use App\Http\Requests\User\UpdateBookingRequest;
 use App\Models\Booking;
 use App\Models\Car;
 use App\Models\Driver;
@@ -96,11 +97,45 @@ class BookingController extends Controller
         return apiResponse('Car booked successfully.', compact('booking'));
     }
 
+    public function update(UpdateBookingRequest $request, Booking $booking): JsonResponse
+    {
+        $data = $request->validated();
+        $authUser = $request->user('user');
+
+        if (!$authUser || $booking->user_id !== $authUser->id) {
+            return response()->json(['message' => 'You are not allowed to update this booking.'], 403);
+        }
+
+        if ((int) $data['user_id'] !== $authUser->id) {
+            return response()->json(['message' => 'You are not allowed to update this booking.'], 403);
+        }
+
+        $user = User::findOrFail($authUser->id);
+        $car = Car::findOrFail($data['car_id']);
+        $driver = Driver::findOrFail($data['driver_id']);
+        $startDate = Carbon::parse($data['start_date']);
+        $endDate = isset($data['end_date']) ? Carbon::parse($data['end_date']) : null;
+        $note = $data['note'] ?? null;
+        $price = (float) $data['price'];
+
+        try {
+            $booking = $this->bookingService->update($booking, $user, $car, $driver, $startDate, $endDate, null, $note, $price);
+        } catch (BookingConflictException $exception) {
+            return response()->json([
+                'message' => $exception->getMessage(),
+            ], 422);
+        }
+
+        $booking = $this->transformBooking($booking->load(['user:id,name,username', 'car:id,name,number,emirate', 'driver:id,name,license_number']));
+
+        return apiResponse('Booking updated successfully.', compact('booking'));
+    }
+
     public function availableUsers(AdminBookingAvailabilityRequest $request): JsonResponse
     {
-        [$startDate, $endDate, $search, $perPage] = $this->extractAvailabilityFilters($request);
+        [$startDate, $endDate, $search, $perPage, $bookingId] = $this->extractAvailabilityFilters($request);
 
-        $usersQuery = User::query()->availableForPeriod($startDate, $endDate);
+        $usersQuery = User::query()->availableForPeriod($startDate, $endDate, $bookingId);
 
         if ($search !== '') {
             $usersQuery->where(function ($builder) use ($search): void {
@@ -122,9 +157,9 @@ class BookingController extends Controller
 
     public function availableCars(AdminBookingAvailabilityRequest $request): JsonResponse
     {
-        [$startDate, $endDate, $search, $perPage] = $this->extractAvailabilityFilters($request);
+        [$startDate, $endDate, $search, $perPage, $bookingId] = $this->extractAvailabilityFilters($request);
 
-        $carsQuery = Car::query()->availableForPeriod($startDate, $endDate);
+        $carsQuery = Car::query()->availableForPeriod($startDate, $endDate, $bookingId);
 
         if ($search !== '') {
             $carsQuery->where(function ($builder) use ($search): void {
@@ -146,9 +181,9 @@ class BookingController extends Controller
 
     public function availableDrivers(AdminBookingAvailabilityRequest $request): JsonResponse
     {
-        [$startDate, $endDate, $search, $perPage] = $this->extractAvailabilityFilters($request);
+        [$startDate, $endDate, $search, $perPage, $bookingId] = $this->extractAvailabilityFilters($request);
 
-        $driversQuery = Driver::query()->availableForPeriod($startDate, $endDate);
+        $driversQuery = Driver::query()->availableForPeriod($startDate, $endDate, $bookingId);
 
         if ($search !== '') {
             $driversQuery->where(function ($builder) use ($search): void {
@@ -203,6 +238,7 @@ class BookingController extends Controller
             'price' => $booking->price,
             'start_date' => $booking->start_date,
             'end_date' => $booking->end_date,
+            'open_booking' => $booking->end_date === null,
             'guest_name' => $booking->guest_name,
             'note' => $booking->note,
             'status' => $booking->status->value,
@@ -217,8 +253,9 @@ class BookingController extends Controller
         $search = trim((string) ($filters['search'] ?? ''));
         $perPage = (int) ($filters['per_page'] ?? 10);
         $perPage = $perPage > 0 ? min($perPage, 50) : 10;
+        $bookingId = $filters['booking_id'] ?? null;
 
-        return [$startDate, $endDate, $search, $perPage];
+        return [$startDate, $endDate, $search, $perPage, $bookingId];
     }
 
     private function buildAvailabilityResponse($paginator, string $key, $items): array

@@ -26,6 +26,7 @@ Route::prefix('user')->group(function (): void {
     Route::middleware('jwt:user,' . User::class)->group(function (): void {
         Route::get('bookings', [BookingController::class, 'index']);
         Route::post('bookings', [BookingController::class, 'store']);
+        Route::put('bookings/{booking}', [BookingController::class, 'update']);
         Route::post('bookings/{booking}/return', [BookingController::class, 'returnCar']);
         Route::get('bookings/available/users', [BookingController::class, 'availableUsers']);
         Route::get('bookings/available/cars', [BookingController::class, 'availableCars']);

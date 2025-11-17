@@ -38,10 +38,11 @@ class Driver extends Model
         return $query->where('is_active', true);
     }
 
-    public function scopeAvailableForPeriod(Builder $query, Carbon $startDate, ?Carbon $endDate): Builder
+    public function scopeAvailableForPeriod(Builder $query, Carbon $startDate, ?Carbon $endDate, ?int $excludingBookingId = null): Builder
     {
-        return $query->active()->whereDoesntHave('bookings', function ($builder) use ($startDate, $endDate) {
-            $builder->overlapping($startDate, $endDate);
+        return $query->active()->whereDoesntHave('bookings', function ($builder) use ($startDate, $endDate, $excludingBookingId) {
+            $builder->when($excludingBookingId, fn ($inner) => $inner->where('bookings.id', '!=', $excludingBookingId))
+                ->overlapping($startDate, $endDate);
         });
     }
 }
