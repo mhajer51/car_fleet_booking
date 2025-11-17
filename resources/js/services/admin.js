@@ -102,3 +102,11 @@ export const fetchAvailableBookingDrivers = (params = {}) =>
     http
         .get('/admin/bookings/available/drivers', { params })
         .then((response) => response.data?.data ?? response.data);
+
+export const updateAdminProfile = (payload) =>
+    http.put('/admin/profile', payload).then((response) => response.data?.data ?? response.data);
+
+export const updateAdminPassword = (payload) =>
+    http
+        .put('/admin/profile/password', payload)
+        .then((response) => response.data?.data ?? response.data);

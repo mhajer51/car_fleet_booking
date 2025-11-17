@@ -37,3 +37,9 @@ export const fetchUserDrivers = (params = {}) =>
 
 export const createUserDriver = (payload) =>
     http.post('/user/drivers', payload).then((response) => unwrap(response));
+
+export const updateUserProfile = (payload) =>
+    http.put('/user/profile', payload).then((response) => unwrap(response));
+
+export const updateUserPassword = (payload) =>
+    http.put('/user/profile/password', payload).then((response) => unwrap(response));

@@ -6,6 +6,7 @@ use App\Http\Controllers\User\AuthController as UserAuthController;
 use App\Http\Controllers\User\BookingController;
 use App\Http\Controllers\User\CarController;
 use App\Http\Controllers\User\DriverController;
+use App\Http\Controllers\User\ProfileController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
@@ -37,6 +38,9 @@ Route::prefix('user')->group(function (): void {
 
         Route::get('drivers', [DriverController::class, 'index']);
         Route::post('drivers', [DriverController::class, 'store']);
+
+        Route::put('profile', [ProfileController::class, 'update']);
+        Route::put('profile/password', [ProfileController::class, 'updatePassword']);
 
     });
 });
