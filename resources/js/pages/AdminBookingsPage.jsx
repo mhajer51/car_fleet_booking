@@ -13,7 +13,7 @@ import {
     DialogActions,
     DialogContent,
     DialogTitle,
-    FormControlLabel,
+    FormControlLabel, Grid,
     MenuItem,
     Radio,
     RadioGroup,
@@ -422,9 +422,6 @@ const AdminBookingsPage = () => {
 
     const actions = (
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <Button variant="outlined" onClick={loadBookings} disabled={loading}>
-                Refresh
-            </Button>
             <Button variant="contained" onClick={openDialog}>
                 New Booking
             </Button>
@@ -455,87 +452,113 @@ const AdminBookingsPage = () => {
                         <Typography variant="h6" fontWeight={700} gutterBottom>
                             Filters
                         </Typography>
-                        <Stack spacing={2}>
-                            <TextField
-                                select
-                                label="Booking status"
-                                value={filters.status}
-                                onChange={(event) => updateFilter('status', event.target.value)}
-                            >
-                                {STATUS_OPTIONS.map((option) => (
-                                    <MenuItem key={option.value} value={option.value}>
-                                        {option.label}
-                                    </MenuItem>
-                                ))}
-                            </TextField>
-                            <Autocomplete
-                                options={users}
-                                value={selectedUser}
-                                onChange={(_event, value) => updateFilter('user_id', value?.id ?? '')}
-                                getOptionLabel={formatUserLabel}
-                                loading={lookupsLoading}
-                                isOptionEqualToValue={(option, value) => option?.id === value?.id}
-                                renderInput={(params) => (
+
+                        <Grid container spacing={2}>
+                            <Grid item xs={4} md={3}>
+                                <Stack>
                                     <TextField
-                                        {...params}
-                                        label="User"
-                                        placeholder="Search by employee number or name"
-                                    />
-                                )}
-                            />
-                            <Autocomplete
-                                options={cars}
-                                value={selectedCar}
-                                onChange={(_event, value) => updateFilter('car_id', value?.id ?? '')}
-                                getOptionLabel={formatCarLabel}
-                                loading={lookupsLoading}
-                                isOptionEqualToValue={(option, value) => option?.id === value?.id}
-                                renderInput={(params) => (
+                                        select
+                                        label="Booking status"
+                                        value={filters.status}
+                                        onChange={(event) => updateFilter('status', event.target.value)}
+                                    >
+                                        {STATUS_OPTIONS.map((option) => (
+                                            <MenuItem key={option.value} value={option.value}>
+                                                {option.label}
+                                            </MenuItem>
+                                        ))}
+                                    </TextField>
+                                </Stack>
+                            </Grid>
+                            <Grid item xs={4} md={3}>
+                                <Autocomplete
+                                    options={users}
+                                    value={selectedUser}
+                                    onChange={(_event, value) => updateFilter('user_id', value?.id ?? '')}
+                                    getOptionLabel={formatUserLabel}
+                                    loading={lookupsLoading}
+                                    isOptionEqualToValue={(option, value) => option?.id === value?.id}
+                                    renderInput={(params) => (
+                                        <TextField
+                                            {...params}
+                                            label="User"
+                                            placeholder="Search by employee number or name"
+                                        />
+                                    )}
+                                />
+                            </Grid>
+                            <Grid item xs={4} md={3}>
+                                <Autocomplete
+                                    options={cars}
+                                    value={selectedCar}
+                                    onChange={(_event, value) => updateFilter('car_id', value?.id ?? '')}
+                                    getOptionLabel={formatCarLabel}
+                                    loading={lookupsLoading}
+                                    isOptionEqualToValue={(option, value) => option?.id === value?.id}
+                                    renderInput={(params) => (
+                                        <TextField
+                                            {...params}
+                                            label="Car"
+                                            placeholder="Search by car number or name"
+                                        />
+                                    )}
+                                />
+                            </Grid>
+                            <Grid item xs={4} md={3}>
+                                <Autocomplete
+                                    options={drivers}
+                                    value={selectedDriver}
+                                    onChange={(_event, value) => updateFilter('driver_id', value?.id ?? '')}
+                                    getOptionLabel={formatDriverLabel}
+                                    loading={lookupsLoading}
+                                    isOptionEqualToValue={(option, value) => option?.id === value?.id}
+                                    renderInput={(params) => (
+                                        <TextField
+                                            {...params}
+                                            label="Driver"
+                                            placeholder="Search by license or name"
+                                        />
+                                    )}
+                                />
+                            </Grid>
+                            <Grid item xs={4} md={3}>
+                                <Stack>
                                     <TextField
-                                        {...params}
-                                        label="Car"
-                                        placeholder="Search by car number or name"
+                                        label="From date"
+                                        type="date"
+                                        InputLabelProps={{ shrink: true }}
+                                        value={filters.from_date}
+                                        onChange={(event) => updateFilter('from_date', event.target.value)}
                                     />
-                                )}
-                            />
-                            <Autocomplete
-                                options={drivers}
-                                value={selectedDriver}
-                                onChange={(_event, value) => updateFilter('driver_id', value?.id ?? '')}
-                                getOptionLabel={formatDriverLabel}
-                                loading={lookupsLoading}
-                                isOptionEqualToValue={(option, value) => option?.id === value?.id}
-                                renderInput={(params) => (
+                                </Stack>
+                            </Grid>
+                            <Grid item xs={4} md={3}>
+                                <Stack>
                                     <TextField
-                                        {...params}
-                                        label="Driver"
-                                        placeholder="Search by license or name"
+                                        label="To date"
+                                        type="date"
+                                        InputLabelProps={{ shrink: true }}
+                                        value={filters.to_date}
+                                        onChange={(event) => updateFilter('to_date', event.target.value)}
                                     />
-                                )}
-                            />
-                            <TextField
-                                label="From date"
-                                type="date"
-                                InputLabelProps={{ shrink: true }}
-                                value={filters.from_date}
-                                onChange={(event) => updateFilter('from_date', event.target.value)}
-                            />
-                            <TextField
-                                label="To date"
-                                type="date"
-                                InputLabelProps={{ shrink: true }}
-                                value={filters.to_date}
-                                onChange={(event) => updateFilter('to_date', event.target.value)}
-                            />
-                            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                                <Button variant="contained" fullWidth onClick={loadBookings} disabled={loading}>
-                                    Apply filters
-                                </Button>
-                                <Button variant="text" fullWidth onClick={resetFilters}>
-                                    Reset
-                                </Button>
-                            </Stack>
-                        </Stack>
+                                </Stack>
+                            </Grid>
+                            <Grid item xs={4} md={12}>
+                                <Grid item xs={4} md={5}>
+
+                                    <Stack>
+                                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                                            <Button variant="contained" fullWidth onClick={loadBookings} disabled={loading}>
+                                                Apply filters
+                                            </Button>
+                                            <Button variant="text" fullWidth onClick={resetFilters}>
+                                                Reset
+                                            </Button>
+                                        </Stack>
+                                    </Stack>
+                                </Grid>
+                            </Grid>
+                        </Grid>
                     </CardContent>
                 </Card>
 
@@ -661,115 +684,7 @@ const AdminBookingsPage = () => {
                 </Card>
             </Stack>
 
-                <Grid item xs={12} md={8}>
-                    <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #e2e8f0' }}>
-                        <CardContent>
-                            <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'center' }} spacing={2} mb={3}>
-                                <Box>
-                                    <Typography variant="h6" fontWeight={700}>
-                                        Bookings table
-                                    </Typography>
-                                    <Typography variant="body2" color="text.secondary">
-                                        {totalRecords} bookings • Showing {visibleRange.from} - {visibleRange.to}
-                                    </Typography>
-                                </Box>
-                            </Stack>
 
-                            <Box sx={{ border: '1px solid #e2e8f0', borderRadius: 2, overflowX: 'auto' }}>
-                                <Table>
-                                    <TableHead>
-                                        <TableRow>
-                                            <TableCell>ID</TableCell>
-                                            <TableCell>User</TableCell>
-                                            <TableCell>Car</TableCell>
-                                            <TableCell>Driver</TableCell>
-                                            <TableCell>Price</TableCell>
-                                            <TableCell>Start</TableCell>
-                                            <TableCell>End</TableCell>
-                                            <TableCell>Notes</TableCell>
-                                            <TableCell>Status</TableCell>
-                                        </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                        {loading ? (
-                                            <TableRow>
-                                                <TableCell colSpan={9} align="center">
-                                                    <Stack alignItems="center" py={4} spacing={1}>
-                                                        <CircularProgress size={24} />
-                                                        <Typography variant="body2" color="text.secondary">
-                                                            Loading bookings…
-                                                        </Typography>
-                                                    </Stack>
-                                                </TableCell>
-                                            </TableRow>
-                                        ) : bookings.length === 0 ? (
-                                            <TableRow>
-                                                <TableCell colSpan={9} align="center">
-                                                    <Typography color="text.secondary" py={3}>
-                                                        No bookings match your filters.
-                                                    </Typography>
-                                                </TableCell>
-                                            </TableRow>
-                                        ) : (
-                                            bookings.map((booking) => {
-                                                const tone = statusTone[booking.status] ?? {
-                                                    label: booking.status,
-                                                    color: '#334155',
-                                                    bg: 'rgba(148,163,184,.24)',
-                                                };
-                                                return (
-                                                    <TableRow key={booking.id}>
-                                                        <TableCell>#{booking.id}</TableCell>
-                                                        <TableCell>
-                                                            <Typography fontWeight={600}>{booking.user?.name ?? '—'}</Typography>
-                                                            <Typography variant="body2" color="text.secondary">
-                                                                {booking.user?.username}
-                                                            </Typography>
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <Typography fontWeight={600}>{booking.car?.name ?? '—'}</Typography>
-                                                            <Typography variant="body2" color="text.secondary">
-                                                                {booking.car?.number}
-                                                            </Typography>
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <Typography fontWeight={600}>{booking.driver?.name ?? '—'}</Typography>
-                                                            <Typography variant="body2" color="text.secondary">
-                                                                {booking.driver?.license_number}
-                                                            </Typography>
-                                                        </TableCell>
-                                                        <TableCell>{booking.price ? `${Number(booking.price).toFixed(2)}` : '—'}</TableCell>
-                                                        <TableCell>{formatDate(booking.start_date)}</TableCell>
-                                                        <TableCell>{formatDate(booking.end_date)}</TableCell>
-                                                        <TableCell sx={{ maxWidth: 200 }}>
-                                                            <Typography variant="body2" color="text.secondary" noWrap title={booking.note}>
-                                                                {booking.note || '—'}
-                                                            </Typography>
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <Chip label={tone.label} size="small" sx={{ backgroundColor: tone.bg, color: tone.color, fontWeight: 600 }} />
-                                                        </TableCell>
-                                                    </TableRow>
-                                                );
-                                            })
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </Box>
-
-                            <TablePagination
-                                component="div"
-                                count={totalRecords}
-                                page={pagination.page}
-                                onPageChange={handlePaginationChange}
-                                rowsPerPage={pagination.pageSize}
-                                onRowsPerPageChange={handleRowsPerPageChange}
-                                rowsPerPageOptions={[10, 25, 50]}
-                            />
-                        </CardContent>
-                    </Card>
-                </Grid>
-            </Grid>
 
             <Dialog open={dialogOpen} onClose={closeDialog} fullWidth maxWidth="sm" component="form" onSubmit={submitBooking}>
                 <DialogTitle>New booking</DialogTitle>
