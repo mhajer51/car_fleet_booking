@@ -37,6 +37,7 @@ import {
     fetchAdminCars,
     fetchAdminDrivers,
     fetchAdminUsers,
+    updateAdminBooking,
 } from '../services/admin.js';
 
 const STATUS_OPTIONS = [
@@ -105,6 +106,17 @@ const initialForm = {
     note: '',
 };
 
+const toLocalInputValue = (value) => {
+    if (!value) {
+        return '';
+    }
+
+    const date = new Date(value);
+    date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+
+    return date.toISOString().slice(0, 16);
+};
+
 const formatDate = (value) => {
     if (!value) {
         return '—';
@@ -140,6 +152,7 @@ const AdminBookingsPage = () => {
     const [formError, setFormError] = useState('');
     const [formErrors, setFormErrors] = useState({});
     const [creating, setCreating] = useState(false);
+    const [editingBooking, setEditingBooking] = useState(null);
     const [lookupsLoading, setLookupsLoading] = useState(false);
     const [users, setUsers] = useState([]);
     const [cars, setCars] = useState([]);
@@ -148,6 +161,7 @@ const AdminBookingsPage = () => {
     const [availabilityLoading, setAvailabilityLoading] = useState({ users: false, cars: false, drivers: false });
 
     const totalRecords = meta?.total ?? bookings.length ?? 0;
+    const isEditing = Boolean(editingBooking);
 
     const loadBookings = useCallback(async () => {
         setLoading(true);
@@ -254,6 +268,7 @@ const AdminBookingsPage = () => {
         setFormError('');
         setFormErrors({});
         setMessage('');
+        setEditingBooking(null);
     };
 
     const closeDialog = () => {
@@ -261,11 +276,55 @@ const AdminBookingsPage = () => {
         setForm(initialForm);
         setFormError('');
         setFormErrors({});
+        setEditingBooking(null);
     };
 
     const handleFormChange = (field, value) => {
         setForm((prev) => ({ ...prev, [field]: value }));
         setFormErrors((prev) => ({ ...prev, [field]: undefined }));
+    };
+
+    const addToAvailability = (resource, item) => {
+        if (!item?.id) {
+            return;
+        }
+
+        setAvailability((prev) => {
+            const list = prev[resource] ?? [];
+            const exists = list.some((entry) => entry.id === item.id);
+
+            if (exists) {
+                return prev;
+            }
+
+            return {
+                ...prev,
+                [resource]: [...list, item],
+            };
+        });
+    };
+
+    const openEditDialog = (booking) => {
+        setEditingBooking(booking);
+        setForm({
+            mode: booking.user?.is_guest ? 'guest' : 'existing',
+            userId: booking.user?.id ?? '',
+            guestName: booking.user?.is_guest ? booking.user?.name ?? booking.guest_name ?? '' : '',
+            carId: booking.car?.id ?? '',
+            driverId: booking.driver?.id ?? '',
+            price: booking.price ?? '',
+            startDate: toLocalInputValue(booking.start_date),
+            endDate: booking.end_date ? toLocalInputValue(booking.end_date) : '',
+            openBooking: !booking.end_date,
+            note: booking.note ?? '',
+        });
+        addToAvailability('users', booking.user);
+        addToAvailability('cars', booking.car);
+        addToAvailability('drivers', booking.driver);
+        setFormError('');
+        setFormErrors({});
+        setMessage('');
+        setDialogOpen(true);
     };
 
     const buildAvailabilityParams = useCallback(
@@ -406,8 +465,13 @@ const AdminBookingsPage = () => {
 
         setCreating(true);
         try {
-            await createAdminBooking(payload);
-            setMessage('Booking created successfully.');
+            if (isEditing) {
+                await updateAdminBooking(editingBooking.id, payload);
+                setMessage('Booking updated successfully.');
+            } else {
+                await createAdminBooking(payload);
+                setMessage('Booking created successfully.');
+            }
             closeDialog();
             loadBookings();
         } catch (err) {
@@ -583,17 +647,18 @@ const AdminBookingsPage = () => {
                                         <TableCell>User</TableCell>
                                         <TableCell>Car</TableCell>
                                         <TableCell>Driver</TableCell>
-                                        <TableCell>Price</TableCell>
-                                        <TableCell>Start</TableCell>
-                                        <TableCell>End</TableCell>
-                                        <TableCell>Notes</TableCell>
-                                        <TableCell>Status</TableCell>
-                                    </TableRow>
-                                </TableHead>
+                                    <TableCell>Price</TableCell>
+                                    <TableCell>Start</TableCell>
+                                    <TableCell>End</TableCell>
+                                    <TableCell>Notes</TableCell>
+                                    <TableCell>Status</TableCell>
+                                    <TableCell>Actions</TableCell>
+                                </TableRow>
+                            </TableHead>
                                 <TableBody>
                                     {loading ? (
                                         <TableRow>
-                                            <TableCell colSpan={9} align="center">
+                                            <TableCell colSpan={10} align="center">
                                                 <Stack alignItems="center" py={4} spacing={1}>
                                                     <CircularProgress size={24} />
                                                     <Typography variant="body2" color="text.secondary">
@@ -604,7 +669,7 @@ const AdminBookingsPage = () => {
                                         </TableRow>
                                     ) : bookings.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={9} align="center">
+                                            <TableCell colSpan={10} align="center">
                                                 <Typography color="text.secondary" py={3}>
                                                     No bookings match your filters.
                                                 </Typography>
@@ -653,20 +718,25 @@ const AdminBookingsPage = () => {
                                                         </Typography>
                                                     </TableCell>
                                                     <TableCell>
-                                                        <Chip
-                                                            label={tone.label}
-                                                            size="small"
-                                                            sx={{
-                                                                color: tone.color,
-                                                                backgroundColor: tone.bg,
-                                                                fontWeight: 700,
-                                                            }}
-                                                        />
-                                                    </TableCell>
-                                                </TableRow>
-                                            );
-                                        })
-                                    )}
+                                                    <Chip
+                                                        label={tone.label}
+                                                        size="small"
+                                                        sx={{
+                                                            color: tone.color,
+                                                            backgroundColor: tone.bg,
+                                                            fontWeight: 700,
+                                                        }}
+                                                    />
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Button size="small" variant="outlined" onClick={() => openEditDialog(booking)}>
+                                                        Edit
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })
+                                )}
                                 </TableBody>
                             </Table>
                         </Box>
@@ -687,7 +757,7 @@ const AdminBookingsPage = () => {
 
 
             <Dialog open={dialogOpen} onClose={closeDialog} fullWidth maxWidth="sm" component="form" onSubmit={submitBooking}>
-                <DialogTitle>New booking</DialogTitle>
+                <DialogTitle>{isEditing ? 'Edit booking' : 'New booking'}</DialogTitle>
                 <DialogContent dividers>
                     <Stack spacing={3} mt={1}>
                         <Stack spacing={1}>
@@ -846,7 +916,7 @@ const AdminBookingsPage = () => {
                 <DialogActions>
                     <Button onClick={closeDialog}>Cancel</Button>
                     <Button type="submit" variant="contained" disabled={creating}>
-                        {creating ? 'Creating…' : 'Confirm booking'}
+                        {creating ? (isEditing ? 'Saving…' : 'Creating…') : isEditing ? 'Save changes' : 'Confirm booking'}
                     </Button>
                 </DialogActions>
             </Dialog>
