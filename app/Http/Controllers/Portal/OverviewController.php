@@ -61,12 +61,13 @@ class OverviewController extends Controller
             ->limit(5)
             ->get()
             ->map(function (Booking $booking) {
+                $passengerName = $booking->user->name ?? $booking->guest_name ?? 'Guest';
                 $time = $booking->start_date
                     ? $booking->start_date->clone()->timezone(config('app.timezone'))->format('H:i')
                     : optional($booking->created_at)->timezone(config('app.timezone'))->format('H:i');
 
                 return [
-                    'title' => sprintf('%s • %s', $booking->car->name, $booking->user->name),
+                    'title' => sprintf('%s • %s', $booking->car->name, $passengerName),
                     'time' => $time,
                     'location' => sprintf('Vehicle %s • %s', $booking->car->model, $booking->car->number),
                     'status' => $this->statusLabel($booking->status),

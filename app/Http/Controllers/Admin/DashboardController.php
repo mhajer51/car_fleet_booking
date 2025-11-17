@@ -55,13 +55,14 @@ class DashboardController extends Controller
             ->get()
             ->map(function (Booking $booking) use ($now) {
                 $meta = $this->activityMeta($booking->status);
+                $passengerName = $booking->user->name ?? $booking->guest_name ?? 'Guest';
 
                 return [
                     'title' => sprintf('Trip %s (%s)', $booking->car->name, $booking->car->number),
                     'time' => optional($booking->updated_at)->diffForHumans($now, true) ?? 'now',
                     'badge' => $meta['badge'],
                     'tone' => $meta['tone'],
-                    'description' => sprintf('%s with %s.', $meta['description'], $booking->user->name),
+                    'description' => sprintf('%s with %s.', $meta['description'], $passengerName),
                 ];
             })
             ->values();
