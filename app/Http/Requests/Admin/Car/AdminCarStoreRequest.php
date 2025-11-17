@@ -5,6 +5,7 @@ namespace App\Http\Requests\Admin\Car;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Validation\Rule;
 
 class AdminCarStoreRequest extends FormRequest
 {
@@ -20,6 +21,20 @@ class AdminCarStoreRequest extends FormRequest
             'model' => ['required', 'string', 'max:255'],
             'color' => ['required', 'string', 'max:255'],
             'number' => ['required', 'string', 'max:255', 'unique:cars,number'],
+            'emirate' => [
+                'required',
+                'string',
+                Rule::in([
+                    'dubai',
+                    'abu_dhabi',
+                    'sharjah',
+                    'ajman',
+                    'umm_al_quwain',
+                    'ras_al_khaimah',
+                    'fujairah',
+                ]),
+            ],
+            'notes' => ['nullable', 'string', 'max:1000'],
             'is_active' => ['sometimes', 'boolean'],
         ];
     }
@@ -32,6 +47,8 @@ class AdminCarStoreRequest extends FormRequest
             'color.required' => 'Vehicle color is required.',
             'number.required' => 'Plate number is required.',
             'number.unique' => 'This plate number is already registered.',
+            'emirate.required' => 'Select the vehicle emirate.',
+            'emirate.in' => 'Choose a valid emirate.',
         ];
     }
 

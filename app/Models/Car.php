@@ -17,6 +17,8 @@ class Car extends Model
         'model',
         'color',
         'number',
+        'emirate',
+        'notes',
         'is_active',
     ];
 

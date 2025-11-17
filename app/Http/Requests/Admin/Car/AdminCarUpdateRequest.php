@@ -23,6 +23,20 @@ class AdminCarUpdateRequest extends FormRequest
             'model' => ['sometimes', 'string', 'max:255'],
             'color' => ['sometimes', 'string', 'max:255'],
             'number' => ['sometimes', 'string', 'max:255', Rule::unique('cars', 'number')->ignore($carId)],
+            'emirate' => [
+                'sometimes',
+                'string',
+                Rule::in([
+                    'dubai',
+                    'abu_dhabi',
+                    'sharjah',
+                    'ajman',
+                    'umm_al_quwain',
+                    'ras_al_khaimah',
+                    'fujairah',
+                ]),
+            ],
+            'notes' => ['nullable', 'string', 'max:1000'],
             'is_active' => ['sometimes', 'boolean'],
         ];
     }
@@ -34,6 +48,7 @@ class AdminCarUpdateRequest extends FormRequest
             'model.string' => 'Vehicle model must be a valid string.',
             'color.string' => 'Vehicle color must be a valid string.',
             'number.unique' => 'This plate number is already registered.',
+            'emirate.in' => 'Choose a valid emirate.',
         ];
     }
 

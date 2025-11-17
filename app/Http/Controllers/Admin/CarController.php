@@ -29,7 +29,9 @@ class CarController extends Controller
                 $builder->where('name', 'like', "%{$search}%")
                     ->orWhere('model', 'like', "%{$search}%")
                     ->orWhere('color', 'like', "%{$search}%")
-                    ->orWhere('number', 'like', "%{$search}%");
+                    ->orWhere('number', 'like', "%{$search}%")
+                    ->orWhere('emirate', 'like', "%{$search}%")
+                    ->orWhere('notes', 'like', "%{$search}%");
             });
         }
 
@@ -74,6 +76,8 @@ class CarController extends Controller
                 'model' => $data['model'],
                 'color' => $data['color'],
                 'number' => $data['number'],
+                'emirate' => $data['emirate'],
+                'notes' => $data['notes'] ?? null,
                 'is_active' => $data['is_active'] ?? true,
             ]);
         } catch (QueryException $exception) {
@@ -152,6 +156,8 @@ class CarController extends Controller
             'model' => $car->model,
             'color' => $car->color,
             'number' => $car->number,
+            'emirate' => $car->emirate,
+            'notes' => $car->notes,
             'status' => $isBooked ? 'booked' : 'available',
             'is_active' => $car->is_active,
         ];
