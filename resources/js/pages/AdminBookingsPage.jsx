@@ -31,6 +31,9 @@ import {
 import AdminLayout from '../components/AdminLayout.jsx';
 import {
     createAdminBooking,
+    fetchAvailableBookingCars,
+    fetchAvailableBookingDrivers,
+    fetchAvailableBookingUsers,
     fetchAdminBookings,
     fetchAdminCars,
     fetchAdminDrivers,
@@ -50,13 +53,20 @@ const statusTone = {
     completed: { label: 'Completed', color: '#1d4ed8', bg: 'rgba(59,130,246,.12)' },
 };
 
+const defaultStartDate = () => {
+    const now = new Date();
+    now.setSeconds(0, 0);
+    const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+    return localDate.toISOString().slice(0, 16);
+};
+
 const initialForm = {
     mode: 'existing',
     userId: '',
     guestName: '',
     carId: '',
     driverId: '',
-    startDate: '',
+    startDate: defaultStartDate(),
     endDate: '',
     openBooking: false,
 };
@@ -99,6 +109,9 @@ const AdminBookingsPage = () => {
     const [users, setUsers] = useState([]);
     const [cars, setCars] = useState([]);
     const [drivers, setDrivers] = useState([]);
+    const [availability, setAvailability] = useState({ users: [], cars: [], drivers: [] });
+    const [availabilityLoading, setAvailabilityLoading] = useState({ users: false, cars: false, drivers: false });
+    const [availabilitySearch, setAvailabilitySearch] = useState({ users: '', cars: '', drivers: '' });
 
     const totalRecords = meta?.total ?? bookings.length ?? 0;
 
@@ -203,9 +216,10 @@ const AdminBookingsPage = () => {
 
     const openDialog = () => {
         setDialogOpen(true);
-        setForm(initialForm);
+        setForm({ ...initialForm, startDate: defaultStartDate() });
         setFormError('');
         setMessage('');
+        setAvailabilitySearch({ users: '', cars: '', drivers: '' });
     };
 
     const closeDialog = () => {
@@ -217,6 +231,57 @@ const AdminBookingsPage = () => {
     const handleFormChange = (field, value) => {
         setForm((prev) => ({ ...prev, [field]: value }));
     };
+
+    const buildAvailabilityParams = useCallback(
+        (searchTerm = '') => ({
+            start_date: form.startDate || defaultStartDate(),
+            end_date: form.openBooking ? null : form.endDate || null,
+            search: searchTerm || undefined,
+            per_page: 20,
+        }),
+        [form.endDate, form.openBooking, form.startDate],
+    );
+
+    const loadAvailability = useCallback(
+        async (resource, searchTerm = '') => {
+            if (!form.startDate) {
+                return;
+            }
+
+            setAvailabilityLoading((prev) => ({ ...prev, [resource]: true }));
+            setFormError('');
+            try {
+                const params = buildAvailabilityParams(searchTerm);
+                const payload = await (
+                    resource === 'users'
+                        ? fetchAvailableBookingUsers(params)
+                        : resource === 'cars'
+                            ? fetchAvailableBookingCars(params)
+                            : fetchAvailableBookingDrivers(params)
+                );
+
+                setAvailability((prev) => ({
+                    ...prev,
+                    [resource]: payload?.[resource] ?? payload ?? [],
+                }));
+            } catch (err) {
+                setFormError(err.message);
+            } finally {
+                setAvailabilityLoading((prev) => ({ ...prev, [resource]: false }));
+            }
+        },
+        [buildAvailabilityParams, form.startDate],
+    );
+
+    useEffect(() => {
+        if (!dialogOpen) {
+            return;
+        }
+
+        loadAvailability('users', availabilitySearch.users);
+        loadAvailability('cars', availabilitySearch.cars);
+        loadAvailability('drivers', availabilitySearch.drivers);
+    }, [dialogOpen, loadAvailability, availabilitySearch.cars, availabilitySearch.drivers, availabilitySearch.users]);
 
     const submitBooking = async (event) => {
         event.preventDefault();
@@ -326,33 +391,36 @@ const AdminBookingsPage = () => {
                                 <Autocomplete
                                     options={users}
                                     value={selectedUser}
-                                    onChange={(_event, value) => updateFilter('user_id', value?.id ?? '')}
-                                    getOptionLabel={(option) => option?.name ?? ''}
-                                    loading={lookupsLoading}
-                                    renderInput={(params) => (
-                                        <TextField {...params} label="User" placeholder="Search by name" />
-                                    )}
-                                />
-                                <Autocomplete
-                                    options={cars}
-                                    value={selectedCar}
-                                    onChange={(_event, value) => updateFilter('car_id', value?.id ?? '')}
-                                    getOptionLabel={(option) => option?.name ?? ''}
-                                    loading={lookupsLoading}
-                                    renderInput={(params) => (
-                                        <TextField {...params} label="Car" placeholder="Search by name" />
-                                    )}
-                                />
-                                <Autocomplete
-                                    options={drivers}
-                                    value={selectedDriver}
-                                    onChange={(_event, value) => updateFilter('driver_id', value?.id ?? '')}
-                                    getOptionLabel={(option) => option?.name ?? ''}
-                                    loading={lookupsLoading}
-                                    renderInput={(params) => (
-                                        <TextField {...params} label="Driver" placeholder="Search by name" />
-                                    )}
-                                />
+                                onChange={(_event, value) => updateFilter('user_id', value?.id ?? '')}
+                                getOptionLabel={(option) => option?.name ?? ''}
+                                loading={lookupsLoading}
+                                isOptionEqualToValue={(option, value) => option?.id === value?.id}
+                                renderInput={(params) => (
+                                    <TextField {...params} label="User" placeholder="Search by name" />
+                                )}
+                            />
+                            <Autocomplete
+                                options={cars}
+                                value={selectedCar}
+                                onChange={(_event, value) => updateFilter('car_id', value?.id ?? '')}
+                                getOptionLabel={(option) => option?.name ?? ''}
+                                loading={lookupsLoading}
+                                isOptionEqualToValue={(option, value) => option?.id === value?.id}
+                                renderInput={(params) => (
+                                    <TextField {...params} label="Car" placeholder="Search by name" />
+                                )}
+                            />
+                            <Autocomplete
+                                options={drivers}
+                                value={selectedDriver}
+                                onChange={(_event, value) => updateFilter('driver_id', value?.id ?? '')}
+                                getOptionLabel={(option) => option?.name ?? ''}
+                                loading={lookupsLoading}
+                                isOptionEqualToValue={(option, value) => option?.id === value?.id}
+                                renderInput={(params) => (
+                                    <TextField {...params} label="Driver" placeholder="Search by name" />
+                                )}
+                            />
                                 <TextField
                                     label="From date"
                                     type="date"
@@ -488,6 +556,38 @@ const AdminBookingsPage = () => {
                     <Stack spacing={3} mt={1}>
                         <Stack spacing={1}>
                             <Typography variant="subtitle2" color="text.secondary">
+                                Booking window
+                            </Typography>
+                            <TextField
+                                type="datetime-local"
+                                label="Start date"
+                                value={form.startDate}
+                                onChange={(event) => handleFormChange('startDate', event.target.value)}
+                                InputLabelProps={{ shrink: true }}
+                                required
+                            />
+                            <TextField
+                                type="datetime-local"
+                                label="End date"
+                                value={form.endDate}
+                                onChange={(event) => handleFormChange('endDate', event.target.value)}
+                                InputLabelProps={{ shrink: true }}
+                                disabled={form.openBooking}
+                                helperText={form.openBooking ? 'Open booking without a return time' : 'Specify an optional return time'}
+                            />
+                            <FormControlLabel
+                                control={
+                                    <Checkbox
+                                        checked={form.openBooking}
+                                        onChange={(event) => handleFormChange('openBooking', event.target.checked)}
+                                    />
+                                }
+                                label="Open booking without return date"
+                            />
+                        </Stack>
+
+                        <Stack spacing={1}>
+                            <Typography variant="subtitle2" color="text.secondary">
                                 Customer type
                             </Typography>
                             <RadioGroup
@@ -502,11 +602,29 @@ const AdminBookingsPage = () => {
 
                         {form.mode === 'existing' ? (
                             <Autocomplete
-                                options={users}
-                                value={users.find((user) => user.id === Number(form.userId)) ?? null}
+                                options={availability.users}
+                                value={availability.users.find((user) => user.id === Number(form.userId)) ?? null}
                                 onChange={(_event, value) => handleFormChange('userId', value?.id ?? '')}
-                                getOptionLabel={(option) => option?.name ?? ''}
-                                renderInput={(params) => <TextField {...params} label="User" required />}
+                                onInputChange={(_event, value) => {
+                                    setAvailabilitySearch((prev) => ({ ...prev, users: value }));
+                                    loadAvailability('users', value);
+                                }}
+                                filterOptions={(options) => options}
+                                getOptionLabel={(option) =>
+                                    option?.name
+                                        ? `${option.name}${option.employee_number ? ` • ${option.employee_number}` : ''}`
+                                        : ''
+                                }
+                                loading={availabilityLoading.users}
+                                isOptionEqualToValue={(option, value) => option?.id === value?.id}
+                                renderInput={(params) => (
+                                    <TextField
+                                        {...params}
+                                        label="User"
+                                        required
+                                        placeholder="Search by name or employee number"
+                                    />
+                                )}
                             />
                         ) : (
                             <TextField
@@ -517,57 +635,54 @@ const AdminBookingsPage = () => {
                             />
                         )}
 
-                        <TextField
-                            select
-                            label="Car"
-                            value={form.carId}
-                            onChange={(event) => handleFormChange('carId', event.target.value)}
-                            required
-                        >
-                            <MenuItem value="" disabled>
-                                Select a car
-                            </MenuItem>
-                            {cars.map((car) => (
-                                <MenuItem key={car.id} value={car.id}>
-                                    {car.name} • {car.number}
-                                </MenuItem>
-                            ))}
-                        </TextField>
+                        <Autocomplete
+                            options={availability.cars}
+                            value={availability.cars.find((car) => car.id === Number(form.carId)) ?? null}
+                            onChange={(_event, value) => handleFormChange('carId', value?.id ?? '')}
+                            onInputChange={(_event, value) => {
+                                setAvailabilitySearch((prev) => ({ ...prev, cars: value }));
+                                loadAvailability('cars', value);
+                            }}
+                            filterOptions={(options) => options}
+                            getOptionLabel={(option) =>
+                                option?.name ? `${option.name}${option.number ? ` • ${option.number}` : ''}` : ''
+                            }
+                            loading={availabilityLoading.cars}
+                            isOptionEqualToValue={(option, value) => option?.id === value?.id}
+                            renderInput={(params) => (
+                                <TextField
+                                    {...params}
+                                    label="Car"
+                                    required
+                                    placeholder="Search by car name or number"
+                                />
+                            )}
+                        />
 
                         <Autocomplete
-                            options={drivers}
-                            value={drivers.find((driver) => driver.id === Number(form.driverId)) ?? null}
+                            options={availability.drivers}
+                            value={availability.drivers.find((driver) => driver.id === Number(form.driverId)) ?? null}
                             onChange={(_event, value) => handleFormChange('driverId', value?.id ?? '')}
-                            getOptionLabel={(option) => option?.name ?? ''}
-                            renderInput={(params) => <TextField {...params} label="Driver" required />}
-                        />
-
-                        <TextField
-                            type="datetime-local"
-                            label="Start date"
-                            value={form.startDate}
-                            onChange={(event) => handleFormChange('startDate', event.target.value)}
-                            InputLabelProps={{ shrink: true }}
-                            required
-                        />
-
-                        <TextField
-                            type="datetime-local"
-                            label="End date"
-                            value={form.endDate}
-                            onChange={(event) => handleFormChange('endDate', event.target.value)}
-                            InputLabelProps={{ shrink: true }}
-                            disabled={form.openBooking}
-                        />
-
-                        <FormControlLabel
-                            control={
-                                <Checkbox
-                                    checked={form.openBooking}
-                                    onChange={(event) => handleFormChange('openBooking', event.target.checked)}
-                                />
+                            onInputChange={(_event, value) => {
+                                setAvailabilitySearch((prev) => ({ ...prev, drivers: value }));
+                                loadAvailability('drivers', value);
+                            }}
+                            filterOptions={(options) => options}
+                            getOptionLabel={(option) =>
+                                option?.name
+                                    ? `${option.name}${option.license_number ? ` • ${option.license_number}` : ''}`
+                                    : ''
                             }
-                            label="Open booking without return date"
+                            loading={availabilityLoading.drivers}
+                            isOptionEqualToValue={(option, value) => option?.id === value?.id}
+                            renderInput={(params) => (
+                                <TextField
+                                    {...params}
+                                    label="Driver"
+                                    required
+                                    placeholder="Search by driver name or license number"
+                                />
+                            )}
                         />
 
                         {formError && (

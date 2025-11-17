@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 class Driver extends Model
 {
@@ -34,5 +36,12 @@ class Driver extends Model
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
+    }
+
+    public function scopeAvailableForPeriod(Builder $query, Carbon $startDate, ?Carbon $endDate): Builder
+    {
+        return $query->active()->whereDoesntHave('bookings', function ($builder) use ($startDate, $endDate) {
+            $builder->overlapping($startDate, $endDate);
+        });
     }
 }

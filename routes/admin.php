@@ -39,8 +39,14 @@ Route::prefix('admin')->group(function (): void {
             Route::patch('{driver}/status', [AdminDriverController::class, 'updateStatus'])->name('drivers.update-status');
         });
 
-        Route::get('bookings', [AdminBookingController::class, 'index'])->name('bookings.index');
-        Route::post('bookings', [AdminBookingController::class, 'store'])->name('bookings.store');
+        Route::prefix('bookings')->group(function (): void {
+            Route::get('/', [AdminBookingController::class, 'index'])->name('bookings.index');
+            Route::post('/', [AdminBookingController::class, 'store'])->name('bookings.store');
+
+            Route::get('available/users', [AdminBookingController::class, 'availableUsers'])->name('bookings.available-users');
+            Route::get('available/cars', [AdminBookingController::class, 'availableCars'])->name('bookings.available-cars');
+            Route::get('available/drivers', [AdminBookingController::class, 'availableDrivers'])->name('bookings.available-drivers');
+        });
     });
 
 });
