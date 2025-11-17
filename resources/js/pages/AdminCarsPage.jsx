@@ -164,19 +164,19 @@ const AdminCarsPage = () => {
         const errors = {};
 
         if (!formValues.name.trim()) {
-            errors.name = 'Vehicle name is required.';
+            errors.name = ['Vehicle name is required.'];
         }
 
         if (!formValues.model.trim()) {
-            errors.model = 'Model is required.';
+            errors.model = ['Model is required.'];
         }
 
         if (!formValues.color.trim()) {
-            errors.color = 'Color is required.';
+            errors.color = ['Color is required.'];
         }
 
         if (!formValues.number.trim()) {
-            errors.number = 'Plate number is required.';
+            errors.number = ['Plate number is required.'];
         }
 
         return errors;
@@ -205,6 +205,10 @@ const AdminCarsPage = () => {
             await load();
         } catch (err) {
             setFormError(err.message);
+
+            if (err?.response?.data?.data) {
+                setFormErrors(err.response.data.data);
+            }
         } finally {
             setSaving(false);
         }
@@ -430,7 +434,7 @@ const AdminCarsPage = () => {
                             fullWidth
                             required
                             error={!!formErrors.name}
-                            helperText={formErrors.name}
+                            helperText={formErrors.name?.[0] || formErrors.name}
                         />
                         <TextField
                             label="Model"
@@ -439,7 +443,7 @@ const AdminCarsPage = () => {
                             fullWidth
                             required
                             error={!!formErrors.model}
-                            helperText={formErrors.model}
+                            helperText={formErrors.model?.[0] || formErrors.model}
                         />
                         <TextField
                             label="Color"
@@ -448,7 +452,7 @@ const AdminCarsPage = () => {
                             fullWidth
                             required
                             error={!!formErrors.color}
-                            helperText={formErrors.color}
+                            helperText={formErrors.color?.[0] || formErrors.color}
                         />
                         <TextField
                             label="Number"
@@ -457,7 +461,7 @@ const AdminCarsPage = () => {
                             fullWidth
                             required
                             error={!!formErrors.number}
-                            helperText={formErrors.number}
+                            helperText={formErrors.number?.[0] || formErrors.number}
                         />
                         <FormControlLabel
                             control={<Switch checked={!!formValues.is_active} onChange={handleFormChange('is_active')} />}

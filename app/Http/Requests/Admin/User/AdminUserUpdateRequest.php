@@ -29,6 +29,17 @@ class AdminUserUpdateRequest extends FormRequest
         ];
     }
 
+    public function messages(): array
+    {
+        return [
+            'username.unique' => 'This username is already taken.',
+            'email.email' => 'Enter a valid email address.',
+            'email.unique' => 'This email is already registered.',
+            'number_employ.unique' => 'This employee number is already registered.',
+            'password.min' => 'Password must be at least 8 characters.',
+        ];
+    }
+
     protected function failedValidation(Validator $validator)
     {
         $errors = $validator->errors();

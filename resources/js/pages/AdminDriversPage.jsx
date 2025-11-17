@@ -185,19 +185,19 @@ const AdminDriversPage = () => {
         const errors = {};
 
         if (!form.name.trim()) {
-            errors.name = 'Full name is required.';
+            errors.name = ['Full name is required.'];
         }
 
         if (!form.license_number.trim()) {
-            errors.license_number = 'License number is required.';
+            errors.license_number = ['License number is required.'];
         } else if (form.license_number.trim().length < 5) {
-            errors.license_number = 'License number looks too short.';
+            errors.license_number = ['License number looks too short.'];
         }
 
         if (!form.phone_number.trim()) {
-            errors.phone_number = 'Phone number is required.';
+            errors.phone_number = ['Phone number is required.'];
         } else if (!/^\+?[0-9][0-9\s-]{6,}$/.test(form.phone_number.trim())) {
-            errors.phone_number = 'Enter a valid phone number.';
+            errors.phone_number = ['Enter a valid phone number.'];
         }
 
         return errors;
@@ -227,6 +227,10 @@ const AdminDriversPage = () => {
             await load();
         } catch (err) {
             setSubmitError(err.message);
+
+            if (err?.response?.data?.data) {
+                setFormErrors(err.response.data.data);
+            }
         } finally {
             setSubmitting(false);
         }
@@ -493,7 +497,7 @@ const AdminDriversPage = () => {
                         required
                         autoFocus
                         error={!!formErrors.name}
-                        helperText={formErrors.name}
+                        helperText={formErrors.name?.[0] || formErrors.name}
                     />
                     <TextField
                         label="License number"
@@ -501,7 +505,7 @@ const AdminDriversPage = () => {
                         onChange={handleFormChange('license_number')}
                         required
                         error={!!formErrors.license_number}
-                        helperText={formErrors.license_number}
+                        helperText={formErrors.license_number?.[0] || formErrors.license_number}
                     />
                     <TextField
                         label="Phone number"
@@ -509,7 +513,7 @@ const AdminDriversPage = () => {
                         onChange={handleFormChange('phone_number')}
                         required
                         error={!!formErrors.phone_number}
-                        helperText={formErrors.phone_number}
+                        helperText={formErrors.phone_number?.[0] || formErrors.phone_number}
                     />
                     <FormControl fullWidth>
                         <InputLabel id="driver-status-select">Status</InputLabel>

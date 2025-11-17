@@ -27,6 +27,16 @@ class AdminCarUpdateRequest extends FormRequest
         ];
     }
 
+    public function messages(): array
+    {
+        return [
+            'name.string' => 'Vehicle name must be a valid string.',
+            'model.string' => 'Vehicle model must be a valid string.',
+            'color.string' => 'Vehicle color must be a valid string.',
+            'number.unique' => 'This plate number is already registered.',
+        ];
+    }
+
     protected function failedValidation(Validator $validator)
     {
         $errors = $validator->errors();

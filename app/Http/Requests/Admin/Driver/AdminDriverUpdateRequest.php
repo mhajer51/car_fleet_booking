@@ -26,6 +26,17 @@ class AdminDriverUpdateRequest extends FormRequest
         ];
     }
 
+    public function messages(): array
+    {
+        return [
+            'license_number.required' => 'License number is required.',
+            'license_number.unique' => 'This license number is already assigned.',
+            'phone_number.required' => 'Phone number is required.',
+            'phone_number.unique' => 'This phone number is already registered.',
+            'is_active.required' => 'Select whether the driver is active.',
+        ];
+    }
+
     protected function failedValidation(Validator $validator)
     {
         $errors = $validator->errors();

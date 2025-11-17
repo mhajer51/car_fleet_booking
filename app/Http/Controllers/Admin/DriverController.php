@@ -9,6 +9,7 @@ use App\Http\Requests\Admin\ToggleStatusRequest;
 use App\Models\Driver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Database\QueryException;
 
 class DriverController extends Controller
 {
@@ -58,12 +59,23 @@ class DriverController extends Controller
     {
         $data = $request->validated();
 
-        $driver = Driver::create([
-            'name' => $data['name'],
-            'license_number' => $data['license_number'],
-            'phone_number' => $data['phone_number'],
-            'is_active' => $data['is_active'] ?? true,
-        ]);
+        try {
+            $driver = Driver::create([
+                'name' => $data['name'],
+                'license_number' => $data['license_number'],
+                'phone_number' => $data['phone_number'],
+                'is_active' => $data['is_active'] ?? true,
+            ]);
+        } catch (QueryException $exception) {
+            if ($this->isUniqueViolation($exception)) {
+                return apiResponse('Validation failed', [
+                    'license_number' => ['This license number is already assigned.'],
+                    'phone_number' => ['This phone number is already in use.'],
+                ], 422);
+            }
+
+            throw $exception;
+        }
 
         $driver = $this->transformDriver($driver, 0);
 
@@ -74,7 +86,18 @@ class DriverController extends Controller
     {
         $data = $request->validated();
 
-        $driver->update($data);
+        try {
+            $driver->update($data);
+        } catch (QueryException $exception) {
+            if ($this->isUniqueViolation($exception)) {
+                return apiResponse('Validation failed', [
+                    'license_number' => ['This license number is already assigned.'],
+                    'phone_number' => ['This phone number is already in use.'],
+                ], 422);
+            }
+
+            throw $exception;
+        }
         $driver->refresh()->loadCount('activeBookings');
 
         $driver = $this->transformDriver($driver, $driver->active_bookings_count);
@@ -105,5 +128,11 @@ class DriverController extends Controller
             'status' => $isAssigned ? 'assigned' : 'available',
             'is_active' => $driver->is_active,
         ];
+    }
+
+    private function isUniqueViolation(QueryException $exception): bool
+    {
+        return in_array($exception->getCode(), ['23000', '23505'], true)
+            || in_array($exception->errorInfo[0] ?? null, ['23000', '23505'], true);
     }
 }
