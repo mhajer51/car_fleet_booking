@@ -28,6 +28,7 @@ import {
     TableRow,
     TextField,
     Typography,
+    SvgIcon,
 } from '@mui/material';
 import { Delete as DeleteIcon, Edit as EditIcon, MoreHoriz } from '@mui/icons-material';
 import AdminLayout from '../components/AdminLayout.jsx';
@@ -37,6 +38,28 @@ import {
     updateAdminDriver,
     updateAdminDriverStatus,
 } from '../services/admin.js';
+
+const EditIcon = (props) => (
+    <SvgIcon {...props}>
+        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" />
+        <path d="M20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+    </SvgIcon>
+);
+
+const DeleteIcon = (props) => (
+    <SvgIcon {...props}>
+        <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12z" />
+        <path d="M19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+    </SvgIcon>
+);
+
+const MoreHoriz = (props) => (
+    <SvgIcon {...props}>
+        <circle cx="6" cy="12" r="2" />
+        <circle cx="12" cy="12" r="2" />
+        <circle cx="18" cy="12" r="2" />
+    </SvgIcon>
+);
 
 const assignmentTone = {
     available: { bg: 'rgba(59,130,246,.12)', color: '#1d4ed8', label: 'Available' },
