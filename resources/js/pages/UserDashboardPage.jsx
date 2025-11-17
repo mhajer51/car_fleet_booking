@@ -68,39 +68,41 @@ const MetricCard = ({ metric }) => (
 
 const TimelineCard = ({ timeline }) => (
     <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #e2e8f0', height: '100%' }}>
-        <CardContent>
+        <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
             <Typography variant="h6" gutterBottom fontWeight={600}>
                 Latest fleet movements
             </Typography>
-            <Stack spacing={2} divider={<Divider flexItem sx={{ borderColor: '#e2e8f0' }} />}>
-                {timeline.length === 0 && (
-                    <Typography color="text.secondary">No rides captured yet today.</Typography>
-                )}
-                {timeline.map((item, index) => (
-                    <Stack key={`${item.title}-${index}`} spacing={0.5}>
-                        <Stack direction="row" justifyContent="space-between" alignItems="center">
-                            <Typography fontWeight={600}>{item.title}</Typography>
-                            <Typography variant="caption" color="text.secondary">
-                                {item.time}
+            <Box sx={{ flexGrow: 1, overflowY: 'auto', maxHeight: 360, pr: 1 }}>
+                <Stack spacing={2} divider={<Divider flexItem sx={{ borderColor: '#e2e8f0' }} />}>
+                    {timeline.length === 0 && (
+                        <Typography color="text.secondary">No rides captured yet today.</Typography>
+                    )}
+                    {timeline.map((item, index) => (
+                        <Stack key={`${item.title}-${index}`} spacing={0.5}>
+                            <Stack direction="row" justifyContent="space-between" alignItems="center">
+                                <Typography fontWeight={600}>{item.title}</Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                    {item.time}
+                                </Typography>
+                            </Stack>
+                            <Typography variant="body2" color="text.secondary">
+                                {item.location}
                             </Typography>
+                            <Chip
+                                label={item.status}
+                                size="small"
+                                sx={{
+                                    mt: 1,
+                                    backgroundColor: '#e0f2fe',
+                                    color: '#0369a1',
+                                    fontWeight: 600,
+                                    width: 'fit-content',
+                                }}
+                            />
                         </Stack>
-                        <Typography variant="body2" color="text.secondary">
-                            {item.location}
-                        </Typography>
-                        <Chip
-                            label={item.status}
-                            size="small"
-                            sx={{
-                                mt: 1,
-                                backgroundColor: '#e0f2fe',
-                                color: '#0369a1',
-                                fontWeight: 600,
-                                width: 'fit-content',
-                            }}
-                        />
-                    </Stack>
-                ))}
-            </Stack>
+                    ))}
+                </Stack>
+            </Box>
         </CardContent>
     </Card>
 );
@@ -281,11 +283,11 @@ const StatusBreakdownCard = ({ breakdown }) => (
 
 const TopVehiclesCard = ({ vehicles }) => (
     <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #e2e8f0', height: '100%' }}>
-        <CardContent>
+        <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
             <Typography variant="h6" gutterBottom fontWeight={600}>
                 Top performing vehicles
             </Typography>
-            <List dense>
+            <List dense sx={{ flexGrow: 1, overflowY: 'auto', maxHeight: 320, pr: 1 }}>
                 {vehicles.length === 0 && (
                     <Typography color="text.secondary" px={1}>
                         Vehicles will appear here once bookings are assigned.
