@@ -144,7 +144,6 @@ const AdminBookingsPage = () => {
     const [drivers, setDrivers] = useState([]);
     const [availability, setAvailability] = useState({ users: [], cars: [], drivers: [] });
     const [availabilityLoading, setAvailabilityLoading] = useState({ users: false, cars: false, drivers: false });
-    const [availabilitySearch, setAvailabilitySearch] = useState({ users: '', cars: '', drivers: '' });
 
     const totalRecords = meta?.total ?? bookings.length ?? 0;
 
@@ -252,7 +251,6 @@ const AdminBookingsPage = () => {
         setForm({ ...initialForm, startDate: defaultStartDate() });
         setFormError('');
         setMessage('');
-        setAvailabilitySearch({ users: '', cars: '', drivers: '' });
     };
 
     const closeDialog = () => {
@@ -266,17 +264,16 @@ const AdminBookingsPage = () => {
     };
 
     const buildAvailabilityParams = useCallback(
-        (searchTerm = '') => ({
+        () => ({
             start_date: form.startDate || defaultStartDate(),
             end_date: form.openBooking ? null : form.endDate || null,
-            search: searchTerm || undefined,
             per_page: 20,
         }),
         [form.endDate, form.openBooking, form.startDate],
     );
 
     const loadAvailability = useCallback(
-        async (resource, searchTerm = '') => {
+        async (resource) => {
             if (!form.startDate) {
                 return;
             }
@@ -284,7 +281,7 @@ const AdminBookingsPage = () => {
             setAvailabilityLoading((prev) => ({ ...prev, [resource]: true }));
             setFormError('');
             try {
-                const params = buildAvailabilityParams(searchTerm);
+                const params = buildAvailabilityParams();
                 const payload = await (
                     resource === 'users'
                         ? fetchAvailableBookingUsers(params)
@@ -311,10 +308,10 @@ const AdminBookingsPage = () => {
             return;
         }
 
-        loadAvailability('users', availabilitySearch.users);
-        loadAvailability('cars', availabilitySearch.cars);
-        loadAvailability('drivers', availabilitySearch.drivers);
-    }, [dialogOpen, loadAvailability, availabilitySearch.cars, availabilitySearch.drivers, availabilitySearch.users]);
+        loadAvailability('users');
+        loadAvailability('cars');
+        loadAvailability('drivers');
+    }, [dialogOpen, loadAvailability]);
 
     const submitBooking = async (event) => {
         event.preventDefault();
@@ -650,11 +647,6 @@ const AdminBookingsPage = () => {
                                 options={availability.users}
                                 value={availability.users.find((user) => user.id === Number(form.userId)) ?? null}
                                 onChange={(_event, value) => handleFormChange('userId', value?.id ?? '')}
-                                onInputChange={(_event, value) => {
-                                    setAvailabilitySearch((prev) => ({ ...prev, users: value }));
-                                    loadAvailability('users', value);
-                                }}
-                                filterOptions={(options) => options}
                                 getOptionLabel={formatUserLabel}
                                 loading={availabilityLoading.users}
                                 isOptionEqualToValue={(option, value) => option?.id === value?.id}
@@ -680,14 +672,9 @@ const AdminBookingsPage = () => {
                             options={availability.cars}
                             value={availability.cars.find((car) => car.id === Number(form.carId)) ?? null}
                             onChange={(_event, value) => handleFormChange('carId', value?.id ?? '')}
-                                onInputChange={(_event, value) => {
-                                    setAvailabilitySearch((prev) => ({ ...prev, cars: value }));
-                                    loadAvailability('cars', value);
-                                }}
-                                filterOptions={(options) => options}
-                                getOptionLabel={formatCarLabel}
-                                loading={availabilityLoading.cars}
-                                isOptionEqualToValue={(option, value) => option?.id === value?.id}
+                            getOptionLabel={formatCarLabel}
+                            loading={availabilityLoading.cars}
+                            isOptionEqualToValue={(option, value) => option?.id === value?.id}
                                 renderInput={(params) => (
                                     <TextField
                                         {...params}
@@ -702,14 +689,9 @@ const AdminBookingsPage = () => {
                             options={availability.drivers}
                             value={availability.drivers.find((driver) => driver.id === Number(form.driverId)) ?? null}
                             onChange={(_event, value) => handleFormChange('driverId', value?.id ?? '')}
-                                onInputChange={(_event, value) => {
-                                    setAvailabilitySearch((prev) => ({ ...prev, drivers: value }));
-                                    loadAvailability('drivers', value);
-                                }}
-                                filterOptions={(options) => options}
-                                getOptionLabel={formatDriverLabel}
-                                loading={availabilityLoading.drivers}
-                                isOptionEqualToValue={(option, value) => option?.id === value?.id}
+                            getOptionLabel={formatDriverLabel}
+                            loading={availabilityLoading.drivers}
+                            isOptionEqualToValue={(option, value) => option?.id === value?.id}
                                 renderInput={(params) => (
                                     <TextField
                                         {...params}
