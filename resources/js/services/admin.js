@@ -58,6 +58,21 @@ export const fetchAdminDrivers = (params = {}) =>
         .get('/admin/drivers', { params })
         .then((response) => response.data?.data ?? response.data);
 
+export const createAdminDriver = (payload) =>
+    http
+        .post('/admin/drivers', payload)
+        .then((response) => response.data?.data ?? response.data);
+
+export const updateAdminDriver = (driverId, payload) =>
+    http
+        .put(`/admin/drivers/${driverId}`, payload)
+        .then((response) => response.data?.data ?? response.data);
+
+export const updateAdminDriverStatus = (driverId, payload) =>
+    http
+        .patch(`/admin/drivers/${driverId}/status`, payload)
+        .then((response) => response.data?.data ?? response.data);
+
 export const fetchAdminBookings = (params = {}) =>
     http
         .get('/admin/bookings', { params })
