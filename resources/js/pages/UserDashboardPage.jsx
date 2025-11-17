@@ -386,11 +386,7 @@ const UserDashboardPage = () => {
         load();
     }, []);
 
-    const actions = (
-        <Button variant="contained" color="primary" onClick={load} disabled={loading}>
-            Refresh data
-        </Button>
-    );
+
 
     const metrics = useMemo(() => data?.metrics ?? [], [data]);
 
@@ -398,7 +394,6 @@ const UserDashboardPage = () => {
         <UserLayout
             title="Intelligence dashboard"
             description="Monitor live demand, fleet readiness, and rider experience in one view."
-            actions={actions}
         >
             {error && (
                 <Alert severity="error" sx={{ mb: 3 }}>
@@ -415,44 +410,48 @@ const UserDashboardPage = () => {
 
             {!loading && data && (
                 <Stack spacing={4}>
-                    <Grid container spacing={3}>
-                        {metrics.map((metric) => (
-                            <Grid key={metric.label} item xs={12} md={4}>
-                                <MetricCard metric={metric} />
+                    <Stack>
+                        <Grid container spacing={3}>
+                            {metrics.map((metric) => (
+                                <Grid key={metric.label} item xs={12} md={4}>
+                                    <MetricCard metric={metric} />
+                                </Grid>
+                            ))}
+                        </Grid>
+                    </Stack>
+                    <Stack>
+                        <Grid container spacing={3}>
+                            <Grid item xs={12} lg={8}>
+                                <TrendCard trend={data.trend ?? []} />
                             </Grid>
-                        ))}
-                    </Grid>
-
-                    <Grid container spacing={3}>
-                        <Grid item xs={12} lg={8}>
-                            <TrendCard trend={data.trend ?? []} />
+                            <Grid item xs={12} lg={4}>
+                                <PerformanceCard performance={data.performance ?? {}} />
+                            </Grid>
                         </Grid>
-                        <Grid item xs={12} lg={4}>
-                            <PerformanceCard performance={data.performance ?? {}} />
+                    </Stack>
+                    <Stack>
+                        <Grid container spacing={3}>
+                            <Grid item xs={12} md={6}>
+                                <CapacityCard capacity={data.capacity ?? {}} />
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                                <StatusBreakdownCard breakdown={data.statusBreakdown ?? []} />
+                            </Grid>
                         </Grid>
-                    </Grid>
-
-                    <Grid container spacing={3}>
-                        <Grid item xs={12} md={6}>
-                            <CapacityCard capacity={data.capacity ?? {}} />
+                    </Stack>
+                    <Stack>
+                        <Grid container spacing={3}>
+                            <Grid item xs={12} md={6}>
+                                <TimelineCard timeline={data.timeline ?? []} />
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                                <Stack spacing={3} height="100%">
+                                    <TopVehiclesCard vehicles={data.topVehicles ?? []} />
+                                    <SuggestionsCard suggestions={data.suggestions ?? []} />
+                                </Stack>
+                            </Grid>
                         </Grid>
-                        <Grid item xs={12} md={6}>
-                            <StatusBreakdownCard breakdown={data.statusBreakdown ?? []} />
-                        </Grid>
-                    </Grid>
-
-                    <Grid container spacing={3}>
-                        <Grid item xs={12} md={6}>
-                            <TimelineCard timeline={data.timeline ?? []} />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <Stack spacing={3} height="100%">
-                                <TopVehiclesCard vehicles={data.topVehicles ?? []} />
-                                <SuggestionsCard suggestions={data.suggestions ?? []} />
-                            </Stack>
-                        </Grid>
-                    </Grid>
-
+                    </Stack>
                 </Stack>
             )}
         </UserLayout>
