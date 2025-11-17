@@ -6,6 +6,7 @@ use App\Enums\BookingStatus;
 use App\Exceptions\BookingConflictException;
 use App\Models\Booking;
 use App\Models\Car;
+use App\Models\Driver;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -13,7 +14,7 @@ use InvalidArgumentException;
 
 class BookingService
 {
-    public function create(User $user, Car $car, Carbon $startDate, ?Carbon $endDate = null): Booking
+    public function create(User $user, Car $car, Driver $driver, Carbon $startDate, ?Carbon $endDate = null): Booking
     {
         if (!$user->is_active) {
             throw new InvalidArgumentException('Inactive users cannot create bookings.');
@@ -23,22 +24,35 @@ class BookingService
             throw new InvalidArgumentException('Inactive cars cannot be booked.');
         }
 
+        if (!$driver->is_active) {
+            throw new InvalidArgumentException('Inactive drivers cannot be assigned to bookings.');
+        }
+
         if ($endDate !== null && $endDate->lt($startDate)) {
             throw new InvalidArgumentException('End date must be greater than or equal to the start date.');
         }
 
-        $conflict = $car->bookings()
+        $carConflict = $car->bookings()
             ->overlapping($startDate, $endDate)
             ->exists();
 
-        if ($conflict) {
+        if ($carConflict) {
             throw new BookingConflictException('Car is not available for the requested period.');
         }
 
-        return DB::transaction(function () use ($user, $car, $startDate, $endDate) {
+        $driverConflict = $driver->bookings()
+            ->overlapping($startDate, $endDate)
+            ->exists();
+
+        if ($driverConflict) {
+            throw new BookingConflictException('Driver is already assigned to another booking during this time.');
+        }
+
+        return DB::transaction(function () use ($user, $car, $driver, $startDate, $endDate) {
             return Booking::create([
                 'user_id' => $user->id,
                 'car_id' => $car->id,
+                'driver_id' => $driver->id,
                 'start_date' => $startDate,
                 'end_date' => $endDate,
             ]);

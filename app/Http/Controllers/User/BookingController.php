@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\User\StoreBookingRequest;
 use App\Models\Booking;
 use App\Models\Car;
+use App\Models\Driver;
 use App\Models\User;
 use App\Services\Bookings\BookingService;
 use Illuminate\Http\JsonResponse;
@@ -26,11 +27,12 @@ class BookingController extends Controller
             'status' => ['nullable', 'in:' . implode(',', BookingStatus::values())],
             'user_id' => ['nullable', 'integer', 'exists:users,id'],
             'car_id' => ['nullable', 'integer', 'exists:cars,id'],
+            'driver_id' => ['nullable', 'integer', 'exists:drivers,id'],
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date', 'after_or_equal:from'],
         ]);
 
-        $query = Booking::query()->with(['user:id,name', 'car:id,name']);
+        $query = Booking::query()->with(['user:id,name', 'car:id,name', 'driver:id,name']);
 
         if (!empty($validated['status'])) {
             $query->status(BookingStatus::from($validated['status']));
@@ -42,6 +44,10 @@ class BookingController extends Controller
 
         if (!empty($validated['car_id'])) {
             $query->where('car_id', $validated['car_id']);
+        }
+
+        if (!empty($validated['driver_id'])) {
+            $query->where('driver_id', $validated['driver_id']);
         }
 
         if (!empty($validated['from']) || !empty($validated['to'])) {
@@ -68,11 +74,12 @@ class BookingController extends Controller
         $data = $request->validated();
         $user = User::findOrFail($data['user_id']);
         $car = Car::findOrFail($data['car_id']);
+        $driver = Driver::findOrFail($data['driver_id']);
         $startDate = Carbon::parse($data['start_date']);
         $endDate = isset($data['end_date']) ? Carbon::parse($data['end_date']) : null;
 
         try {
-            $booking = $this->bookingService->create($user, $car, $startDate, $endDate);
+            $booking = $this->bookingService->create($user, $car, $driver, $startDate, $endDate);
         } catch (BookingConflictException $exception) {
             return response()->json([
                 'message' => $exception->getMessage(),
@@ -80,7 +87,7 @@ class BookingController extends Controller
         }
 
 
-        $booking = $booking->load(['user:id,name', 'car:id,name']);
+        $booking = $booking->load(['user:id,name', 'car:id,name', 'driver:id,name']);
 
         return apiResponse('Car booked successfully.',compact('booking'));
 

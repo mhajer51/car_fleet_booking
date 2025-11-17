@@ -16,6 +16,7 @@ class Booking extends Model
     protected $fillable = [
         'user_id',
         'car_id',
+        'driver_id',
         'start_date',
         'end_date',
     ];
@@ -35,6 +36,11 @@ class Booking extends Model
     public function car(): BelongsTo
     {
         return $this->belongsTo(Car::class);
+    }
+
+    public function driver(): BelongsTo
+    {
+        return $this->belongsTo(Driver::class);
     }
 
     public function scopeActive(Builder $query)

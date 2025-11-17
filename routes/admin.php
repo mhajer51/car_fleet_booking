@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Admin\BookingController as AdminBookingController;
 use App\Http\Controllers\Admin\CarController as AdminCarController;
+use App\Http\Controllers\Admin\DriverController as AdminDriverController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Models\Admin;
@@ -27,6 +28,13 @@ Route::prefix('admin')->group(function (): void {
             Route::post('/', [AdminCarController::class, 'store'])->name('cars.store');
             Route::put('{car}', [AdminCarController::class, 'update'])->name('cars.update');
             Route::patch('{car}/status', [AdminCarController::class, 'updateStatus'])->name('cars.update-status');
+        });
+
+        Route::prefix('drivers')->group(function (): void {
+            Route::get('/', [AdminDriverController::class, 'index'])->name('drivers.index');
+            Route::post('/', [AdminDriverController::class, 'store'])->name('drivers.store');
+            Route::put('{driver}', [AdminDriverController::class, 'update'])->name('drivers.update');
+            Route::patch('{driver}/status', [AdminDriverController::class, 'updateStatus'])->name('drivers.update-status');
         });
 
         Route::get('bookings', [AdminBookingController::class, 'index'])->name('bookings.index');
