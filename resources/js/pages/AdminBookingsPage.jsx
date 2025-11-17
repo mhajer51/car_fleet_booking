@@ -391,33 +391,36 @@ const AdminBookingsPage = () => {
                                 <Autocomplete
                                     options={users}
                                     value={selectedUser}
-                                    onChange={(_event, value) => updateFilter('user_id', value?.id ?? '')}
-                                    getOptionLabel={(option) => option?.name ?? ''}
-                                    loading={lookupsLoading}
-                                    renderInput={(params) => (
-                                        <TextField {...params} label="User" placeholder="Search by name" />
-                                    )}
-                                />
-                                <Autocomplete
-                                    options={cars}
-                                    value={selectedCar}
-                                    onChange={(_event, value) => updateFilter('car_id', value?.id ?? '')}
-                                    getOptionLabel={(option) => option?.name ?? ''}
-                                    loading={lookupsLoading}
-                                    renderInput={(params) => (
-                                        <TextField {...params} label="Car" placeholder="Search by name" />
-                                    )}
-                                />
-                                <Autocomplete
-                                    options={drivers}
-                                    value={selectedDriver}
-                                    onChange={(_event, value) => updateFilter('driver_id', value?.id ?? '')}
-                                    getOptionLabel={(option) => option?.name ?? ''}
-                                    loading={lookupsLoading}
-                                    renderInput={(params) => (
-                                        <TextField {...params} label="Driver" placeholder="Search by name" />
-                                    )}
-                                />
+                                onChange={(_event, value) => updateFilter('user_id', value?.id ?? '')}
+                                getOptionLabel={(option) => option?.name ?? ''}
+                                loading={lookupsLoading}
+                                isOptionEqualToValue={(option, value) => option?.id === value?.id}
+                                renderInput={(params) => (
+                                    <TextField {...params} label="User" placeholder="Search by name" />
+                                )}
+                            />
+                            <Autocomplete
+                                options={cars}
+                                value={selectedCar}
+                                onChange={(_event, value) => updateFilter('car_id', value?.id ?? '')}
+                                getOptionLabel={(option) => option?.name ?? ''}
+                                loading={lookupsLoading}
+                                isOptionEqualToValue={(option, value) => option?.id === value?.id}
+                                renderInput={(params) => (
+                                    <TextField {...params} label="Car" placeholder="Search by name" />
+                                )}
+                            />
+                            <Autocomplete
+                                options={drivers}
+                                value={selectedDriver}
+                                onChange={(_event, value) => updateFilter('driver_id', value?.id ?? '')}
+                                getOptionLabel={(option) => option?.name ?? ''}
+                                loading={lookupsLoading}
+                                isOptionEqualToValue={(option, value) => option?.id === value?.id}
+                                renderInput={(params) => (
+                                    <TextField {...params} label="Driver" placeholder="Search by name" />
+                                )}
+                            />
                                 <TextField
                                     label="From date"
                                     type="date"
