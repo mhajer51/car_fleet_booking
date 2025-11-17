@@ -33,9 +33,44 @@ export const fetchAdminCars = (params = {}) =>
         .get('/admin/cars', { params })
         .then((response) => response.data?.data ?? response.data);
 
+export const createAdminCar = (payload) =>
+    http
+        .post('/admin/cars', payload)
+        .then((response) => response.data?.data ?? response.data);
+
+export const updateAdminCar = (carId, payload) =>
+    http
+        .put(`/admin/cars/${carId}`, payload)
+        .then((response) => response.data?.data ?? response.data);
+
+export const updateAdminCarStatus = (carId, payload) =>
+    http
+        .patch(`/admin/cars/${carId}/status`, payload)
+        .then((response) => response.data?.data ?? response.data);
+
+export const deleteAdminCar = (carId) =>
+    http
+        .delete(`/admin/cars/${carId}`)
+        .then((response) => response.data?.data ?? response.data);
+
 export const fetchAdminDrivers = (params = {}) =>
     http
         .get('/admin/drivers', { params })
+        .then((response) => response.data?.data ?? response.data);
+
+export const createAdminDriver = (payload) =>
+    http
+        .post('/admin/drivers', payload)
+        .then((response) => response.data?.data ?? response.data);
+
+export const updateAdminDriver = (driverId, payload) =>
+    http
+        .put(`/admin/drivers/${driverId}`, payload)
+        .then((response) => response.data?.data ?? response.data);
+
+export const updateAdminDriverStatus = (driverId, payload) =>
+    http
+        .patch(`/admin/drivers/${driverId}/status`, payload)
         .then((response) => response.data?.data ?? response.data);
 
 export const fetchAdminBookings = (params = {}) =>
