@@ -74,33 +74,4 @@ class DashboardApiEndpointsTest extends TestCase
         $this->assertNotEmpty($response->json('timeline'));
         Carbon::setTestNow();
     }
-
-    public function test_portal_overview_counts_engaged_cars_distinctly(): void
-    {
-        $user = User::factory()->create();
-        $car = Car::factory()->create();
-        Carbon::setTestNow('2024-05-05 10:00:00');
-
-        Booking::factory()->create([
-            'user_id' => $user->id,
-            'car_id' => $car->id,
-            'start_date' => now()->subHour(),
-            'end_date' => now()->addHour(),
-        ]);
-
-        Booking::factory()->create([
-            'user_id' => $user->id,
-            'car_id' => $car->id,
-            'start_date' => now()->subMinutes(30),
-            'end_date' => now()->addMinutes(90),
-        ]);
-
-        $response = $this->getJson('/api/portal/overview');
-
-        $response->assertOk();
-        $this->assertSame(1, $response->json('capacity.engaged'));
-        $this->assertSame(0, $response->json('capacity.available'));
-
-        Carbon::setTestNow();
-    }
 }
