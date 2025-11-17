@@ -6,6 +6,7 @@ use App\Enums\BookingStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Car;
+use App\Models\Driver;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 
@@ -54,11 +55,19 @@ class DashboardController extends Controller
             ->limit(5)
             ->get()
             ->map(function (Booking $booking) use ($now) {
+                $car = $booking->car;
                 $meta = $this->activityMeta($booking->status);
                 $passengerName = $booking->user->name ?? $booking->guest_name ?? 'Guest';
 
+                $carTitle = match (true) {
+                    $car && $car->name && $car->number => sprintf('%s (%s)', $car->name, $car->number),
+                    $car && $car->name => $car->name,
+                    $car && $car->number => sprintf('Vehicle %s', $car->number),
+                    default => 'Unassigned vehicle',
+                };
+
                 return [
-                    'title' => sprintf('Trip %s (%s)', $booking->car->name, $booking->car->number),
+                    'title' => sprintf('Trip %s', $carTitle),
                     'time' => optional($booking->updated_at)->diffForHumans($now, true) ?? 'now',
                     'badge' => $meta['badge'],
                     'tone' => $meta['tone'],
@@ -84,6 +93,7 @@ class DashboardController extends Controller
             'bookingsToday' => $bookingsToday,
             'newUsersToday' => $newUsersToday,
             'totalUsers' => User::query()->count(),
+            'totalDrivers' => Driver::query()->count(),
         ];
 
         return response()->json([
