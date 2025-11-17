@@ -31,7 +31,9 @@ http.interceptors.response.use(
     (response) => response,
     (error) => {
         const message = error.response?.data?.message || 'Something went wrong. Please try again.';
-        return Promise.reject(new Error(message));
+        const enhancedError = new Error(message);
+        enhancedError.response = error.response;
+        return Promise.reject(enhancedError);
     },
 );
 

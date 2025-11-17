@@ -8,6 +8,26 @@ export const fetchAdminUsers = (params = {}) =>
         .get('/admin/users', { params })
         .then((response) => response.data?.data ?? response.data);
 
+export const createAdminUser = (payload) =>
+    http
+        .post('/admin/users', payload)
+        .then((response) => response.data?.data ?? response.data);
+
+export const updateAdminUser = (id, payload) =>
+    http
+        .put(`/admin/users/${id}`, payload)
+        .then((response) => response.data?.data ?? response.data);
+
+export const updateAdminUserStatus = (id, payload) =>
+    http
+        .patch(`/admin/users/${id}/status`, payload)
+        .then((response) => response.data?.data ?? response.data);
+
+export const deleteAdminUser = (id) =>
+    http
+        .delete(`/admin/users/${id}`)
+        .then((response) => response.data?.data ?? response.data);
+
 export const fetchAdminCars = (params = {}) =>
     http
         .get('/admin/cars', { params })
