@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import LoginLayout from '../components/LoginLayout.jsx';
 import TokenPreview from '../components/TokenPreview.jsx';
 import { loginUser } from '../services/auth.js';
-import { getUserSession, setUserSession } from '../services/session.js';
+import { getAdminSession, getUserSession, setUserSession } from '../services/session.js';
 
 const initialState = { login: '', password: '' };
 
@@ -14,13 +14,19 @@ const UserLoginPage = () => {
     const [error, setError] = useState('');
     const [payload, setPayload] = useState(null);
     const navigate = useNavigate();
-    const existingSession = useMemo(() => getUserSession(), []);
+    const existingUserSession = useMemo(() => getUserSession(), []);
+    const existingAdminSession = useMemo(() => getAdminSession(), []);
 
     useEffect(() => {
-        if (existingSession?.token) {
+        if (existingAdminSession?.token) {
+            navigate('/admin/dashboard', { replace: true });
+            return;
+        }
+
+        if (existingUserSession?.token) {
             navigate('/portal/dashboard', { replace: true });
         }
-    }, [existingSession, navigate]);
+    }, [existingAdminSession, existingUserSession, navigate]);
 
     const handleChange = (event) => {
         const { name, value } = event.target;

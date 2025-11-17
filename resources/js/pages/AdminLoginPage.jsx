@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, Box, Button, Link, Stack, TextField } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import LoginLayout from '../components/LoginLayout.jsx';
 import TokenPreview from '../components/TokenPreview.jsx';
 import { loginAdmin } from '../services/auth.js';
-import { setAdminSession } from '../services/session.js';
+import { getAdminSession, getUserSession, setAdminSession } from '../services/session.js';
 
 const initialState = { login: '', password: '' };
 
@@ -14,6 +14,19 @@ const AdminLoginPage = () => {
     const [error, setError] = useState('');
     const [payload, setPayload] = useState(null);
     const navigate = useNavigate();
+    const existingAdminSession = useMemo(() => getAdminSession(), []);
+    const existingUserSession = useMemo(() => getUserSession(), []);
+
+    useEffect(() => {
+        if (existingUserSession?.token) {
+            navigate('/portal/dashboard', { replace: true });
+            return;
+        }
+
+        if (existingAdminSession?.token) {
+            navigate('/admin/dashboard', { replace: true });
+        }
+    }, [existingAdminSession, existingUserSession, navigate]);
 
     const handleChange = (event) => {
         const { name, value } = event.target;
