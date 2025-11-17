@@ -29,7 +29,13 @@ import {
     Typography,
 } from '@mui/material';
 import AdminLayout from '../components/AdminLayout.jsx';
-import { createAdminBooking, fetchAdminBookings, fetchAdminCars, fetchAdminUsers } from '../services/admin.js';
+import {
+    createAdminBooking,
+    fetchAdminBookings,
+    fetchAdminCars,
+    fetchAdminDrivers,
+    fetchAdminUsers,
+} from '../services/admin.js';
 
 const STATUS_OPTIONS = [
     { label: 'All statuses', value: 'all' },
@@ -49,6 +55,7 @@ const initialForm = {
     userId: '',
     guestName: '',
     carId: '',
+    driverId: '',
     startDate: '',
     endDate: '',
     openBooking: false,
@@ -75,7 +82,14 @@ const AdminBookingsPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [message, setMessage] = useState('');
-    const [filters, setFilters] = useState({ status: 'all', from_date: '', to_date: '', user_id: '', car_id: '' });
+    const [filters, setFilters] = useState({
+        status: 'all',
+        from_date: '',
+        to_date: '',
+        user_id: '',
+        car_id: '',
+        driver_id: '',
+    });
     const [pagination, setPagination] = useState({ page: 0, pageSize: 10 });
     const [dialogOpen, setDialogOpen] = useState(false);
     const [form, setForm] = useState(initialForm);
@@ -84,6 +98,7 @@ const AdminBookingsPage = () => {
     const [lookupsLoading, setLookupsLoading] = useState(false);
     const [users, setUsers] = useState([]);
     const [cars, setCars] = useState([]);
+    const [drivers, setDrivers] = useState([]);
 
     const totalRecords = meta?.total ?? bookings.length ?? 0;
 
@@ -99,6 +114,7 @@ const AdminBookingsPage = () => {
                 to_date: filters.to_date || undefined,
                 user_id: filters.user_id || undefined,
                 car_id: filters.car_id || undefined,
+                driver_id: filters.driver_id || undefined,
             });
             setBookings(payload.bookings ?? []);
             setMeta(payload.meta ?? {});
@@ -112,12 +128,14 @@ const AdminBookingsPage = () => {
     const loadLookups = useCallback(async () => {
         setLookupsLoading(true);
         try {
-            const [usersPayload, carsPayload] = await Promise.all([
+            const [usersPayload, carsPayload, driversPayload] = await Promise.all([
                 fetchAdminUsers({ per_page: 100, status: 'active' }),
                 fetchAdminCars({ per_page: 100 }),
+                fetchAdminDrivers({ per_page: 100, status: 'active' }),
             ]);
             setUsers(usersPayload.users ?? []);
             setCars(carsPayload.cars ?? []);
+            setDrivers(driversPayload.drivers ?? []);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -135,7 +153,7 @@ const AdminBookingsPage = () => {
 
     useEffect(() => {
         setPagination((prev) => ({ ...prev, page: 0 }));
-    }, [filters.status, filters.from_date, filters.to_date, filters.user_id, filters.car_id]);
+    }, [filters.status, filters.from_date, filters.to_date, filters.user_id, filters.car_id, filters.driver_id]);
 
     const visibleRange = useMemo(() => {
         const from = totalRecords === 0 ? 0 : pagination.page * pagination.pageSize + 1;
@@ -159,6 +177,14 @@ const AdminBookingsPage = () => {
         return cars.find((car) => car.id === id) ?? null;
     }, [filters.car_id, cars]);
 
+    const selectedDriver = useMemo(() => {
+        if (!filters.driver_id) {
+            return null;
+        }
+        const id = Number(filters.driver_id);
+        return drivers.find((driver) => driver.id === id) ?? null;
+    }, [drivers, filters.driver_id]);
+
     const handlePaginationChange = (_event, newPage) => {
         setPagination((prev) => ({ ...prev, page: newPage }));
     };
@@ -172,7 +198,7 @@ const AdminBookingsPage = () => {
     };
 
     const resetFilters = () => {
-        setFilters({ status: 'all', from_date: '', to_date: '', user_id: '', car_id: '' });
+        setFilters({ status: 'all', from_date: '', to_date: '', user_id: '', car_id: '', driver_id: '' });
     };
 
     const openDialog = () => {
@@ -212,6 +238,11 @@ const AdminBookingsPage = () => {
             return;
         }
 
+        if (!form.driverId) {
+            setFormError('Please choose a driver before continuing.');
+            return;
+        }
+
         if (!form.startDate) {
             setFormError('Please set the booking start date.');
             return;
@@ -219,6 +250,7 @@ const AdminBookingsPage = () => {
 
         const payload = {
             car_id: Number(form.carId),
+            driver_id: Number(form.driverId),
             start_date: form.startDate,
             end_date: form.openBooking ? null : form.endDate || null,
             open_booking: form.openBooking,
@@ -311,6 +343,16 @@ const AdminBookingsPage = () => {
                                         <TextField {...params} label="Car" placeholder="Search by name" />
                                     )}
                                 />
+                                <Autocomplete
+                                    options={drivers}
+                                    value={selectedDriver}
+                                    onChange={(_event, value) => updateFilter('driver_id', value?.id ?? '')}
+                                    getOptionLabel={(option) => option?.name ?? ''}
+                                    loading={lookupsLoading}
+                                    renderInput={(params) => (
+                                        <TextField {...params} label="Driver" placeholder="Search by name" />
+                                    )}
+                                />
                                 <TextField
                                     label="From date"
                                     type="date"
@@ -359,6 +401,7 @@ const AdminBookingsPage = () => {
                                             <TableCell>ID</TableCell>
                                             <TableCell>User</TableCell>
                                             <TableCell>Car</TableCell>
+                                            <TableCell>Driver</TableCell>
                                             <TableCell>Start</TableCell>
                                             <TableCell>End</TableCell>
                                             <TableCell>Status</TableCell>
@@ -367,7 +410,7 @@ const AdminBookingsPage = () => {
                                     <TableBody>
                                         {loading ? (
                                             <TableRow>
-                                                <TableCell colSpan={6} align="center">
+                                                <TableCell colSpan={7} align="center">
                                                     <Stack alignItems="center" py={4} spacing={1}>
                                                         <CircularProgress size={24} />
                                                         <Typography variant="body2" color="text.secondary">
@@ -378,7 +421,7 @@ const AdminBookingsPage = () => {
                                             </TableRow>
                                         ) : bookings.length === 0 ? (
                                             <TableRow>
-                                                <TableCell colSpan={6} align="center">
+                                                <TableCell colSpan={7} align="center">
                                                     <Typography color="text.secondary" py={3}>
                                                         No bookings match your filters.
                                                     </Typography>
@@ -404,6 +447,12 @@ const AdminBookingsPage = () => {
                                                             <Typography fontWeight={600}>{booking.car?.name ?? '—'}</Typography>
                                                             <Typography variant="body2" color="text.secondary">
                                                                 {booking.car?.number}
+                                                            </Typography>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Typography fontWeight={600}>{booking.driver?.name ?? '—'}</Typography>
+                                                            <Typography variant="body2" color="text.secondary">
+                                                                {booking.driver?.license_number}
                                                             </Typography>
                                                         </TableCell>
                                                         <TableCell>{formatDate(booking.start_date)}</TableCell>
@@ -484,6 +533,14 @@ const AdminBookingsPage = () => {
                                 </MenuItem>
                             ))}
                         </TextField>
+
+                        <Autocomplete
+                            options={drivers}
+                            value={drivers.find((driver) => driver.id === Number(form.driverId)) ?? null}
+                            onChange={(_event, value) => handleFormChange('driverId', value?.id ?? '')}
+                            getOptionLabel={(option) => option?.name ?? ''}
+                            renderInput={(params) => <TextField {...params} label="Driver" required />}
+                        />
 
                         <TextField
                             type="datetime-local"
