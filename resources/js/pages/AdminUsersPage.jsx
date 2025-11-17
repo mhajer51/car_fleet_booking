@@ -30,10 +30,10 @@ import {
     Tooltip,
     Typography,
 } from '@mui/material';
-import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
 import IconButton from '@mui/material/IconButton';
 import AdminLayout from '../components/AdminLayout.jsx';
+import EditOutlinedIcon from '../components/icons/EditOutlinedIcon.jsx';
 import DeleteOutlineIcon from '../components/icons/DeleteOutlineIcon.jsx';
 import {
     createAdminUser,
