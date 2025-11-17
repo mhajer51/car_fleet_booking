@@ -494,7 +494,6 @@ const AdminDriversPage = () => {
                         label="Full name"
                         value={form.name}
                         onChange={handleFormChange('name')}
-                        required
                         autoFocus
                         error={!!formErrors.name}
                         helperText={formErrors.name?.[0] || formErrors.name}
@@ -503,7 +502,6 @@ const AdminDriversPage = () => {
                         label="License number"
                         value={form.license_number}
                         onChange={handleFormChange('license_number')}
-                        required
                         error={!!formErrors.license_number}
                         helperText={formErrors.license_number?.[0] || formErrors.license_number}
                     />
@@ -511,7 +509,6 @@ const AdminDriversPage = () => {
                         label="Phone number"
                         value={form.phone_number}
                         onChange={handleFormChange('phone_number')}
-                        required
                         error={!!formErrors.phone_number}
                         helperText={formErrors.phone_number?.[0] || formErrors.phone_number}
                     />
