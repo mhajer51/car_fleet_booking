@@ -235,6 +235,7 @@ class BookingController extends Controller
             'price' => $booking->price,
             'start_date' => $booking->start_date,
             'end_date' => $booking->end_date,
+            'open_booking' => $booking->end_date === null,
             'guest_name' => $booking->guest_name,
             'note' => $booking->note,
             'status' => $booking->status->value,

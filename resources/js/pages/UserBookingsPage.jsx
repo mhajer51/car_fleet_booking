@@ -27,6 +27,7 @@ import {
 import UserLayout from '../components/UserLayout.jsx';
 import {
     createUserBooking,
+    updateUserBooking,
     fetchAvailableBookingCars,
     fetchAvailableBookingDrivers,
     fetchUserBookings,
@@ -53,6 +54,17 @@ const defaultStartDate = () => {
     now.setSeconds(0, 0);
     const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
     return localDate.toISOString().slice(0, 16);
+};
+
+const toLocalInputValue = (value) => {
+    if (!value) {
+        return '';
+    }
+
+    const date = new Date(value);
+    date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+
+    return date.toISOString().slice(0, 16);
 };
 
 const formatCarLabel = (car) => {
@@ -119,6 +131,8 @@ const UserBookingsPage = () => {
     });
     const [pagination, setPagination] = useState({ page: 0, pageSize: 10 });
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [editingBooking, setEditingBooking] = useState(null);
+    const isEditing = Boolean(editingBooking);
     const [form, setForm] = useState(initialForm);
     const [formError, setFormError] = useState('');
     const [formErrors, setFormErrors] = useState({});
@@ -217,12 +231,14 @@ const UserBookingsPage = () => {
         setForm(initialForm);
         setFormError('');
         setFormErrors({});
+        setEditingBooking(null);
     };
 
     const closeDialog = () => {
         setDialogOpen(false);
         setFormError('');
         setFormErrors({});
+        setEditingBooking(null);
     };
 
     const handleFormChange = (field, value) => {
@@ -230,15 +246,54 @@ const UserBookingsPage = () => {
         setFormErrors((prev) => ({ ...prev, [field]: undefined }));
     };
 
+    const addToAvailability = (resource, item) => {
+        if (!item?.id) {
+            return;
+        }
+
+        setAvailability((prev) => {
+            const list = prev[resource] ?? [];
+            const exists = list.some((entry) => entry.id === item.id);
+
+            if (exists) {
+                return prev;
+            }
+
+            return {
+                ...prev,
+                [resource]: [...list, item],
+            };
+        });
+    };
+
+    const openEditDialog = (booking) => {
+        setEditingBooking(booking);
+        setForm({
+            carId: booking.car?.id ?? '',
+            driverId: booking.driver?.id ?? '',
+            price: booking.price ?? '',
+            startDate: toLocalInputValue(booking.start_date),
+            endDate: booking.end_date ? toLocalInputValue(booking.end_date) : '',
+            openBooking: booking.open_booking,
+            note: booking.note ?? '',
+        });
+        addToAvailability('cars', booking.car);
+        addToAvailability('drivers', booking.driver);
+        setFormError('');
+        setFormErrors({});
+        setDialogOpen(true);
+    };
+
     const buildAvailabilityParams = useCallback(() => {
         const params = {
             start_date: form.startDate,
             end_date: form.openBooking ? null : form.endDate || null,
             per_page: 50,
+            booking_id: editingBooking?.id,
         };
 
         return params;
-    }, [form.endDate, form.openBooking, form.startDate]);
+    }, [editingBooking?.id, form.endDate, form.openBooking, form.startDate]);
 
     const loadAvailability = useCallback(
         async (resource) => {
@@ -341,8 +396,13 @@ const UserBookingsPage = () => {
 
         setCreating(true);
         try {
-            await createUserBooking(payload);
-            setMessage('Booking created successfully.');
+            if (isEditing) {
+                await updateUserBooking(editingBooking.id, payload);
+                setMessage('Booking updated successfully.');
+            } else {
+                await createUserBooking(payload);
+                setMessage('Booking created successfully.');
+            }
             closeDialog();
             loadBookings();
         } catch (err) {
@@ -476,12 +536,13 @@ const UserBookingsPage = () => {
                                         <TableCell>End</TableCell>
                                         <TableCell>Notes</TableCell>
                                         <TableCell>Status</TableCell>
+                                        <TableCell>Actions</TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
                                     {loading ? (
                                         <TableRow>
-                                            <TableCell colSpan={8} align="center">
+                                            <TableCell colSpan={9} align="center">
                                                 <Stack alignItems="center" py={4} spacing={1}>
                                                     <CircularProgress size={24} />
                                                     <Typography variant="body2" color="text.secondary">
@@ -492,7 +553,7 @@ const UserBookingsPage = () => {
                                         </TableRow>
                                     ) : bookings.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={8} align="center">
+                                            <TableCell colSpan={9} align="center">
                                                 <Typography color="text.secondary" py={3}>
                                                     No bookings match your filters.
                                                 </Typography>
@@ -545,6 +606,11 @@ const UserBookingsPage = () => {
                                                             }}
                                                         />
                                                     </TableCell>
+                                                    <TableCell>
+                                                        <Button size="small" variant="outlined" onClick={() => openEditDialog(booking)}>
+                                                            Edit
+                                                        </Button>
+                                                    </TableCell>
                                                 </TableRow>
                                             );
                                         })
@@ -567,7 +633,7 @@ const UserBookingsPage = () => {
             </Stack>
 
             <Dialog open={dialogOpen} onClose={closeDialog} fullWidth maxWidth="sm" component="form" onSubmit={submitBooking}>
-                <DialogTitle>New booking</DialogTitle>
+                <DialogTitle>{isEditing ? 'Edit booking' : 'New booking'}</DialogTitle>
                 <DialogContent dividers>
                     <Stack spacing={3} mt={1}>
                         <Stack spacing={1}>
@@ -678,7 +744,7 @@ const UserBookingsPage = () => {
                 <DialogActions>
                     <Button onClick={closeDialog}>Cancel</Button>
                     <Button type="submit" variant="contained" disabled={creating}>
-                        {creating ? 'Creating…' : 'Confirm booking'}
+                        {creating ? (isEditing ? 'Saving…' : 'Creating…') : isEditing ? 'Save changes' : 'Confirm booking'}
                     </Button>
                 </DialogActions>
             </Dialog>

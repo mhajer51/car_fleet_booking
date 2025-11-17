@@ -11,6 +11,9 @@ export const fetchUserBookings = (params = {}) =>
 export const createUserBooking = (payload) =>
     http.post('/user/bookings', payload).then((response) => unwrap(response));
 
+export const updateUserBooking = (bookingId, payload) =>
+    http.put(`/user/bookings/${bookingId}`, payload).then((response) => unwrap(response));
+
 export const returnUserBooking = (bookingId) =>
     http.post(`/user/bookings/${bookingId}/return`).then((response) => unwrap(response));
 

@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Booking\AdminBookingAvailabilityRequest;
 use App\Http\Requests\Admin\Booking\AdminBookingFilterRequest;
 use App\Http\Requests\User\StoreBookingRequest;
+use App\Http\Requests\User\UpdateBookingRequest;
 use App\Models\Booking;
 use App\Models\Car;
 use App\Models\Driver;
@@ -94,6 +95,40 @@ class BookingController extends Controller
         $booking = $this->transformBooking($booking->load(['user:id,name,username', 'car:id,name,number,emirate', 'driver:id,name,license_number']));
 
         return apiResponse('Car booked successfully.', compact('booking'));
+    }
+
+    public function update(UpdateBookingRequest $request, Booking $booking): JsonResponse
+    {
+        $data = $request->validated();
+        $authUser = $request->user('user');
+
+        if (!$authUser || $booking->user_id !== $authUser->id) {
+            return response()->json(['message' => 'You are not allowed to update this booking.'], 403);
+        }
+
+        if ((int) $data['user_id'] !== $authUser->id) {
+            return response()->json(['message' => 'You are not allowed to update this booking.'], 403);
+        }
+
+        $user = User::findOrFail($authUser->id);
+        $car = Car::findOrFail($data['car_id']);
+        $driver = Driver::findOrFail($data['driver_id']);
+        $startDate = Carbon::parse($data['start_date']);
+        $endDate = isset($data['end_date']) ? Carbon::parse($data['end_date']) : null;
+        $note = $data['note'] ?? null;
+        $price = (float) $data['price'];
+
+        try {
+            $booking = $this->bookingService->update($booking, $user, $car, $driver, $startDate, $endDate, null, $note, $price);
+        } catch (BookingConflictException $exception) {
+            return response()->json([
+                'message' => $exception->getMessage(),
+            ], 422);
+        }
+
+        $booking = $this->transformBooking($booking->load(['user:id,name,username', 'car:id,name,number,emirate', 'driver:id,name,license_number']));
+
+        return apiResponse('Booking updated successfully.', compact('booking'));
     }
 
     public function availableUsers(AdminBookingAvailabilityRequest $request): JsonResponse
@@ -203,6 +238,7 @@ class BookingController extends Controller
             'price' => $booking->price,
             'start_date' => $booking->start_date,
             'end_date' => $booking->end_date,
+            'open_booking' => $booking->end_date === null,
             'guest_name' => $booking->guest_name,
             'note' => $booking->note,
             'status' => $booking->status->value,
