@@ -7,7 +7,12 @@ import {
     CardContent,
     Chip,
     CircularProgress,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
     FormControl,
+    FormControlLabel,
     InputLabel,
     MenuItem,
     Select,
@@ -20,9 +25,16 @@ import {
     TableRow,
     TextField,
     Typography,
+    Switch,
 } from '@mui/material';
 import AdminLayout from '../components/AdminLayout.jsx';
-import { fetchAdminCars } from '../services/admin.js';
+import {
+    createAdminCar,
+    deleteAdminCar,
+    fetchAdminCars,
+    updateAdminCar,
+    updateAdminCarStatus,
+} from '../services/admin.js';
 
 const statusTone = {
     available: { bg: 'rgba(59,130,246,.12)', color: '#1d4ed8', label: 'Available' },
@@ -52,6 +64,21 @@ const AdminCarsPage = () => {
     const [availabilityFilter, setAvailabilityFilter] = useState('all');
     const [activeFilter, setActiveFilter] = useState('all');
     const [pagination, setPagination] = useState({ page: 0, pageSize: 10 });
+    const [formOpen, setFormOpen] = useState(false);
+    const [formMode, setFormMode] = useState('create');
+    const [formError, setFormError] = useState('');
+    const [formValues, setFormValues] = useState({
+        id: null,
+        name: '',
+        model: '',
+        color: '',
+        number: '',
+        is_active: true,
+    });
+    const [saving, setSaving] = useState(false);
+    const [statusUpdatingId, setStatusUpdatingId] = useState(null);
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     const totalRecords = meta?.total ?? 0;
 
@@ -107,14 +134,89 @@ const AdminCarsPage = () => {
         setPagination({ page: 0, pageSize: parseInt(event.target.value, 10) });
     };
 
+    const openCreateForm = () => {
+        setFormMode('create');
+        setFormValues({ id: null, name: '', model: '', color: '', number: '', is_active: true });
+        setFormError('');
+        setFormOpen(true);
+    };
+
+    const openEditForm = (car) => {
+        setFormMode('edit');
+        setFormValues(car);
+        setFormError('');
+        setFormOpen(true);
+    };
+
+    const handleFormChange = (field) => (event) => {
+        const value = field === 'is_active' ? event.target.checked : event.target.value;
+        setFormValues((prev) => ({ ...prev, [field]: value }));
+    };
+
+    const handleFormSubmit = async () => {
+        setSaving(true);
+        setFormError('');
+
+        try {
+            if (formMode === 'create') {
+                await createAdminCar(formValues);
+            } else {
+                await updateAdminCar(formValues.id, formValues);
+            }
+
+            setFormOpen(false);
+            await load();
+        } catch (err) {
+            setFormError(err.message);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleStatusToggle = async (car) => {
+        setStatusUpdatingId(car.id);
+        try {
+            await updateAdminCarStatus(car.id, { is_active: !car.is_active });
+            await load();
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setStatusUpdatingId(null);
+        }
+    };
+
+    const confirmDelete = (car) => {
+        setDeleteTarget(car);
+        setDeleting(false);
+    };
+
+    const handleDelete = async () => {
+        if (!deleteTarget) return;
+
+        setDeleting(true);
+        try {
+            await deleteAdminCar(deleteTarget.id);
+            setDeleteTarget(null);
+            await load();
+        } catch (err) {
+            setError(err.message);
+            setDeleting(false);
+        }
+    };
+
     return (
         <AdminLayout
             title="Garage overview"
             description="Every vehicle with its availability, trim, and booking status."
             actions={
-                <Button variant="outlined" onClick={load} disabled={loading}>
-                    Refresh list
-                </Button>
+                <Stack direction="row" spacing={1}>
+                    <Button variant="outlined" onClick={load} disabled={loading}>
+                        Refresh list
+                    </Button>
+                    <Button variant="contained" onClick={openCreateForm}>
+                        Add vehicle
+                    </Button>
+                </Stack>
             }
         >
             {error && (
@@ -186,12 +288,13 @@ const AdminCarsPage = () => {
                                     <TableCell>Color</TableCell>
                                     <TableCell>Number</TableCell>
                                     <TableCell>Statuses</TableCell>
+                                    <TableCell align="right">Actions</TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} align="center">
+                                        <TableCell colSpan={6} align="center">
                                             <Stack alignItems="center" py={3} spacing={1}>
                                                 <CircularProgress size={24} />
                                                 <Typography variant="body2" color="text.secondary">
@@ -212,12 +315,40 @@ const AdminCarsPage = () => {
                                             <TableCell>
                                                 {badge(statusTone[car.status] ?? statusTone.available)}
                                                 {badge(activeTone[car.is_active] ?? activeTone.true)}
+                                                <FormControlLabel
+                                                    control={(
+                                                        <Switch
+                                                            color="primary"
+                                                            checked={!!car.is_active}
+                                                            onChange={() => handleStatusToggle(car)}
+                                                            size="small"
+                                                            disabled={statusUpdatingId === car.id}
+                                                        />
+                                                    )}
+                                                    label={car.is_active ? 'Disable' : 'Enable'}
+                                                    sx={{ ml: 1 }}
+                                                />
+                                            </TableCell>
+                                            <TableCell align="right">
+                                                <Stack direction="row" spacing={1} justifyContent="flex-end">
+                                                    <Button size="small" variant="outlined" onClick={() => openEditForm(car)}>
+                                                        Edit
+                                                    </Button>
+                                                    <Button
+                                                        size="small"
+                                                        color="error"
+                                                        variant="outlined"
+                                                        onClick={() => confirmDelete(car)}
+                                                    >
+                                                        Delete
+                                                    </Button>
+                                                </Stack>
                                             </TableCell>
                                         </TableRow>
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={5} align="center">
+                                        <TableCell colSpan={6} align="center">
                                             <Typography variant="body2" color="text.secondary">
                                                 No vehicles match the current filters.
                                             </Typography>
@@ -240,6 +371,75 @@ const AdminCarsPage = () => {
                     </Box>
                 </CardContent>
             </Card>
+
+            <Dialog open={formOpen} onClose={() => setFormOpen(false)} fullWidth maxWidth="sm">
+                <DialogTitle>{formMode === 'create' ? 'Add new vehicle' : 'Edit vehicle'}</DialogTitle>
+                <DialogContent sx={{ pt: 1 }}>
+                    {formError && (
+                        <Alert severity="error" sx={{ mb: 2 }}>
+                            {formError}
+                        </Alert>
+                    )}
+                    <Stack spacing={2} mt={1}>
+                        <TextField
+                            label="Name"
+                            value={formValues.name}
+                            onChange={handleFormChange('name')}
+                            fullWidth
+                        />
+                        <TextField
+                            label="Model"
+                            value={formValues.model}
+                            onChange={handleFormChange('model')}
+                            fullWidth
+                        />
+                        <TextField
+                            label="Color"
+                            value={formValues.color}
+                            onChange={handleFormChange('color')}
+                            fullWidth
+                        />
+                        <TextField
+                            label="Number"
+                            value={formValues.number}
+                            onChange={handleFormChange('number')}
+                            fullWidth
+                        />
+                        <FormControlLabel
+                            control={<Switch checked={!!formValues.is_active} onChange={handleFormChange('is_active')} />}
+                            label="Vehicle is active"
+                        />
+                    </Stack>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setFormOpen(false)} disabled={saving}>
+                        Cancel
+                    </Button>
+                    <Button variant="contained" onClick={handleFormSubmit} disabled={saving}>
+                        {formMode === 'create' ? 'Add vehicle' : 'Save changes'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            <Dialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)} maxWidth="xs" fullWidth>
+                <DialogTitle>Delete vehicle</DialogTitle>
+                <DialogContent>
+                    <Typography>
+                        Are you sure you want to delete
+                        {' '}
+                        <strong>{deleteTarget?.name}</strong>
+                        ? This action cannot be undone.
+                    </Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setDeleteTarget(null)} disabled={deleting}>
+                        Cancel
+                    </Button>
+                    <Button color="error" variant="contained" onClick={handleDelete} disabled={deleting}>
+                        Delete
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </AdminLayout>
     );
 };

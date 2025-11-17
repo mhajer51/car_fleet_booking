@@ -33,6 +33,26 @@ export const fetchAdminCars = (params = {}) =>
         .get('/admin/cars', { params })
         .then((response) => response.data?.data ?? response.data);
 
+export const createAdminCar = (payload) =>
+    http
+        .post('/admin/cars', payload)
+        .then((response) => response.data?.data ?? response.data);
+
+export const updateAdminCar = (carId, payload) =>
+    http
+        .put(`/admin/cars/${carId}`, payload)
+        .then((response) => response.data?.data ?? response.data);
+
+export const updateAdminCarStatus = (carId, payload) =>
+    http
+        .patch(`/admin/cars/${carId}/status`, payload)
+        .then((response) => response.data?.data ?? response.data);
+
+export const deleteAdminCar = (carId) =>
+    http
+        .delete(`/admin/cars/${carId}`)
+        .then((response) => response.data?.data ?? response.data);
+
 export const fetchAdminDrivers = (params = {}) =>
     http
         .get('/admin/drivers', { params })
