@@ -20,7 +20,6 @@ class AdminDashboardTest extends TestCase
         Booking::factory()->create([
             'user_id' => $user->id,
             'car_id' => $car->id,
-            'status' => BookingStatus::ACTIVE,
         ]);
 
         $response = $this->get('/admin');
@@ -28,7 +27,8 @@ class AdminDashboardTest extends TestCase
         $response->assertOk();
         $response->assertSee((string) User::count());
         $response->assertSee((string) Car::count());
-        $response->assertSee((string) Booking::where('status', BookingStatus::ACTIVE->value)->count());
+        $activeCount = Booking::query()->status(BookingStatus::ACTIVE)->count();
+        $response->assertSee((string) $activeCount);
     }
 
     public function test_it_creates_users_from_dashboard(): void

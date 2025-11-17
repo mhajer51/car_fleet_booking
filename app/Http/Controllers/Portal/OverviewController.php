@@ -18,7 +18,8 @@ class OverviewController extends Controller
 
         $bookingsToday = Booking::query()->whereDate('start_date', $today)->count();
         $bookingsYesterday = Booking::query()->whereDate('start_date', $today->clone()->subDay())->count();
-        $activeBookings = Booking::query()->active()->count();
+        $statusCounts = $this->bookingStatusCounts();
+        $activeBookings = $statusCounts[BookingStatus::ACTIVE->value] ?? 0;
         $totalCars = Car::query()->count();
         $availableCars = Car::query()->available()->count();
         $inactiveCars = Car::query()->where('is_active', false)->count();
@@ -28,9 +29,7 @@ class OverviewController extends Controller
             ->count();
         $engagedClients = $engagedClients ?: min(User::count(), max(1, $activeBookings));
         $newUsersToday = User::query()->whereDate('created_at', $today)->count();
-        $totalBookings = Booking::query()->count();
-        $completedBookings = Booking::query()->where('status', BookingStatus::CLOSED->value)->count();
-        $cancelledBookings = Booking::query()->where('status', BookingStatus::CANCELLED->value)->count();
+        $totalBookings = array_sum($statusCounts);
 
         $metrics = [
             [
@@ -85,15 +84,13 @@ class OverviewController extends Controller
 
         $heatmap = $this->buildHeatmap();
         $trend = $this->buildTrend();
-        $statusBreakdown = $this->buildStatusBreakdown($totalBookings);
+        $statusBreakdown = $this->buildStatusBreakdown($statusCounts);
         $topVehicles = $this->buildTopVehicles();
         $performance = $this->buildPerformance(
             $totalCars,
             $activeBookings,
             (int) round($avgDuration),
-            $totalBookings,
-            $completedBookings,
-            $cancelledBookings
+            $statusCounts
         );
         $capacity = $this->buildCapacity($availableCars, $activeBookings, $inactiveCars);
 
@@ -113,10 +110,10 @@ class OverviewController extends Controller
     private function statusLabel(?BookingStatus $status): string
     {
         return match ($status) {
+            BookingStatus::UPCOMING => 'Scheduled',
             BookingStatus::ACTIVE => 'In progress',
-            BookingStatus::CLOSED => 'Returned',
-            BookingStatus::CANCELLED => 'Cancelled',
-            default => 'New',
+            BookingStatus::COMPLETED => 'Completed',
+            default => 'Planned',
         };
     }
 
@@ -208,22 +205,25 @@ class OverviewController extends Controller
         return $trend;
     }
 
-    private function buildStatusBreakdown(int $totalBookings): array
+    private function buildStatusBreakdown(array $counts): array
     {
-        $totals = Booking::query()
-            ->selectRaw('status, COUNT(*) as total')
-            ->groupBy('status')
-            ->pluck('total', 'status');
+        $totalBookings = array_sum($counts);
+        $colors = [
+            BookingStatus::UPCOMING->value => '#f97316',
+            BookingStatus::ACTIVE->value => '#0ea5e9',
+            BookingStatus::COMPLETED->value => '#22c55e',
+        ];
 
         return collect(BookingStatus::cases())
-            ->map(function (BookingStatus $status) use ($totals, $totalBookings) {
-                $count = (int) ($totals[$status->value] ?? 0);
+            ->map(function (BookingStatus $status) use ($counts, $totalBookings, $colors) {
+                $count = (int) ($counts[$status->value] ?? 0);
                 $percentage = $totalBookings > 0 ? (int) round(($count / $totalBookings) * 100) : 0;
 
                 return [
                     'label' => $this->statusLabel($status),
                     'value' => $count,
                     'percentage' => $percentage,
+                    'color' => $colors[$status->value] ?? '#0ea5e9',
                 ];
             })
             ->values()
@@ -251,16 +251,31 @@ class OverviewController extends Controller
             ->all();
     }
 
+    private function bookingStatusCounts(): array
+    {
+        $now = now();
+        $counts = [];
+
+        foreach (BookingStatus::cases() as $status) {
+            $counts[$status->value] = Booking::query()->status($status, $now)->count();
+        }
+
+        return $counts;
+    }
+
     private function buildPerformance(
         int $totalCars,
         int $activeBookings,
         int $avgDuration,
-        int $totalBookings,
-        int $completedBookings,
-        int $cancelledBookings
+        array $statusCounts
     ): array {
+        $totalBookings = array_sum($statusCounts);
+        $completedBookings = $statusCounts[BookingStatus::COMPLETED->value] ?? 0;
+        $upcomingBookings = $statusCounts[BookingStatus::UPCOMING->value] ?? 0;
         $completionRate = $totalBookings > 0 ? (int) round(($completedBookings / $totalBookings) * 100) : 0;
-        $serviceLevel = $totalBookings > 0 ? (int) round((($totalBookings - $cancelledBookings) / $totalBookings) * 100) : 100;
+        $serviceLevel = $totalBookings > 0
+            ? (int) round((($activeBookings + $upcomingBookings) / $totalBookings) * 100)
+            : 100;
         $utilizationRate = $totalCars > 0 ? (int) round(($activeBookings / $totalCars) * 100) : 0;
 
         return [

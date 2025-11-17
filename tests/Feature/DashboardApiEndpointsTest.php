@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Enums\BookingStatus;
 use App\Models\Booking;
 use App\Models\Car;
 use App\Models\User;
@@ -30,7 +29,6 @@ class DashboardApiEndpointsTest extends TestCase
         Booking::factory()->create([
             'user_id' => $user->id,
             'car_id' => $car->id,
-            'status' => BookingStatus::ACTIVE,
         ]);
 
         $response = $this->getJson('/api/admin/overview');
@@ -57,7 +55,6 @@ class DashboardApiEndpointsTest extends TestCase
             'car_id' => $car->id,
             'start_date' => now()->subHour(),
             'end_date' => now()->addHour(),
-            'status' => BookingStatus::ACTIVE,
         ]);
 
         $response = $this->getJson('/api/portal/overview');

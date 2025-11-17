@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 
 class Booking extends Model
 {
@@ -17,14 +18,14 @@ class Booking extends Model
         'car_id',
         'start_date',
         'end_date',
-        'status',
     ];
 
     protected $casts = [
         'start_date' => 'datetime',
         'end_date' => 'datetime',
-        'status' => BookingStatus::class,
     ];
+
+    protected $appends = ['status'];
 
     public function user(): BelongsTo
     {
@@ -36,9 +37,27 @@ class Booking extends Model
         return $this->belongsTo(Car::class);
     }
 
-    public function scopeActive($query)
+    public function scopeActive(Builder $query)
     {
-        return $query->where('status', BookingStatus::ACTIVE->value);
+        return $query->status(BookingStatus::ACTIVE);
+    }
+
+    public function scopeStatus(Builder $query, BookingStatus $status, ?Carbon $reference = null)
+    {
+        $reference ??= Carbon::now();
+
+        return match ($status) {
+            BookingStatus::UPCOMING => $query->where('start_date', '>', $reference),
+            BookingStatus::ACTIVE => $query
+                ->where('start_date', '<=', $reference)
+                ->where(function ($builder) use ($reference) {
+                    $builder->whereNull('end_date')
+                        ->orWhere('end_date', '>=', $reference);
+                }),
+            BookingStatus::COMPLETED => $query
+                ->whereNotNull('end_date')
+                ->where('end_date', '<=', $reference),
+        };
     }
 
     public function scopeOverlapping($query, Carbon $startDate, ?Carbon $endDate)
@@ -50,5 +69,15 @@ class Booking extends Model
                 $query->whereNull('end_date')
                     ->orWhere('end_date', '>=', $startDate);
             });
+    }
+
+    public function getStatusAttribute(): BookingStatus
+    {
+        $start = $this->start_date instanceof Carbon ? $this->start_date : Carbon::parse($this->start_date);
+        $end = $this->end_date instanceof Carbon || is_null($this->end_date)
+            ? $this->end_date
+            : Carbon::parse($this->end_date);
+
+        return BookingStatus::fromDates($start, $end);
     }
 }

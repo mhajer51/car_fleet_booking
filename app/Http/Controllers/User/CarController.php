@@ -23,7 +23,7 @@ class CarController extends Controller
         $cars = Car::query()
             ->active()
             ->whereDoesntHave('bookings', function ($query) use ($startDate, $endDate) {
-                $query->active()->overlapping($startDate, $endDate);
+                $query->overlapping($startDate, $endDate);
             })
             ->orderBy('name')
             ->get(['id', 'name', 'model', 'color', 'number']);

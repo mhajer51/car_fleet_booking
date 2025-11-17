@@ -34,15 +34,12 @@ class BookingApiTest extends TestCase
         $this->assertDatabaseHas('bookings', [
             'user_id' => $user->id,
             'car_id' => $car->id,
-            'status' => BookingStatus::ACTIVE->value,
         ]);
     }
 
     public function test_return_endpoint_closes_booking(): void
     {
-        $booking = Booking::factory()->open()->create([
-            'status' => BookingStatus::ACTIVE,
-        ]);
+        $booking = Booking::factory()->open()->create();
 
         Carbon::setTestNow('2024-05-02 12:00:00');
 
@@ -51,10 +48,9 @@ class BookingApiTest extends TestCase
         $response->assertOk()
             ->assertJsonFragment(['message' => 'Booking closed successfully.']);
 
-        $this->assertDatabaseHas('bookings', [
-            'id' => $booking->id,
-            'status' => BookingStatus::CLOSED->value,
-        ]);
+        $booking->refresh();
+        $this->assertEquals(BookingStatus::COMPLETED, $booking->status);
+        $this->assertNotNull($booking->end_date);
 
         Carbon::setTestNow();
     }
