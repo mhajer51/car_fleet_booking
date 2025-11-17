@@ -77,7 +77,7 @@ const formatCarLabel = (car) => {
     }
 
     const primary = car.name || car.number || '';
-    const secondary = car.number && car.number !== primary ? car.number : null;
+    const secondary = car.number && car.number !== primary ? car.emirate + " " + car.number : null;
 
     return secondary ? `${primary} • ${secondary}` : primary;
 };
