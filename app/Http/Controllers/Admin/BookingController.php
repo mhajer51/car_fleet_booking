@@ -9,6 +9,7 @@ use App\Http\Requests\Admin\Booking\AdminBookingFilterRequest;
 use App\Http\Requests\Admin\Booking\AdminStoreBookingRequest;
 use App\Models\Booking;
 use App\Models\Car;
+use App\Models\Driver;
 use App\Models\User;
 use App\Services\Bookings\BookingService;
 use Illuminate\Http\JsonResponse;
@@ -29,7 +30,7 @@ class BookingController extends Controller
         $perPage = $perPage > 0 ? min($perPage, 50) : 10;
 
         $bookingsQuery = Booking::query()
-            ->with(['user:id,name,username', 'car:id,name,number'])
+            ->with(['user:id,name,username', 'car:id,name,number', 'driver:id,name,license_number'])
             ->latest();
 
         if (isset($filters['user_id'])) {
@@ -38,6 +39,10 @@ class BookingController extends Controller
 
         if (isset($filters['car_id'])) {
             $bookingsQuery->where('car_id', $filters['car_id']);
+        }
+
+        if (isset($filters['driver_id'])) {
+            $bookingsQuery->where('driver_id', $filters['driver_id']);
         }
 
         if (isset($filters['status'])) {
@@ -76,18 +81,19 @@ class BookingController extends Controller
             : $this->createGuestUser($data['guest_name']);
 
         $car = Car::findOrFail($data['car_id']);
+        $driver = Driver::findOrFail($data['driver_id']);
         $startDate = Carbon::parse($data['start_date']);
         $endDate = isset($data['end_date']) ? Carbon::parse($data['end_date']) : null;
 
         try {
-            $booking = $this->bookingService->create($user, $car, $startDate, $endDate);
+            $booking = $this->bookingService->create($user, $car, $driver, $startDate, $endDate);
         } catch (BookingConflictException $exception) {
             return response()->json([
                 'message' => $exception->getMessage(),
             ], 422);
         }
 
-        $booking = $this->transformBooking($booking->load(['user:id,name,username', 'car:id,name,number']));
+        $booking = $this->transformBooking($booking->load(['user:id,name,username', 'car:id,name,number', 'driver:id,name,license_number']));
 
         return apiResponse('Booking created successfully.', compact('booking'));
     }
@@ -119,6 +125,11 @@ class BookingController extends Controller
                 'id' => $booking->car->id,
                 'name' => $booking->car->name,
                 'number' => $booking->car->number,
+            ],
+            'driver' => [
+                'id' => $booking->driver->id,
+                'name' => $booking->driver->name,
+                'license_number' => $booking->driver->license_number,
             ],
             'start_date' => $booking->start_date,
             'end_date' => $booking->end_date,

@@ -1,14 +1,13 @@
 <?php
 
-namespace App\Http\Requests\Admin\Booking;
+namespace App\Http\Requests\Admin\Driver;
 
-use App\Enums\BookingStatus;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Validation\Rule;
 
-class AdminBookingFilterRequest extends FormRequest
+class AdminDriverUpdateRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -17,16 +16,15 @@ class AdminBookingFilterRequest extends FormRequest
 
     public function rules(): array
     {
+        $driverId = $this->route('driver')?->id;
+
         return [
-            'user_id' => ['sometimes', 'integer', 'exists:users,id'],
-            'car_id' => ['sometimes', 'integer', 'exists:cars,id'],
-            'driver_id' => ['sometimes', 'integer', 'exists:drivers,id'],
-            'status' => ['sometimes', 'string', Rule::in(BookingStatus::values())],
-            'from_date' => ['sometimes', 'date'],
-            'to_date' => ['sometimes', 'date', 'after_or_equal:from_date'],
+            'name' => ['required', 'string', 'max:255'],
+            'license_number' => ['required', 'string', 'max:255', Rule::unique('drivers', 'license_number')->ignore($driverId)],
+            'phone_number' => ['required', 'string', 'max:255', Rule::unique('drivers', 'phone_number')->ignore($driverId)],
+            'is_active' => ['sometimes', 'boolean'],
         ];
     }
-
 
     protected function failedValidation(Validator $validator)
     {

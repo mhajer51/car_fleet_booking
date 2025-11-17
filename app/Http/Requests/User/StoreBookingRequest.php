@@ -25,6 +25,7 @@ class StoreBookingRequest extends FormRequest
         return [
             'user_id' => ['required', 'integer', 'exists:users,id'],
             'car_id' => ['required', 'integer', 'exists:cars,id'],
+            'driver_id' => ['required', 'integer', 'exists:drivers,id'],
             'start_date' => ['required', 'date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'open_booking' => ['sometimes', 'boolean'],

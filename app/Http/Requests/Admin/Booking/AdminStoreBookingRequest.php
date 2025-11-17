@@ -26,6 +26,7 @@ class AdminStoreBookingRequest extends FormRequest
             'user_id' => ['nullable', 'integer', 'exists:users,id', 'required_without:guest_name'],
             'guest_name' => ['nullable', 'string', 'max:255', 'required_without:user_id'],
             'car_id' => ['required', 'integer', 'exists:cars,id'],
+            'driver_id' => ['required', 'integer', 'exists:drivers,id'],
             'start_date' => ['required', 'date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'open_booking' => ['sometimes', 'boolean'],
