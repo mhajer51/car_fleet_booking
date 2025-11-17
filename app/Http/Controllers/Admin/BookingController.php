@@ -31,7 +31,11 @@ class BookingController extends Controller
         $perPage = $perPage > 0 ? min($perPage, 50) : 10;
 
         $bookingsQuery = Booking::query()
-            ->with(['user:id,name,username', 'car:id,name,number', 'driver:id,name,license_number'])
+            ->with([
+                'user:id,name,username',
+                'car:id,name,number,emirate',
+                'driver:id,name,license_number',
+            ])
             ->latest();
 
         if (isset($filters['user_id'])) {
