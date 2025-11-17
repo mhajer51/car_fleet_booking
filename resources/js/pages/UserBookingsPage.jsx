@@ -14,6 +14,16 @@ import {
     TextField,
     Typography,
     Checkbox,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableRow,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    TableContainer,
 } from '@mui/material';
 import UserLayout from '../components/UserLayout.jsx';
 import {
@@ -75,6 +85,7 @@ const UserBookingsPage = () => {
     const [message, setMessage] = useState('');
     const [bookingForm, setBookingForm] = useState(initialBooking);
     const [carsLoading, setCarsLoading] = useState(false);
+    const [dialogOpen, setDialogOpen] = useState(false);
 
     const loadBookings = async (customFilters = filters) => {
         setLoading(true);
@@ -199,6 +210,17 @@ const UserBookingsPage = () => {
         }
     };
 
+    const openDialog = () => {
+        setDialogOpen(true);
+        setBookingForm(initialBooking);
+        setMessage('');
+        setError('');
+    };
+
+    const closeDialog = () => {
+        setDialogOpen(false);
+    };
+
     const closeBooking = async (bookingId) => {
         setReturningId(bookingId);
         setError('');
@@ -220,8 +242,8 @@ const UserBookingsPage = () => {
             <Button variant="outlined" onClick={() => loadBookings()} disabled={loading}>
                 Refresh log
             </Button>
-            <Button variant="outlined" onClick={() => loadCars()} disabled={creating || carsLoading}>
-                Refresh cars
+            <Button variant="contained" onClick={openDialog}>
+                New booking
             </Button>
         </Stack>
     );
@@ -252,205 +274,230 @@ const UserBookingsPage = () => {
             )}
 
             <Grid container spacing={4}>
-                <Grid item xs={12} md={5}>
-                    <Stack spacing={3}>
-                        <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #e2e8f0' }}>
-                            <CardContent>
-                                <Typography variant="h6" fontWeight={700} gutterBottom>
-                                    Filter log
-                                </Typography>
-                                <Stack component="form" spacing={2} onSubmit={applyFilters}>
-                                    <TextField
-                                        select
-                                        name="status"
-                                        label="Status"
-                                        value={filters.status}
-                                        onChange={handleFilterChange}
-                                        InputLabelProps={{ shrink: true }}
-                                    >
-                                        {STATUS_OPTIONS.map((option) => (
-                                            <MenuItem key={option.value} value={option.value}>
-                                                {option.label}
-                                            </MenuItem>
-                                        ))}
-                                    </TextField>
-                                    <TextField
-                                        name="from"
-                                        label="From"
-                                        type="date"
-                                        value={filters.from}
-                                        onChange={handleFilterChange}
-                                        InputLabelProps={{ shrink: true }}
-                                    />
-                                    <TextField
-                                        name="to"
-                                        label="To"
-                                        type="date"
-                                        value={filters.to}
-                                        onChange={handleFilterChange}
-                                        InputLabelProps={{ shrink: true }}
-                                    />
-                                    <Stack direction="row" spacing={2}>
-                                        <Button type="submit" variant="contained" fullWidth disabled={loading}>
-                                            Apply
-                                        </Button>
-                                        <Button variant="text" fullWidth onClick={resetFilters}>
-                                            Reset
-                                        </Button>
-                                    </Stack>
-                                </Stack>
-                            </CardContent>
-                        </Card>
-
-                        <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #e2e8f0' }}>
-                            <CardContent>
-                                <Typography variant="h6" fontWeight={700} gutterBottom>
-                                    New booking
-                                </Typography>
-                                <Stack component="form" spacing={2} onSubmit={submitBooking}>
-                                    <TextField
-                                        select
-                                        name="car_id"
-                                        label="Choose a car"
-                                        value={bookingForm.car_id}
-                                        onChange={handleBookingChange}
-                                        required
-                                        helperText={carHelperText}
-                                        disabled={!bookingForm.start_date || carsLoading}
-                                        InputLabelProps={{ shrink: true }}
-                                    >
-                                        <MenuItem value="" disabled>
-                                            Pick an available vehicle
-                                        </MenuItem>
-                                        {carsLoading && (
-                                            <MenuItem value="" disabled>
-                                                Loading cars…
-                                            </MenuItem>
-                                        )}
-                                        {!carsLoading && bookingForm.start_date && !cars.length && (
-                                            <MenuItem value="" disabled>
-                                                No cars are available for this range
-                                            </MenuItem>
-                                        )}
-                                        {!carsLoading &&
-                                            cars.map((car) => (
-                                                <MenuItem key={car.id} value={car.id}>
-                                                    {car.name} • {car.model}
-                                                </MenuItem>
-                                            ))}
-                                    </TextField>
-                                    <TextField
-                                        name="start_date"
-                                        label="Start date"
-                                        type="datetime-local"
-                                        value={bookingForm.start_date}
-                                        onChange={handleBookingChange}
-                                        required
-                                        InputLabelProps={{ shrink: true }}
-                                    />
-                                    <TextField
-                                        name="end_date"
-                                        label="End date"
-                                        type="datetime-local"
-                                        value={bookingForm.end_date}
-                                        onChange={handleBookingChange}
-                                        disabled={bookingForm.open_booking}
-                                        InputLabelProps={{ shrink: true }}
-                                    />
-                                    <FormControlLabel
-                                        control={<Checkbox checked={bookingForm.open_booking} onChange={handleOpenToggle} />}
-                                        label="Open trip without a return date"
-                                    />
-                                    <Button type="submit" variant="contained" disabled={creating}>
-                                        {creating ? 'Creating booking…' : 'Confirm booking'}
-                                    </Button>
-                                </Stack>
-                            </CardContent>
-                        </Card>
-                    </Stack>
-                </Grid>
-
-                <Grid item xs={12} md={7}>
-                    <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #e2e8f0', minHeight: 420 }}>
+                <Grid item xs={12} md={4}>
+                    <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #e2e8f0', height: '100%' }}>
                         <CardContent>
                             <Typography variant="h6" fontWeight={700} gutterBottom>
-                                Booking history
+                                Filter bookings
                             </Typography>
-
-                            {loading && (
-                                <Stack alignItems="center" py={6}>
-                                    <CircularProgress />
-                                    <Typography mt={2} color="text.secondary">
-                                        Loading data…
-                                    </Typography>
+                            <Typography variant="body2" color="text.secondary" gutterBottom>
+                                Match the admin filters with the same controls you already know.
+                            </Typography>
+                            <Stack component="form" spacing={2} onSubmit={applyFilters}>
+                                <TextField
+                                    select
+                                    name="status"
+                                    label="Status"
+                                    value={filters.status}
+                                    onChange={handleFilterChange}
+                                    InputLabelProps={{ shrink: true }}
+                                >
+                                    {STATUS_OPTIONS.map((option) => (
+                                        <MenuItem key={option.value} value={option.value}>
+                                            {option.label}
+                                        </MenuItem>
+                                    ))}
+                                </TextField>
+                                <TextField
+                                    name="from"
+                                    label="From date"
+                                    type="date"
+                                    value={filters.from}
+                                    onChange={handleFilterChange}
+                                    InputLabelProps={{ shrink: true }}
+                                />
+                                <TextField
+                                    name="to"
+                                    label="To date"
+                                    type="date"
+                                    value={filters.to}
+                                    onChange={handleFilterChange}
+                                    InputLabelProps={{ shrink: true }}
+                                />
+                                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                                    <Button type="submit" variant="contained" fullWidth disabled={loading}>
+                                        Apply filters
+                                    </Button>
+                                    <Button variant="text" fullWidth onClick={resetFilters}>
+                                        Reset
+                                    </Button>
                                 </Stack>
-                            )}
+                            </Stack>
+                        </CardContent>
+                    </Card>
+                </Grid>
 
-                            {!loading && !bookings.length && (
-                                <Box textAlign="center" py={8}>
-                                    <Typography fontWeight={600} gutterBottom>
-                                        No bookings match the filters
+                <Grid item xs={12} md={8}>
+                    <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #e2e8f0' }}>
+                        <CardContent>
+                            <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'center' }} spacing={2} mb={3}>
+                                <Box>
+                                    <Typography variant="h6" fontWeight={700}>
+                                        Booking history
                                     </Typography>
-                                    <Typography color="text.secondary">
-                                        Use the form on the left to schedule your first trip.
+                                    <Typography variant="body2" color="text.secondary">
+                                        {bookings.length} bookings • Matching your filters
                                     </Typography>
                                 </Box>
-                            )}
+                                <Button variant="outlined" onClick={() => loadCars()} disabled={creating || carsLoading}>
+                                    Refresh cars list
+                                </Button>
+                            </Stack>
 
-                            {!loading && !!bookings.length && (
-                                <Stack spacing={2}>
-                                    {bookings.map((booking) => {
-                                        const tone = statusTone[booking.status] ?? { label: booking.status, color: '#94a3b8' };
-                                        return (
-                                            <Box key={booking.id} sx={{ border: '1px solid #e2e8f0', borderRadius: 2, p: 2 }}>
-                                                <Stack direction="row" justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={2}>
-                                                    <Box>
-                                                        <Typography fontWeight={600}>{booking.car?.name ?? '—'}</Typography>
+                            <TableContainer sx={{ border: '1px solid #e2e8f0', borderRadius: 2 }}>
+                                <Table>
+                                    <TableHead>
+                                        <TableRow>
+                                            <TableCell>Car</TableCell>
+                                            <TableCell>Start</TableCell>
+                                            <TableCell>End</TableCell>
+                                            <TableCell>Status</TableCell>
+                                            <TableCell align="right">Actions</TableCell>
+                                        </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                        {loading ? (
+                                            <TableRow>
+                                                <TableCell colSpan={5} align="center">
+                                                    <Stack alignItems="center" py={4} spacing={1}>
+                                                        <CircularProgress size={24} />
                                                         <Typography variant="body2" color="text.secondary">
-                                                            {booking.car?.model} • {booking.car?.number}
+                                                            Loading bookings…
                                                         </Typography>
-                                                    </Box>
-                                                    <Chip
-                                                        label={tone.label}
-                                                        sx={{ backgroundColor: `${tone.color}22`, color: tone.color, fontWeight: 600 }}
-                                                    />
-                                                </Stack>
-                                                <Grid container spacing={2} mt={1}>
-                                                    <Grid item xs={12} sm={6}>
-                                                        <Typography variant="caption" color="text.secondary">
-                                                            Start
-                                                        </Typography>
-                                                        <Typography fontWeight={600}>{formatDate(booking.start_date)}</Typography>
-                                                    </Grid>
-                                                    <Grid item xs={12} sm={6}>
-                                                        <Typography variant="caption" color="text.secondary">
-                                                            End
-                                                        </Typography>
-                                                        <Typography fontWeight={600}>{formatDate(booking.end_date)}</Typography>
-                                                    </Grid>
-                                                </Grid>
-                                                {booking.status === 'active' && (
-                                                    <Box textAlign="left" mt={2}>
-                                                        <Button
-                                                            size="small"
-                                                            color="success"
-                                                            variant="contained"
-                                                            onClick={() => closeBooking(booking.id)}
-                                                            disabled={returningId === booking.id}
-                                                        >
-                                                            {returningId === booking.id ? 'Completing…' : 'Return vehicle'}
-                                                        </Button>
-                                                    </Box>
-                                                )}
-                                            </Box>
-                                        );
-                                    })}
-                                </Stack>
-                            )}
+                                                    </Stack>
+                                                </TableCell>
+                                            </TableRow>
+                                        ) : !bookings.length ? (
+                                            <TableRow>
+                                                <TableCell colSpan={5} align="center">
+                                                    <Typography color="text.secondary" py={3}>
+                                                        No bookings match your filters.
+                                                    </Typography>
+                                                </TableCell>
+                                            </TableRow>
+                                        ) : (
+                                            bookings.map((booking) => {
+                                                const tone = statusTone[booking.status] ?? { label: booking.status, color: '#94a3b8' };
+                                                return (
+                                                    <TableRow key={booking.id}>
+                                                        <TableCell>
+                                                            <Typography fontWeight={600}>{booking.car?.name ?? '—'}</Typography>
+                                                            <Typography variant="body2" color="text.secondary">
+                                                                {booking.car?.model} • {booking.car?.number}
+                                                            </Typography>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Typography>{formatDate(booking.start_date)}</Typography>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Typography>{booking.open_booking ? 'Open booking' : formatDate(booking.end_date)}</Typography>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Chip
+                                                                label={tone.label}
+                                                                size="small"
+                                                                sx={{
+                                                                    color: tone.color,
+                                                                    backgroundColor: `${tone.color}22`,
+                                                                    fontWeight: 700,
+                                                                }}
+                                                            />
+                                                        </TableCell>
+                                                        <TableCell align="right">
+                                                            {booking.status === 'active' ? (
+                                                                <Button
+                                                                    size="small"
+                                                                    color="success"
+                                                                    variant="contained"
+                                                                    onClick={() => closeBooking(booking.id)}
+                                                                    disabled={returningId === booking.id}
+                                                                >
+                                                                    {returningId === booking.id ? 'Completing…' : 'Return vehicle'}
+                                                                </Button>
+                                                            ) : (
+                                                                <Typography variant="body2" color="text.secondary">
+                                                                    —
+                                                                </Typography>
+                                                            )}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </TableContainer>
                         </CardContent>
                     </Card>
                 </Grid>
             </Grid>
+
+            <Dialog open={dialogOpen} onClose={closeDialog} fullWidth maxWidth="sm" component="form" onSubmit={submitBooking}>
+                <DialogTitle>New booking</DialogTitle>
+                <DialogContent dividers>
+                    <Stack spacing={2} mt={1}>
+                        <TextField
+                            select
+                            name="car_id"
+                            label="Choose a car"
+                            value={bookingForm.car_id}
+                            onChange={handleBookingChange}
+                            required
+                            helperText={carHelperText}
+                            disabled={!bookingForm.start_date || carsLoading}
+                            InputLabelProps={{ shrink: true }}
+                        >
+                            <MenuItem value="" disabled>
+                                Pick an available vehicle
+                            </MenuItem>
+                            {carsLoading && (
+                                <MenuItem value="" disabled>
+                                    Loading cars…
+                                </MenuItem>
+                            )}
+                            {!carsLoading && bookingForm.start_date && !cars.length && (
+                                <MenuItem value="" disabled>
+                                    No cars are available for this range
+                                </MenuItem>
+                            )}
+                            {!carsLoading &&
+                                cars.map((car) => (
+                                    <MenuItem key={car.id} value={car.id}>
+                                        {car.name} • {car.model}
+                                    </MenuItem>
+                                ))}
+                        </TextField>
+                        <TextField
+                            name="start_date"
+                            label="Start date"
+                            type="datetime-local"
+                            value={bookingForm.start_date}
+                            onChange={handleBookingChange}
+                            required
+                            InputLabelProps={{ shrink: true }}
+                        />
+                        <TextField
+                            name="end_date"
+                            label="End date"
+                            type="datetime-local"
+                            value={bookingForm.end_date}
+                            onChange={handleBookingChange}
+                            disabled={bookingForm.open_booking}
+                            InputLabelProps={{ shrink: true }}
+                        />
+                        <FormControlLabel
+                            control={<Checkbox checked={bookingForm.open_booking} onChange={handleOpenToggle} />}
+                            label="Open trip without a return date"
+                        />
+                    </Stack>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={closeDialog}>Cancel</Button>
+                    <Button type="submit" variant="contained" disabled={creating}>
+                        {creating ? 'Creating booking…' : 'Confirm booking'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </UserLayout>
     );
 };
