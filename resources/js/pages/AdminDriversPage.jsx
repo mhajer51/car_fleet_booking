@@ -107,9 +107,12 @@ const AdminDriversPage = () => {
             title="Driver roster"
             description="Manage every active and on-duty driver in the fleet."
             actions={
-                <Button variant="outlined" onClick={load} disabled={loading}>
-                    Refresh list
-                </Button>
+                <Stack direction="row" spacing={1}>
+                    <Button variant="contained">Add new</Button>
+                    <Button variant="outlined" onClick={load} disabled={loading}>
+                        Refresh list
+                    </Button>
+                </Stack>
             }
         >
             {error && (
@@ -168,12 +171,13 @@ const AdminDriversPage = () => {
                                     <TableCell>Phone</TableCell>
                                     <TableCell>Assignment</TableCell>
                                     <TableCell>Status</TableCell>
+                                    <TableCell align="right">Actions</TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} align="center">
+                                        <TableCell colSpan={6} align="center">
                                             <Stack alignItems="center" py={3} spacing={1}>
                                                 <CircularProgress size={24} />
                                                 <Typography variant="body2" color="text.secondary">
@@ -210,11 +214,19 @@ const AdminDriversPage = () => {
                                                 {badge(assignmentTone[driver.status] ?? assignmentTone.available)}
                                             </TableCell>
                                             <TableCell>{badge(activeTone[driver.is_active] ?? activeTone.true)}</TableCell>
+                                            <TableCell align="right">
+                                                <Stack direction="row" spacing={1} justifyContent="flex-end">
+                                                    <Button size="small" variant="text">Edit</Button>
+                                                    <Button size="small" color="error" variant="text">
+                                                        Delete
+                                                    </Button>
+                                                </Stack>
+                                            </TableCell>
                                         </TableRow>
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={5} align="center">
+                                        <TableCell colSpan={6} align="center">
                                             <Typography variant="body2" color="text.secondary">
                                                 No drivers match the current filters.
                                             </Typography>
