@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\BookingStatus;
 use App\Http\Controllers\Controller;
 use App\Exceptions\BookingConflictException;
+use App\Http\Requests\Admin\Booking\AdminBookingAvailabilityRequest;
 use App\Http\Requests\Admin\Booking\AdminBookingFilterRequest;
 use App\Http\Requests\Admin\Booking\AdminStoreBookingRequest;
 use App\Models\Booking;
@@ -100,6 +101,76 @@ class BookingController extends Controller
         return apiResponse('Booking created successfully.', compact('booking'));
     }
 
+    public function availableUsers(AdminBookingAvailabilityRequest $request): JsonResponse
+    {
+        [$startDate, $endDate, $search, $perPage] = $this->extractAvailabilityFilters($request);
+
+        $usersQuery = User::query()->availableForPeriod($startDate, $endDate);
+
+        if ($search !== '') {
+            $usersQuery->where(function ($builder) use ($search): void {
+                $builder->where('name', 'like', "%{$search}%")
+                    ->orWhere('employee_number', 'like', "%{$search}%");
+            });
+        }
+
+        $paginator = $usersQuery->latest()->paginate($perPage);
+        $users = $paginator->getCollection()->map(fn (User $user) => [
+            'id' => $user->id,
+            'name' => $user->name,
+            'employee_number' => $user->employee_number,
+            'username' => $user->username,
+        ]);
+
+        return apiResponse('Available users fetched successfully.', $this->buildAvailabilityResponse($paginator, 'users', $users));
+    }
+
+    public function availableCars(AdminBookingAvailabilityRequest $request): JsonResponse
+    {
+        [$startDate, $endDate, $search, $perPage] = $this->extractAvailabilityFilters($request);
+
+        $carsQuery = Car::query()->availableForPeriod($startDate, $endDate);
+
+        if ($search !== '') {
+            $carsQuery->where(function ($builder) use ($search): void {
+                $builder->where('name', 'like', "%{$search}%")
+                    ->orWhere('number', 'like', "%{$search}%");
+            });
+        }
+
+        $paginator = $carsQuery->latest()->paginate($perPage);
+        $cars = $paginator->getCollection()->map(fn (Car $car) => [
+            'id' => $car->id,
+            'name' => $car->name,
+            'number' => $car->number,
+        ]);
+
+        return apiResponse('Available cars fetched successfully.', $this->buildAvailabilityResponse($paginator, 'cars', $cars));
+    }
+
+    public function availableDrivers(AdminBookingAvailabilityRequest $request): JsonResponse
+    {
+        [$startDate, $endDate, $search, $perPage] = $this->extractAvailabilityFilters($request);
+
+        $driversQuery = Driver::query()->availableForPeriod($startDate, $endDate);
+
+        if ($search !== '') {
+            $driversQuery->where(function ($builder) use ($search): void {
+                $builder->where('name', 'like', "%{$search}%")
+                    ->orWhere('license_number', 'like', "%{$search}%");
+            });
+        }
+
+        $paginator = $driversQuery->latest()->paginate($perPage);
+        $drivers = $paginator->getCollection()->map(fn (Driver $driver) => [
+            'id' => $driver->id,
+            'name' => $driver->name,
+            'license_number' => $driver->license_number,
+        ]);
+
+        return apiResponse('Available drivers fetched successfully.', $this->buildAvailabilityResponse($paginator, 'drivers', $drivers));
+    }
+
     private function transformBooking(Booking $booking): array
     {
         return [
@@ -128,6 +199,31 @@ class BookingController extends Controller
             'guest_name' => $booking->guest_name,
             'note' => $booking->note,
             'status' => $booking->status->value,
+        ];
+    }
+
+    private function extractAvailabilityFilters(AdminBookingAvailabilityRequest $request): array
+    {
+        $filters = $request->validated();
+        $startDate = Carbon::parse($filters['start_date']);
+        $endDate = isset($filters['end_date']) ? Carbon::parse($filters['end_date']) : null;
+        $search = trim((string) ($filters['search'] ?? ''));
+        $perPage = (int) ($filters['per_page'] ?? 10);
+        $perPage = $perPage > 0 ? min($perPage, 50) : 10;
+
+        return [$startDate, $endDate, $search, $perPage];
+    }
+
+    private function buildAvailabilityResponse($paginator, string $key, $items): array
+    {
+        return [
+            $key => $items,
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'last_page' => $paginator->lastPage(),
+            ],
         ];
     }
 }
