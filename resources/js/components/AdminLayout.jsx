@@ -16,6 +16,7 @@ import { clearAdminSession, getAdminSession } from '../services/session.js';
 const NAV_LINKS = [
     { label: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
     { label: 'Users', href: '/admin/users', icon: '👥' },
+    { label: 'Drivers', href: '/admin/drivers', icon: '🧑‍✈️' },
     { label: 'Cars', href: '/admin/cars', icon: '🚗' },
     { label: 'Bookings', href: '/admin/bookings', icon: '📅' },
 ];
