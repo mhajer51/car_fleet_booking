@@ -27,8 +27,13 @@ import {
     TablePagination,
     TableRow,
     TextField,
+    Tooltip,
     Typography,
 } from '@mui/material';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
+import IconButton from '@mui/material/IconButton';
 import AdminLayout from '../components/AdminLayout.jsx';
 import {
     createAdminUser,
@@ -328,28 +333,33 @@ const AdminUsersPage = () => {
                                             <TableCell>{statusChip(user.is_active)}</TableCell>
                                             <TableCell align="right">
                                                 <Stack direction="row" spacing={1} justifyContent="flex-end">
-                                                    <Button
-                                                        size="small"
-                                                        variant="text"
-                                                        onClick={() => handleOpenEdit(user)}
-                                                    >
-                                                        Edit
-                                                    </Button>
-                                                    <Button
-                                                        size="small"
-                                                        variant="outlined"
-                                                        onClick={() => handleToggleStatus(user)}
-                                                    >
-                                                        {user.is_active ? 'Suspend' : 'Activate'}
-                                                    </Button>
-                                                    <Button
-                                                        size="small"
-                                                        color="error"
-                                                        variant="text"
-                                                        onClick={() => handleDelete(user)}
-                                                    >
-                                                        Delete
-                                                    </Button>
+                                                    <Tooltip title="Edit">
+                                                        <IconButton
+                                                            size="small"
+                                                            color="primary"
+                                                            onClick={() => handleOpenEdit(user)}
+                                                        >
+                                                            <EditOutlinedIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                    <Tooltip title={user.is_active ? 'Suspend user' : 'Activate user'}>
+                                                        <IconButton
+                                                            size="small"
+                                                            color={user.is_active ? 'warning' : 'success'}
+                                                            onClick={() => handleToggleStatus(user)}
+                                                        >
+                                                            <PowerSettingsNewIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                    <Tooltip title="Delete">
+                                                        <IconButton
+                                                            size="small"
+                                                            color="error"
+                                                            onClick={() => handleDelete(user)}
+                                                        >
+                                                            <DeleteOutlineIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </Tooltip>
                                                 </Stack>
                                             </TableCell>
                                         </TableRow>
