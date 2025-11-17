@@ -8,6 +8,8 @@ import AdminBookingsPage from './pages/AdminBookingsPage.jsx';
 import UserLoginPage from './pages/UserLoginPage.jsx';
 import UserDashboardPage from './pages/UserDashboardPage.jsx';
 import UserBookingsPage from './pages/UserBookingsPage.jsx';
+import UserCarsPage from './pages/UserCarsPage.jsx';
+import UserDriversPage from './pages/UserDriversPage.jsx';
 import RequireAdmin from './components/RequireAdmin.jsx';
 import RequireUser from './components/RequireUser.jsx';
 
@@ -27,6 +29,22 @@ const AppRouter = () => (
             element={
                 <RequireUser>
                     <UserBookingsPage />
+                </RequireUser>
+            }
+        />
+        <Route
+            path="/portal/cars"
+            element={
+                <RequireUser>
+                    <UserCarsPage />
+                </RequireUser>
+            }
+        />
+        <Route
+            path="/portal/drivers"
+            element={
+                <RequireUser>
+                    <UserDriversPage />
                 </RequireUser>
             }
         />
