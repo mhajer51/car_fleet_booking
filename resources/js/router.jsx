@@ -6,14 +6,12 @@ import AdminDriversPage from './pages/AdminDriversPage.jsx';
 import AdminCarsPage from './pages/AdminCarsPage.jsx';
 import AdminBookingsPage from './pages/AdminBookingsPage.jsx';
 import AdminProfilePage from './pages/AdminProfilePage.jsx';
-import AdminPasswordPage from './pages/AdminPasswordPage.jsx';
 import UserLoginPage from './pages/UserLoginPage.jsx';
 import UserDashboardPage from './pages/UserDashboardPage.jsx';
 import UserBookingsPage from './pages/UserBookingsPage.jsx';
 import UserCarsPage from './pages/UserCarsPage.jsx';
 import UserDriversPage from './pages/UserDriversPage.jsx';
 import UserProfilePage from './pages/UserProfilePage.jsx';
-import UserPasswordPage from './pages/UserPasswordPage.jsx';
 import RequireAdmin from './components/RequireAdmin.jsx';
 import RequireUser from './components/RequireUser.jsx';
 
@@ -57,14 +55,6 @@ const AppRouter = () => (
             element={
                 <RequireUser>
                     <UserProfilePage />
-                </RequireUser>
-            }
-        />
-        <Route
-            path="/portal/password"
-            element={
-                <RequireUser>
-                    <UserPasswordPage />
                 </RequireUser>
             }
         />
@@ -114,14 +104,6 @@ const AppRouter = () => (
             element={
                 <RequireAdmin>
                     <AdminProfilePage />
-                </RequireAdmin>
-            }
-        />
-        <Route
-            path="/admin/password"
-            element={
-                <RequireAdmin>
-                    <AdminPasswordPage />
                 </RequireAdmin>
             }
         />
