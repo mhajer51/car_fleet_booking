@@ -20,6 +20,10 @@ class OverviewController extends Controller
         $bookingsYesterday = Booking::query()->whereDate('start_date', $today->clone()->subDay())->count();
         $statusCounts = $this->bookingStatusCounts();
         $activeBookings = $statusCounts[BookingStatus::ACTIVE->value] ?? 0;
+        $engagedCars = Booking::query()
+            ->status(BookingStatus::ACTIVE, $now)
+            ->distinct('car_id')
+            ->count();
         $totalCars = Car::query()->count();
         $availableCars = Car::query()->available()->count();
         $inactiveCars = Car::query()->where('is_active', false)->count();
@@ -43,7 +47,7 @@ class OverviewController extends Controller
                 'label' => 'Vehicles ready',
                 'value' => (string) $availableCars,
                 'detail' => 'Cars available to deploy',
-                'trend' => sprintf('%d%% utilization', $totalCars ? round(($activeBookings / max($totalCars, 1)) * 100) : 0),
+                'trend' => sprintf('%d%% utilization', $totalCars ? round(($engagedCars / max($totalCars, 1)) * 100) : 0),
                 'accent' => 'emerald',
             ],
             [
@@ -88,11 +92,11 @@ class OverviewController extends Controller
         $topVehicles = $this->buildTopVehicles();
         $performance = $this->buildPerformance(
             $totalCars,
-            $activeBookings,
+            $engagedCars,
             (int) round($avgDuration),
             $statusCounts
         );
-        $capacity = $this->buildCapacity($availableCars, $activeBookings, $inactiveCars);
+        $capacity = $this->buildCapacity($availableCars, $engagedCars, $inactiveCars);
 
         return response()->json([
             'metrics' => $metrics,
@@ -230,7 +234,7 @@ class OverviewController extends Controller
 
     private function buildPerformance(
         int $totalCars,
-        int $activeBookings,
+        int $engagedCars,
         int $avgDuration,
         array $statusCounts
     ): array {
@@ -241,7 +245,7 @@ class OverviewController extends Controller
         $serviceLevel = $totalBookings > 0
             ? (int) round((($activeBookings + $upcomingBookings) / $totalBookings) * 100)
             : 100;
-        $utilizationRate = $totalCars > 0 ? (int) round(($activeBookings / $totalCars) * 100) : 0;
+        $utilizationRate = $totalCars > 0 ? (int) round(($engagedCars / $totalCars) * 100) : 0;
 
         return [
             'utilizationRate' => $utilizationRate,
