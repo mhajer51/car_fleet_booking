@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import AdminLoginPage from './pages/AdminLoginPage.jsx';
 import AdminDashboardPage from './pages/AdminDashboardPage.jsx';
 import AdminUsersPage from './pages/AdminUsersPage.jsx';
+import AdminDriversPage from './pages/AdminDriversPage.jsx';
 import AdminCarsPage from './pages/AdminCarsPage.jsx';
 import AdminBookingsPage from './pages/AdminBookingsPage.jsx';
 import UserLoginPage from './pages/UserLoginPage.jsx';
@@ -43,6 +44,14 @@ const AppRouter = () => (
             element={
                 <RequireAdmin>
                     <AdminUsersPage />
+                </RequireAdmin>
+            }
+        />
+        <Route
+            path="/admin/drivers"
+            element={
+                <RequireAdmin>
+                    <AdminDriversPage />
                 </RequireAdmin>
             }
         />
