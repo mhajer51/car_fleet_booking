@@ -137,6 +137,7 @@ const AdminBookingsPage = () => {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [form, setForm] = useState(initialForm);
     const [formError, setFormError] = useState('');
+    const [formErrors, setFormErrors] = useState({});
     const [creating, setCreating] = useState(false);
     const [lookupsLoading, setLookupsLoading] = useState(false);
     const [users, setUsers] = useState([]);
@@ -250,6 +251,7 @@ const AdminBookingsPage = () => {
         setDialogOpen(true);
         setForm({ ...initialForm, startDate: defaultStartDate() });
         setFormError('');
+        setFormErrors({});
         setMessage('');
     };
 
@@ -257,10 +259,12 @@ const AdminBookingsPage = () => {
         setDialogOpen(false);
         setForm(initialForm);
         setFormError('');
+        setFormErrors({});
     };
 
     const handleFormChange = (field, value) => {
         setForm((prev) => ({ ...prev, [field]: value }));
+        setFormErrors((prev) => ({ ...prev, [field]: undefined }));
     };
 
     const buildAvailabilityParams = useCallback(
@@ -313,33 +317,55 @@ const AdminBookingsPage = () => {
         loadAvailability('drivers');
     }, [dialogOpen, loadAvailability]);
 
+    const validateForm = useCallback(() => {
+        const errors = {};
+
+        if (form.mode === 'existing') {
+            if (!form.userId) {
+                errors.userId = ['User selection is required.'];
+            }
+        } else if (!form.guestName.trim()) {
+            errors.guestName = ['Guest name is required.'];
+        }
+
+        if (!form.carId) {
+            errors.carId = ['Please choose a car.'];
+        }
+
+        if (!form.driverId) {
+            errors.driverId = ['Please choose a driver.'];
+        }
+
+        if (!form.startDate) {
+            errors.startDate = ['Start date is required.'];
+        }
+
+        if (!form.openBooking) {
+            if (!form.endDate) {
+                errors.endDate = ['End date is required unless booking is open.'];
+            } else {
+                const start = new Date(form.startDate);
+                const end = new Date(form.endDate);
+
+                if (start && end && end <= start) {
+                    errors.endDate = ['End date must be after the start date.'];
+                }
+            }
+        }
+
+        return errors;
+    }, [form.carId, form.driverId, form.endDate, form.guestName, form.mode, form.openBooking, form.startDate, form.userId]);
+
     const submitBooking = async (event) => {
         event.preventDefault();
         setFormError('');
         setMessage('');
 
-        if (form.mode === 'existing' && !form.userId) {
-            setFormError('Please choose a user for this booking.');
-            return;
-        }
+        const errors = validateForm();
 
-        if (form.mode === 'guest' && !form.guestName.trim()) {
-            setFormError('Please enter the guest name.');
-            return;
-        }
-
-        if (!form.carId) {
-            setFormError('Please choose a car before continuing.');
-            return;
-        }
-
-        if (!form.driverId) {
-            setFormError('Please choose a driver before continuing.');
-            return;
-        }
-
-        if (!form.startDate) {
-            setFormError('Please set the booking start date.');
+        if (Object.keys(errors).length) {
+            setFormErrors(errors);
+            setFormError('Please correct the highlighted fields.');
             return;
         }
 
@@ -365,6 +391,9 @@ const AdminBookingsPage = () => {
             loadBookings();
         } catch (err) {
             setFormError(err.message);
+            if (err?.response?.data?.data) {
+                setFormErrors(err.response.data.data);
+            }
         } finally {
             setCreating(false);
         }
@@ -607,6 +636,8 @@ const AdminBookingsPage = () => {
                                 onChange={(event) => handleFormChange('startDate', event.target.value)}
                                 InputLabelProps={{ shrink: true }}
                                 required
+                                error={Boolean(formErrors.startDate)}
+                                helperText={formErrors.startDate?.[0]}
                             />
                             <TextField
                                 type="datetime-local"
@@ -615,7 +646,13 @@ const AdminBookingsPage = () => {
                                 onChange={(event) => handleFormChange('endDate', event.target.value)}
                                 InputLabelProps={{ shrink: true }}
                                 disabled={form.openBooking}
-                                helperText={form.openBooking ? 'Open booking without a return time' : 'Specify an optional return time'}
+                                error={Boolean(formErrors.endDate)}
+                                helperText={
+                                    formErrors.endDate?.[0]
+                                        || (form.openBooking
+                                            ? 'Open booking without a return time'
+                                            : 'Specify an optional return time')
+                                }
                             />
                             <FormControlLabel
                                 control={
@@ -656,6 +693,8 @@ const AdminBookingsPage = () => {
                                         label="User"
                                         required
                                         placeholder="Search by name or employee number"
+                                        error={Boolean(formErrors.userId)}
+                                        helperText={formErrors.userId?.[0]}
                                     />
                                 )}
                             />
@@ -665,6 +704,8 @@ const AdminBookingsPage = () => {
                                 value={form.guestName}
                                 onChange={(event) => handleFormChange('guestName', event.target.value)}
                                 required
+                                error={Boolean(formErrors.guestName)}
+                                helperText={formErrors.guestName?.[0]}
                             />
                         )}
 
@@ -681,6 +722,8 @@ const AdminBookingsPage = () => {
                                     label="Car"
                                     required
                                     placeholder="Search by car name or number"
+                                    error={Boolean(formErrors.carId)}
+                                    helperText={formErrors.carId?.[0]}
                                 />
                             )}
                         />
@@ -698,6 +741,8 @@ const AdminBookingsPage = () => {
                                     label="Driver"
                                     required
                                     placeholder="Search by driver name or license number"
+                                    error={Boolean(formErrors.driverId)}
+                                    helperText={formErrors.driverId?.[0]}
                                 />
                             )}
                         />
