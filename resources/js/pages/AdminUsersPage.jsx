@@ -32,6 +32,7 @@ import {
 } from '@mui/material';
 import IconButton from '@mui/material/IconButton';
 import AdminLayout from '../components/AdminLayout.jsx';
+import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import EditOutlinedIcon from '../components/icons/EditOutlinedIcon.jsx';
 import DeleteOutlineIcon from '../components/icons/DeleteOutlineIcon.jsx';
 import {
@@ -67,6 +68,8 @@ const AdminUsersPage = () => {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [formErrors, setFormErrors] = useState({});
     const [selectedUser, setSelectedUser] = useState(null);
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [deleting, setDeleting] = useState(false);
     const [form, setForm] = useState({
         name: '',
         username: '',
@@ -154,13 +157,54 @@ const AdminUsersPage = () => {
 
     const handleFormChange = (field, value) => {
         setForm((prev) => ({ ...prev, [field]: value }));
+        setFormErrors((prev) => ({ ...prev, [field]: undefined }));
     };
+
+    const validateForm = useCallback(() => {
+        const errors = {};
+
+        if (!form.name.trim()) {
+            errors.name = ['Full name is required.'];
+        }
+
+        if (!form.username.trim()) {
+            errors.username = ['Username is required.'];
+        }
+
+        if (!form.email.trim()) {
+            errors.email = ['Email is required.'];
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+            errors.email = ['Enter a valid email address.'];
+        }
+
+        if (!form.number_employ.trim()) {
+            errors.number_employ = ['Employee number is required.'];
+        }
+
+        if (!selectedUser || form.password.trim()) {
+            if (!form.password.trim()) {
+                errors.password = ['Password is required for new users.'];
+            } else if (form.password.trim().length < 8) {
+                errors.password = ['Password must be at least 8 characters.'];
+            }
+        }
+
+        return errors;
+    }, [form, selectedUser]);
 
     const handleSubmit = async (event) => {
         event.preventDefault();
+        setError('');
+
+        const errors = validateForm();
+        if (Object.keys(errors).length) {
+            setFormErrors(errors);
+            setError('Please correct the highlighted fields.');
+            return;
+        }
+
         setSaving(true);
         setFormErrors({});
-        setError('');
 
         try {
             const payload = { ...form };
@@ -190,18 +234,23 @@ const AdminUsersPage = () => {
         }
     };
 
+    const handleDelete = (user) => {
+        setDeleteTarget(user);
+    };
 
-    const handleDelete = async (user) => {
-        if (!window.confirm(`Delete ${user.name}? This cannot be undone.`)) {
-            return;
-        }
-
+    const handleConfirmDelete = async () => {
+        if (!deleteTarget) return;
+        setDeleting(true);
         setError('');
+
         try {
-            await deleteAdminUser(user.id);
+            await deleteAdminUser(deleteTarget.id);
+            setDeleteTarget(null);
             await load();
         } catch (err) {
             setError(err.message);
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -326,14 +375,14 @@ const AdminUsersPage = () => {
                                                         </IconButton>
                                                     </Tooltip>
                                                     <Tooltip title="Delete">
-                                                        <IconButton
-                                                            size="small"
-                                                            color="error"
-                                                            onClick={() => handleDelete(user)}
-                                                        >
-                                                            <DeleteOutlineIcon fontSize="small" />
-                                                        </IconButton>
-                                                    </Tooltip>
+                                                    <IconButton
+                                                        size="small"
+                                                        color="error"
+                                                        onClick={() => handleDelete(user)}
+                                                    >
+                                                        <DeleteOutlineIcon fontSize="small" />
+                                                    </IconButton>
+                                                </Tooltip>
                                                 </Stack>
                                             </TableCell>
                                         </TableRow>
@@ -437,6 +486,22 @@ const AdminUsersPage = () => {
                     </DialogActions>
                 </form>
             </Dialog>
+
+            <ConfirmDialog
+                open={!!deleteTarget}
+                title="Delete user"
+                description={
+                    deleteTarget
+                        ? `Are you sure you want to permanently delete ${deleteTarget.name}? This action cannot be undone.`
+                        : ''
+                }
+                confirmLabel="Delete"
+                cancelLabel="Cancel"
+                onCancel={() => setDeleteTarget(null)}
+                onConfirm={handleConfirmDelete}
+                loading={deleting}
+                tone="error"
+            />
         </AdminLayout>
     );
 };
