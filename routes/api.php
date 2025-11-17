@@ -19,6 +19,7 @@ Route::prefix('portal')->group(function (): void {
 Route::prefix('user')->group(function (): void {
 
     Route::post('/', [UserAuthController::class, 'login'])->name('api.user.login');
+    Route::post('refresh', [UserAuthController::class, 'refresh'])->name('api.user.refresh');
 
 
     Route::middleware('jwt:user,' . User::class)->group(function (): void {

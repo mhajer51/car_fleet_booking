@@ -18,7 +18,7 @@ class JwtAuthenticate
     public function handle(Request $request, Closure $next, string $role, string $modelClass): Response
     {
         try {
-            $payload = $this->jwtService->validateToken($request->bearerToken());
+            $payload = $this->jwtService->validateToken($request->bearerToken(), 'access');
         } catch (InvalidTokenException $exception) {
             return apiResponse('Unauthorized', [], 401, ['token' => $exception->getMessage()]);
         }
