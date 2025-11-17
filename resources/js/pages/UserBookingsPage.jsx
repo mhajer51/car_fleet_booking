@@ -236,6 +236,15 @@ const UserBookingsPage = () => {
         loadAvailability('drivers');
     }, [dialogOpen, loadAvailability]);
 
+    useEffect(() => {
+        if (!dialogOpen || !form.startDate) {
+            return;
+        }
+
+        loadAvailability('cars');
+        loadAvailability('drivers');
+    }, [dialogOpen, form.endDate, form.openBooking, form.startDate, loadAvailability]);
+
     const addToAvailability = (resource, item) => {
         if (!item?.id) {
             return;
