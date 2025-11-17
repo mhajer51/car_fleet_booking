@@ -82,3 +82,18 @@ export const createAdminBooking = (payload) =>
     http
         .post('/admin/bookings', payload)
         .then((response) => response.data?.data ?? response.data);
+
+export const fetchAvailableBookingUsers = (params = {}) =>
+    http
+        .get('/admin/bookings/available/users', { params })
+        .then((response) => response.data?.data ?? response.data);
+
+export const fetchAvailableBookingCars = (params = {}) =>
+    http
+        .get('/admin/bookings/available/cars', { params })
+        .then((response) => response.data?.data ?? response.data);
+
+export const fetchAvailableBookingDrivers = (params = {}) =>
+    http
+        .get('/admin/bookings/available/drivers', { params })
+        .then((response) => response.data?.data ?? response.data);
