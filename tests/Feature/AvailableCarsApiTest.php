@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Enums\BookingStatus;
 use App\Models\Booking;
 use App\Models\Car;
 use App\Models\User;
@@ -23,7 +22,6 @@ class AvailableCarsApiTest extends TestCase
             'user_id' => $user->id,
             'start_date' => '2024-10-10 09:00:00',
             'end_date' => '2024-10-12 10:00:00',
-            'status' => BookingStatus::ACTIVE,
         ]);
 
         $this->withoutMiddleware();

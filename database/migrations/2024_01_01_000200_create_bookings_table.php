@@ -14,10 +14,9 @@ return new class extends Migration
             $table->foreignId('car_id')->constrained()->cascadeOnDelete();
             $table->dateTime('start_date');
             $table->dateTime('end_date')->nullable();
-            $table->enum('status', ['active', 'closed', 'cancelled'])->default('active');
             $table->timestamps();
 
-            $table->index(['car_id', 'status']);
+            $table->index('car_id');
             $table->index(['start_date', 'end_date']);
         });
     }

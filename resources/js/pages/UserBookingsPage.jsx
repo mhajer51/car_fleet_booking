@@ -26,9 +26,9 @@ import { getUserSession } from '../services/session.js';
 
 const STATUS_OPTIONS = [
     { value: '', label: 'All statuses' },
+    { value: 'upcoming', label: 'Scheduled' },
     { value: 'active', label: 'Active' },
-    { value: 'closed', label: 'Closed' },
-    { value: 'cancelled', label: 'Cancelled' },
+    { value: 'completed', label: 'Completed' },
 ];
 
 const initialFilters = {
@@ -58,9 +58,9 @@ const formatDate = (value) => {
 };
 
 const statusTone = {
+    upcoming: { label: 'Scheduled', color: '#f97316' },
     active: { label: 'Active', color: '#0ea5e9' },
-    closed: { label: 'Closed', color: '#22c55e' },
-    cancelled: { label: 'Cancelled', color: '#f97316' },
+    completed: { label: 'Completed', color: '#22c55e' },
 };
 
 const UserBookingsPage = () => {

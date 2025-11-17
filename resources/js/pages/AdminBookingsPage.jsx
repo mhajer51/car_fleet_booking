@@ -33,15 +33,15 @@ import { createAdminBooking, fetchAdminBookings, fetchAdminCars, fetchAdminUsers
 
 const STATUS_OPTIONS = [
     { label: 'All statuses', value: 'all' },
+    { label: 'Scheduled', value: 'upcoming' },
     { label: 'Active', value: 'active' },
-    { label: 'Closed', value: 'closed' },
-    { label: 'Cancelled', value: 'cancelled' },
+    { label: 'Completed', value: 'completed' },
 ];
 
 const statusTone = {
+    upcoming: { label: 'Scheduled', color: '#f97316', bg: 'rgba(249,115,22,.12)' },
     active: { label: 'Active', color: '#0f766e', bg: 'rgba(16,185,129,.12)' },
-    closed: { label: 'Closed', color: '#1d4ed8', bg: 'rgba(59,130,246,.12)' },
-    cancelled: { label: 'Cancelled', color: '#b91c1c', bg: 'rgba(248,113,113,.12)' },
+    completed: { label: 'Completed', color: '#1d4ed8', bg: 'rgba(59,130,246,.12)' },
 };
 
 const initialForm = {

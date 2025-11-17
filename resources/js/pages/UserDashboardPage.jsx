@@ -168,7 +168,7 @@ const PerformanceCard = ({ performance }) => {
         },
         {
             label: 'Service level',
-            helper: 'Non-cancelled bookings',
+            helper: 'Trips currently on schedule',
             value: `${performance.serviceLevel ?? 0}%`,
         },
     ];
@@ -254,7 +254,14 @@ const StatusBreakdownCard = ({ breakdown }) => (
             <Stack spacing={1.5} mt={1.5}>
                 {breakdown.map((item) => (
                     <Stack key={item.label} direction="row" alignItems="center" spacing={1}>
-                        <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#0ea5e9' }} />
+                        <Box
+                            sx={{
+                                width: 10,
+                                height: 10,
+                                borderRadius: '50%',
+                                bgcolor: item.color ?? '#0ea5e9',
+                            }}
+                        />
                         <Box flexGrow={1}>
                             <Typography fontWeight={600}>{item.label}</Typography>
                             <Typography variant="body2" color="text.secondary">

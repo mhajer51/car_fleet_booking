@@ -19,7 +19,8 @@ class DashboardController extends Controller
         $totalCars = Car::query()->count();
         $availableCars = Car::query()->available()->count();
         $inactiveCars = Car::query()->where('is_active', false)->count();
-        $activeBookings = Booking::query()->active()->count();
+        $statusCounts = $this->bookingStatusCounts();
+        $activeBookings = $statusCounts[BookingStatus::ACTIVE->value] ?? 0;
         $bookingsToday = Booking::query()->whereDate('start_date', $today)->count();
         $newUsersToday = User::query()->whereDate('created_at', $today)->count();
 
@@ -69,7 +70,7 @@ class DashboardController extends Controller
 
         $highlights = $this->highlights($now);
 
-        $statusBreakdown = $this->statusBreakdown();
+        $statusBreakdown = $this->statusBreakdown($statusCounts);
 
         $dailyBookings = $this->dailyBookings($now);
 
@@ -99,20 +100,20 @@ class DashboardController extends Controller
     private function activityMeta(?BookingStatus $status): array
     {
         return match ($status) {
+            BookingStatus::UPCOMING => [
+                'badge' => 'Scheduled',
+                'tone' => 'amber',
+                'description' => 'Trip queued for dispatch',
+            ],
             BookingStatus::ACTIVE => [
                 'badge' => 'In progress',
                 'tone' => 'sky',
                 'description' => 'Driver dispatched and en route',
             ],
-            BookingStatus::CLOSED => [
+            BookingStatus::COMPLETED => [
                 'badge' => 'Completed',
                 'tone' => 'emerald',
                 'description' => 'Trip closed successfully',
-            ],
-            BookingStatus::CANCELLED => [
-                'badge' => 'Cancelled',
-                'tone' => 'rose',
-                'description' => 'Client cancelled the request',
             ],
             default => [
                 'badge' => 'New booking',
@@ -187,15 +188,16 @@ class DashboardController extends Controller
         ]));
     }
 
-    private function statusBreakdown(): array
+    private function statusBreakdown(array $counts): array
     {
-        $counts = Booking::query()
-            ->selectRaw('status, COUNT(*) as total')
-            ->groupBy('status')
-            ->pluck('total', 'status')
-            ->toArray();
-
         return [
+            [
+                'label' => 'Scheduled rides',
+                'status' => BookingStatus::UPCOMING->value,
+                'count' => (int) ($counts[BookingStatus::UPCOMING->value] ?? 0),
+                'tone' => 'amber',
+                'detail' => 'Departing soon',
+            ],
             [
                 'label' => 'Active rides',
                 'status' => BookingStatus::ACTIVE->value,
@@ -205,19 +207,24 @@ class DashboardController extends Controller
             ],
             [
                 'label' => 'Completed trips',
-                'status' => BookingStatus::CLOSED->value,
-                'count' => (int) ($counts[BookingStatus::CLOSED->value] ?? 0),
+                'status' => BookingStatus::COMPLETED->value,
+                'count' => (int) ($counts[BookingStatus::COMPLETED->value] ?? 0),
                 'tone' => 'emerald',
                 'detail' => 'Closed without incidents',
             ],
-            [
-                'label' => 'Cancelled',
-                'status' => BookingStatus::CANCELLED->value,
-                'count' => (int) ($counts[BookingStatus::CANCELLED->value] ?? 0),
-                'tone' => 'rose',
-                'detail' => 'Flagged by riders',
-            ],
         ];
+    }
+
+    private function bookingStatusCounts(): array
+    {
+        $now = now();
+        $counts = [];
+
+        foreach (BookingStatus::cases() as $status) {
+            $counts[$status->value] = Booking::query()->status($status, $now)->count();
+        }
+
+        return $counts;
     }
 
     private function dailyBookings($now): array
@@ -247,10 +254,12 @@ class DashboardController extends Controller
 
     private function topVehicles(): array
     {
+        $now = now();
+
         return Car::query()
             ->withCount([
-                'bookings as completed_bookings_count' => fn ($query) => $query->where('status', BookingStatus::CLOSED->value),
-                'bookings as active_bookings_count' => fn ($query) => $query->where('status', BookingStatus::ACTIVE->value),
+                'bookings as completed_bookings_count' => fn ($query) => $query->status(BookingStatus::COMPLETED, $now),
+                'bookings as active_bookings_count' => fn ($query) => $query->status(BookingStatus::ACTIVE, $now),
             ])
             ->orderByDesc('completed_bookings_count')
             ->limit(3)

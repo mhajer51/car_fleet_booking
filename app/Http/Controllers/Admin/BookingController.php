@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\BookingStatus;
 use App\Http\Controllers\Controller;
 use App\Exceptions\BookingConflictException;
 use App\Http\Requests\Admin\Booking\AdminBookingFilterRequest;
@@ -40,7 +41,7 @@ class BookingController extends Controller
         }
 
         if (isset($filters['status'])) {
-            $bookingsQuery->where('status', $filters['status']);
+            $bookingsQuery->status(BookingStatus::from($filters['status']));
         }
 
         if (isset($filters['from_date'])) {

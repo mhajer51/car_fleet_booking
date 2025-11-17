@@ -28,7 +28,6 @@ class BookingService
         }
 
         $conflict = $car->bookings()
-            ->active()
             ->overlapping($startDate, $endDate)
             ->exists();
 
@@ -42,7 +41,6 @@ class BookingService
                 'car_id' => $car->id,
                 'start_date' => $startDate,
                 'end_date' => $endDate,
-                'status' => BookingStatus::ACTIVE,
             ]);
         });
     }
@@ -55,7 +53,6 @@ class BookingService
 
         $booking->update([
             'end_date' => $booking->end_date ?? Carbon::now(),
-            'status' => BookingStatus::CLOSED,
         ]);
 
         return $booking->refresh();

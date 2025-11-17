@@ -33,7 +33,7 @@ class BookingController extends Controller
         $query = Booking::query()->with(['user:id,name', 'car:id,name']);
 
         if (!empty($validated['status'])) {
-            $query->where('status', $validated['status']);
+            $query->status(BookingStatus::from($validated['status']));
         }
 
         if (!empty($validated['user_id'])) {
