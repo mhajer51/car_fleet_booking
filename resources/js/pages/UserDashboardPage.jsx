@@ -279,41 +279,6 @@ const StatusBreakdownCard = ({ breakdown }) => (
     </Card>
 );
 
-const HeatmapCard = ({ heatmap }) => (
-    <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #e2e8f0', height: '100%' }}>
-        <CardContent>
-            <Typography variant="h6" gutterBottom fontWeight={600}>
-                City demand heatmap
-            </Typography>
-            <Stack spacing={1.5} mt={2}>
-                {heatmap.map((item) => (
-                    <Box key={item.label}>
-                        <Stack direction="row" justifyContent="space-between" mb={0.5}>
-                            <Typography fontWeight={600}>{item.label}</Typography>
-                            <Typography color="text.secondary">{item.value}%</Typography>
-                        </Stack>
-                        <LinearProgress
-                            variant="determinate"
-                            value={item.value}
-                            sx={{
-                                height: 8,
-                                borderRadius: 8,
-                                backgroundColor: '#f1f5f9',
-                                '& .MuiLinearProgress-bar': {
-                                    background: 'linear-gradient(90deg, #a855f7, #6366f1)',
-                                },
-                            }}
-                        />
-                    </Box>
-                ))}
-                {heatmap.length === 0 && (
-                    <Typography color="text.secondary">No regional demand recorded.</Typography>
-                )}
-            </Stack>
-        </CardContent>
-    </Card>
-);
-
 const TopVehiclesCard = ({ vehicles }) => (
     <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #e2e8f0', height: '100%' }}>
         <CardContent>
@@ -468,14 +433,11 @@ const UserDashboardPage = () => {
                     </Grid>
 
                     <Grid container spacing={3}>
-                        <Grid item xs={12} md={4}>
+                        <Grid item xs={12} md={6}>
                             <CapacityCard capacity={data.capacity ?? {}} />
                         </Grid>
-                        <Grid item xs={12} md={4}>
+                        <Grid item xs={12} md={6}>
                             <StatusBreakdownCard breakdown={data.statusBreakdown ?? []} />
-                        </Grid>
-                        <Grid item xs={12} md={4}>
-                            <HeatmapCard heatmap={data.heatmap ?? []} />
                         </Grid>
                     </Grid>
 

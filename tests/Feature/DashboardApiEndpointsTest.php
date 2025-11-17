@@ -64,7 +64,6 @@ class DashboardApiEndpointsTest extends TestCase
                 'metrics',
                 'timeline',
                 'suggestions',
-                'heatmap',
                 'trend',
                 'statusBreakdown',
                 'topVehicles',
