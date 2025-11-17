@@ -652,7 +652,6 @@ const AdminBookingsPage = () => {
                                 onChange={(_event, value) => handleFormChange('userId', value?.id ?? '')}
                                 onInputChange={(_event, value) => {
                                     setAvailabilitySearch((prev) => ({ ...prev, users: value }));
-                                    loadAvailability('users', value);
                                 }}
                                 filterOptions={(options) => options}
                                 getOptionLabel={formatUserLabel}
@@ -680,14 +679,13 @@ const AdminBookingsPage = () => {
                             options={availability.cars}
                             value={availability.cars.find((car) => car.id === Number(form.carId)) ?? null}
                             onChange={(_event, value) => handleFormChange('carId', value?.id ?? '')}
-                                onInputChange={(_event, value) => {
-                                    setAvailabilitySearch((prev) => ({ ...prev, cars: value }));
-                                    loadAvailability('cars', value);
-                                }}
-                                filterOptions={(options) => options}
-                                getOptionLabel={formatCarLabel}
-                                loading={availabilityLoading.cars}
-                                isOptionEqualToValue={(option, value) => option?.id === value?.id}
+                            onInputChange={(_event, value) => {
+                                setAvailabilitySearch((prev) => ({ ...prev, cars: value }));
+                            }}
+                            filterOptions={(options) => options}
+                            getOptionLabel={formatCarLabel}
+                            loading={availabilityLoading.cars}
+                            isOptionEqualToValue={(option, value) => option?.id === value?.id}
                                 renderInput={(params) => (
                                     <TextField
                                         {...params}
@@ -702,14 +700,13 @@ const AdminBookingsPage = () => {
                             options={availability.drivers}
                             value={availability.drivers.find((driver) => driver.id === Number(form.driverId)) ?? null}
                             onChange={(_event, value) => handleFormChange('driverId', value?.id ?? '')}
-                                onInputChange={(_event, value) => {
-                                    setAvailabilitySearch((prev) => ({ ...prev, drivers: value }));
-                                    loadAvailability('drivers', value);
-                                }}
-                                filterOptions={(options) => options}
-                                getOptionLabel={formatDriverLabel}
-                                loading={availabilityLoading.drivers}
-                                isOptionEqualToValue={(option, value) => option?.id === value?.id}
+                            onInputChange={(_event, value) => {
+                                setAvailabilitySearch((prev) => ({ ...prev, drivers: value }));
+                            }}
+                            filterOptions={(options) => options}
+                            getOptionLabel={formatDriverLabel}
+                            loading={availabilityLoading.drivers}
+                            isOptionEqualToValue={(option, value) => option?.id === value?.id}
                                 renderInput={(params) => (
                                     <TextField
                                         {...params}
