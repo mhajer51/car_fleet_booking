@@ -422,7 +422,6 @@ const AdminUsersPage = () => {
                                 label="Full name"
                                 value={form.name}
                                 onChange={(event) => handleFormChange('name', event.target.value)}
-                                required
                                 error={!!formErrors.name}
                                 helperText={formErrors.name?.[0]}
                             />
@@ -430,16 +429,13 @@ const AdminUsersPage = () => {
                                 label="Username"
                                 value={form.username}
                                 onChange={(event) => handleFormChange('username', event.target.value)}
-                                required
                                 error={!!formErrors.username}
                                 helperText={formErrors.username?.[0]}
                             />
                             <TextField
                                 label="Email"
-                                type="email"
                                 value={form.email}
                                 onChange={(event) => handleFormChange('email', event.target.value)}
-                                required
                                 error={!!formErrors.email}
                                 helperText={formErrors.email?.[0]}
                             />
@@ -447,7 +443,6 @@ const AdminUsersPage = () => {
                                 label="Employee number"
                                 value={form.number_employ}
                                 onChange={(event) => handleFormChange('number_employ', event.target.value)}
-                                required
                                 error={!!formErrors.number_employ}
                                 helperText={formErrors.number_employ?.[0]}
                             />
@@ -457,7 +452,6 @@ const AdminUsersPage = () => {
                                 type="password"
                                 value={form.password}
                                 onChange={(event) => handleFormChange('password', event.target.value)}
-                                required={!selectedUser}
                                 error={!!formErrors.password}
                                 helperText={
                                     selectedUser
