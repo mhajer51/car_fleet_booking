@@ -8,6 +8,7 @@ use App\Exceptions\BookingConflictException;
 use App\Http\Requests\Admin\Booking\AdminBookingAvailabilityRequest;
 use App\Http\Requests\Admin\Booking\AdminBookingFilterRequest;
 use App\Http\Requests\Admin\Booking\AdminStoreBookingRequest;
+use App\Http\Requests\Admin\Booking\AdminUpdateBookingRequest;
 use App\Models\Booking;
 use App\Models\Car;
 use App\Models\Driver;
@@ -100,6 +101,36 @@ class BookingController extends Controller
         $booking = $this->transformBooking($booking->load(['user:id,name,username', 'car:id,name,number,emirate', 'driver:id,name,license_number']));
 
         return apiResponse('Booking created successfully.', compact('booking'));
+    }
+
+    public function update(AdminUpdateBookingRequest $request, Booking $booking): JsonResponse
+    {
+        $data = $request->validated();
+
+        $user = isset($data['user_id'])
+            ? User::findOrFail($data['user_id'])
+            : null;
+
+        $guestName = $user ? null : $data['guest_name'];
+        $note = $data['note'] ?? ($guestName ? sprintf('Guest booking by %s', $guestName) : null);
+
+        $car = Car::findOrFail($data['car_id']);
+        $driver = Driver::findOrFail($data['driver_id']);
+        $startDate = Carbon::parse($data['start_date']);
+        $endDate = isset($data['end_date']) ? Carbon::parse($data['end_date']) : null;
+        $price = (float) $data['price'];
+
+        try {
+            $booking = $this->bookingService->update($booking, $user, $car, $driver, $startDate, $endDate, $guestName, $note, $price);
+        } catch (BookingConflictException $exception) {
+            return response()->json([
+                'message' => $exception->getMessage(),
+            ], 422);
+        }
+
+        $booking = $this->transformBooking($booking->load(['user:id,name,username', 'car:id,name,number,emirate', 'driver:id,name,license_number']));
+
+        return apiResponse('Booking updated successfully.', compact('booking'));
     }
 
     public function availableUsers(AdminBookingAvailabilityRequest $request): JsonResponse

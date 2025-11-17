@@ -43,6 +43,7 @@ Route::prefix('admin')->group(function (): void {
         Route::prefix('bookings')->group(function (): void {
             Route::get('/', [AdminBookingController::class, 'index'])->name('bookings.index');
             Route::post('/', [AdminBookingController::class, 'store'])->name('bookings.store');
+            Route::put('{booking}', [AdminBookingController::class, 'update'])->name('bookings.update');
 
             Route::get('available/users', [AdminBookingController::class, 'availableUsers'])->name('bookings.available-users');
             Route::get('available/cars', [AdminBookingController::class, 'availableCars'])->name('bookings.available-cars');

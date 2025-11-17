@@ -83,6 +83,11 @@ export const createAdminBooking = (payload) =>
         .post('/admin/bookings', payload)
         .then((response) => response.data?.data ?? response.data);
 
+export const updateAdminBooking = (bookingId, payload) =>
+    http
+        .put(`/admin/bookings/${bookingId}`, payload)
+        .then((response) => response.data?.data ?? response.data);
+
 export const fetchAvailableBookingUsers = (params = {}) =>
     http
         .get('/admin/bookings/available/users', { params })
