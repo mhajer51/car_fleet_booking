@@ -20,7 +20,6 @@ const NAV_LINKS = [
     { label: 'Cars', href: '/admin/cars', icon: '🚗' },
     { label: 'Bookings', href: '/admin/bookings', icon: '📅' },
     { label: 'Profile', href: '/admin/profile', icon: '👤' },
-    { label: 'Password', href: '/admin/password', icon: '🔒' },
 ];
 
 const AdminLayout = ({ title, description, actions, children }) => {
