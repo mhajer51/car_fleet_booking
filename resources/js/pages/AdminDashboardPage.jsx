@@ -324,11 +324,7 @@ const AdminDashboardPage = () => {
         load();
     }, []);
 
-    const actions = (
-        <Button variant="outlined" onClick={load} disabled={loading}>
-            Refresh data
-        </Button>
-    );
+
 
     const meta = data?.meta ?? {};
     const statusBreakdown = data?.statusBreakdown ?? [];
@@ -357,7 +353,6 @@ const AdminDashboardPage = () => {
         <AdminLayout
             title="Mission dashboard"
             description="Live visibility into bookings, users, and fleet usage."
-            actions={actions}
         >
             {error && (
                 <Alert severity="error" sx={{ mb: 3 }}>
@@ -375,7 +370,7 @@ const AdminDashboardPage = () => {
             )}
 
             {!loading && data && (
-                <Stack spacing={4}>
+                <Stack container spacing={4}>
                     <SectionCard>
                         <Stack
                             direction={{ xs: 'column', md: 'row' }}
@@ -403,16 +398,17 @@ const AdminDashboardPage = () => {
                             </Grid>
                         </Stack>
                     </SectionCard>
-
-                    <Grid container spacing={3}>
+                    <Stack>
+                        <Grid container spacing={3}>
                         {data.metrics?.map((metric) => (
                             <Grid key={metric.label} item xs={12} md={4}>
                                 <MetricCard metric={metric} />
                             </Grid>
                         ))}
                     </Grid>
-
-                    <Grid container spacing={3}>
+                    </Stack>
+                    <Stack>
+                        <Grid container spacing={3}>
                         <Grid item xs={12} lg={8}>
                             <SectionCard>
                                 <DailyBookings series={dailySeries} />
@@ -449,8 +445,9 @@ const AdminDashboardPage = () => {
                             </SectionCard>
                         </Grid>
                     </Grid>
-
-                    <Grid container spacing={3}>
+                    </Stack>
+                    <Stack>
+                        <Grid container spacing={3}>
                         <Grid item xs={12} md={7}>
                             <SectionCard>
                                 <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
@@ -487,6 +484,7 @@ const AdminDashboardPage = () => {
                             </SectionCard>
                         </Grid>
                     </Grid>
+                    </Stack>
                 </Stack>
             )}
         </AdminLayout>

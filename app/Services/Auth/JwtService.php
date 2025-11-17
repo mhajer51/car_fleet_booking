@@ -10,7 +10,7 @@ use RuntimeException;
 class JwtService
 {
     private string $secret;
-    private int $refreshTtl;
+//    private int $refreshTtl;
 
     public function __construct(?string $secret = null, private int $ttl = 0, private int $refreshTtl = 0)
     {
