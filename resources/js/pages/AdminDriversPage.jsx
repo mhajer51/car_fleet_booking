@@ -8,6 +8,10 @@ import {
     CardContent,
     Chip,
     CircularProgress,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
     FormControl,
     InputLabel,
     MenuItem,
@@ -23,7 +27,12 @@ import {
     Typography,
 } from '@mui/material';
 import AdminLayout from '../components/AdminLayout.jsx';
-import { fetchAdminDrivers } from '../services/admin.js';
+import {
+    createAdminDriver,
+    fetchAdminDrivers,
+    updateAdminDriver,
+    updateAdminDriverStatus,
+} from '../services/admin.js';
 
 const assignmentTone = {
     available: { bg: 'rgba(59,130,246,.12)', color: '#1d4ed8', label: 'Available' },
@@ -43,11 +52,23 @@ const AdminDriversPage = () => {
     const [drivers, setDrivers] = useState([]);
     const [meta, setMeta] = useState({ total: 0 });
     const [loading, setLoading] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
+    const [statusUpdating, setStatusUpdating] = useState(null);
     const [error, setError] = useState('');
+    const [submitError, setSubmitError] = useState('');
     const [searchInput, setSearchInput] = useState('');
     const [search, setSearch] = useState('');
     const [activeFilter, setActiveFilter] = useState('all');
     const [pagination, setPagination] = useState({ page: 0, pageSize: 10 });
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [dialogMode, setDialogMode] = useState('create');
+    const [form, setForm] = useState({
+        name: '',
+        license_number: '',
+        phone_number: '',
+        is_active: true,
+    });
+    const [editingDriverId, setEditingDriverId] = useState(null);
 
     const totalRecords = meta?.total ?? 0;
 
@@ -102,14 +123,89 @@ const AdminDriversPage = () => {
         setPagination({ page: 0, pageSize: parseInt(event.target.value, 10) });
     };
 
+    const openCreateDialog = () => {
+        setDialogMode('create');
+        setForm({ name: '', license_number: '', phone_number: '', is_active: true });
+        setEditingDriverId(null);
+        setSubmitError('');
+        setDialogOpen(true);
+    };
+
+    const openEditDialog = (driver) => {
+        setDialogMode('edit');
+        setForm({
+            name: driver.name ?? '',
+            license_number: driver.license_number ?? '',
+            phone_number: driver.phone_number ?? '',
+            is_active: Boolean(driver.is_active),
+        });
+        setEditingDriverId(driver.id);
+        setSubmitError('');
+        setDialogOpen(true);
+    };
+
+    const closeDialog = () => {
+        if (submitting) return;
+        setDialogOpen(false);
+    };
+
+    const handleFormChange = (field) => (event) => {
+        const value =
+            field === 'is_active' ? event.target.value === 'true' || event.target.value === true : event.target.value;
+        setForm((prev) => ({ ...prev, [field]: value }));
+    };
+
+    const handleSubmit = async (event) => {
+        event.preventDefault();
+        setSubmitting(true);
+        setSubmitError('');
+
+        try {
+            if (dialogMode === 'create') {
+                await createAdminDriver(form);
+            } else if (editingDriverId) {
+                await updateAdminDriver(editingDriverId, form);
+            }
+            setDialogOpen(false);
+            await load();
+        } catch (err) {
+            setSubmitError(err.message);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleDelete = async (driver) => {
+        const confirmed = window.confirm(
+            `Disable ${driver.name}? This will remove them from the active fleet without deleting their history.`
+        );
+        if (!confirmed) return;
+
+        setStatusUpdating(driver.id);
+        setError('');
+        try {
+            await updateAdminDriverStatus(driver.id, { is_active: false });
+            await load();
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setStatusUpdating(null);
+        }
+    };
+
     return (
         <AdminLayout
             title="Driver roster"
             description="Manage every active and on-duty driver in the fleet."
             actions={
-                <Button variant="outlined" onClick={load} disabled={loading}>
-                    Refresh list
-                </Button>
+                <Stack direction="row" spacing={1}>
+                    <Button variant="contained" onClick={openCreateDialog}>
+                        Add new
+                    </Button>
+                    <Button variant="outlined" onClick={load} disabled={loading}>
+                        Refresh list
+                    </Button>
+                </Stack>
             }
         >
             {error && (
@@ -168,12 +264,13 @@ const AdminDriversPage = () => {
                                     <TableCell>Phone</TableCell>
                                     <TableCell>Assignment</TableCell>
                                     <TableCell>Status</TableCell>
+                                    <TableCell align="right">Actions</TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} align="center">
+                                        <TableCell colSpan={6} align="center">
                                             <Stack alignItems="center" py={3} spacing={1}>
                                                 <CircularProgress size={24} />
                                                 <Typography variant="body2" color="text.secondary">
@@ -210,11 +307,27 @@ const AdminDriversPage = () => {
                                                 {badge(assignmentTone[driver.status] ?? assignmentTone.available)}
                                             </TableCell>
                                             <TableCell>{badge(activeTone[driver.is_active] ?? activeTone.true)}</TableCell>
+                                            <TableCell align="right">
+                                                <Stack direction="row" spacing={1} justifyContent="flex-end">
+                                                    <Button size="small" variant="text" onClick={() => openEditDialog(driver)}>
+                                                        Edit
+                                                    </Button>
+                                                    <Button
+                                                        size="small"
+                                                        color="error"
+                                                        variant="text"
+                                                        disabled={statusUpdating === driver.id}
+                                                        onClick={() => handleDelete(driver)}
+                                                    >
+                                                        Delete
+                                                    </Button>
+                                                </Stack>
+                                            </TableCell>
                                         </TableRow>
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={5} align="center">
+                                        <TableCell colSpan={6} align="center">
                                             <Typography variant="body2" color="text.secondary">
                                                 No drivers match the current filters.
                                             </Typography>
@@ -237,6 +350,56 @@ const AdminDriversPage = () => {
                     </Box>
                 </CardContent>
             </Card>
+
+            <Dialog open={dialogOpen} onClose={closeDialog} fullWidth maxWidth="sm" component="form" onSubmit={handleSubmit}>
+                <DialogTitle>{dialogMode === 'create' ? 'Add driver' : 'Edit driver'}</DialogTitle>
+                <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+                    {submitError && (
+                        <Alert severity="error" onClose={() => setSubmitError('')}>
+                            {submitError}
+                        </Alert>
+                    )}
+                    <TextField
+                        label="Full name"
+                        value={form.name}
+                        onChange={handleFormChange('name')}
+                        required
+                        autoFocus
+                    />
+                    <TextField
+                        label="License number"
+                        value={form.license_number}
+                        onChange={handleFormChange('license_number')}
+                        required
+                    />
+                    <TextField
+                        label="Phone number"
+                        value={form.phone_number}
+                        onChange={handleFormChange('phone_number')}
+                        required
+                    />
+                    <FormControl fullWidth>
+                        <InputLabel id="driver-status-select">Status</InputLabel>
+                        <Select
+                            labelId="driver-status-select"
+                            label="Status"
+                            value={String(form.is_active)}
+                            onChange={handleFormChange('is_active')}
+                        >
+                            <MenuItem value="true">Enabled</MenuItem>
+                            <MenuItem value="false">Disabled</MenuItem>
+                        </Select>
+                    </FormControl>
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 2 }}>
+                    <Button onClick={closeDialog} disabled={submitting}>
+                        Cancel
+                    </Button>
+                    <Button type="submit" variant="contained" disabled={submitting}>
+                        {dialogMode === 'create' ? 'Create driver' : 'Save changes'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </AdminLayout>
     );
 };
