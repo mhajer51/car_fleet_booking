@@ -14,6 +14,15 @@ export const createUserBooking = (payload) =>
 export const returnUserBooking = (bookingId) =>
     http.post(`/user/bookings/${bookingId}/return`).then((response) => unwrap(response));
 
+export const fetchAvailableBookingUsers = (params = {}) =>
+    http.get('/user/bookings/available/users', { params }).then((response) => unwrap(response));
+
+export const fetchAvailableBookingCars = (params = {}) =>
+    http.get('/user/bookings/available/cars', { params }).then((response) => unwrap(response));
+
+export const fetchAvailableBookingDrivers = (params = {}) =>
+    http.get('/user/bookings/available/drivers', { params }).then((response) => unwrap(response));
+
 export const fetchAvailableCars = (params = {}) =>
     http.get('/user/cars/available', { params }).then((response) => unwrap(response));
 

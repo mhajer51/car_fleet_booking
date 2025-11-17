@@ -27,6 +27,9 @@ Route::prefix('user')->group(function (): void {
         Route::get('bookings', [BookingController::class, 'index']);
         Route::post('bookings', [BookingController::class, 'store']);
         Route::post('bookings/{booking}/return', [BookingController::class, 'returnCar']);
+        Route::get('bookings/available/users', [BookingController::class, 'availableUsers']);
+        Route::get('bookings/available/cars', [BookingController::class, 'availableCars']);
+        Route::get('bookings/available/drivers', [BookingController::class, 'availableDrivers']);
 
         Route::get('cars', [CarController::class, 'index']);
         Route::post('cars', [CarController::class, 'store']);
