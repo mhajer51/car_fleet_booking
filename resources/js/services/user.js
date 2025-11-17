@@ -16,3 +16,15 @@ export const returnUserBooking = (bookingId) =>
 
 export const fetchAvailableCars = (params = {}) =>
     http.get('/user/cars/available', { params }).then((response) => unwrap(response));
+
+export const fetchUserCars = (params = {}) =>
+    http.get('/user/cars', { params }).then((response) => unwrap(response));
+
+export const createUserCar = (payload) =>
+    http.post('/user/cars', payload).then((response) => unwrap(response));
+
+export const fetchUserDrivers = (params = {}) =>
+    http.get('/user/drivers', { params }).then((response) => unwrap(response));
+
+export const createUserDriver = (payload) =>
+    http.post('/user/drivers', payload).then((response) => unwrap(response));
