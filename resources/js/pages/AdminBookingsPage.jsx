@@ -618,7 +618,7 @@ const AdminBookingsPage = () => {
                                                                 {booking.driver?.license_number}
                                                             </Typography>
                                                         </TableCell>
-                                                        <TableCell>{booking.price ? `$${Number(booking.price).toFixed(2)}` : '—'}</TableCell>
+                                                        <TableCell>{booking.price ? `${Number(booking.price).toFixed(2)}` : '—'}</TableCell>
                                                         <TableCell>{formatDate(booking.start_date)}</TableCell>
                                                         <TableCell>{formatDate(booking.end_date)}</TableCell>
                                                         <TableCell sx={{ maxWidth: 200 }}>
@@ -786,7 +786,6 @@ const AdminBookingsPage = () => {
                                 label="Price"
                                 value={form.price}
                                 onChange={(event) => handleFormChange('price', event.target.value)}
-                                required
                                 inputProps={{ min: 0, step: 0.01 }}
                                 error={Boolean(formErrors.price)}
                                 helperText={formErrors.price?.[0] ?? 'Enter the booking cost (e.g., 120.00)'}
