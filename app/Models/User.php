@@ -41,12 +41,13 @@ class User extends Authenticatable
         return $this->hasMany(Booking::class);
     }
 
-    public function scopeAvailableForPeriod(Builder $query, Carbon $startDate, ?Carbon $endDate): Builder
+    public function scopeAvailableForPeriod(Builder $query, Carbon $startDate, ?Carbon $endDate, ?int $excludingBookingId = null): Builder
     {
         $query->where('is_active', true);
 
-        return $query->whereDoesntHave('bookings', function ($builder) use ($startDate, $endDate) {
-            $builder->overlapping($startDate, $endDate);
+        return $query->whereDoesntHave('bookings', function ($builder) use ($startDate, $endDate, $excludingBookingId) {
+            $builder->when($excludingBookingId, fn ($inner) => $inner->where('bookings.id', '!=', $excludingBookingId))
+                ->overlapping($startDate, $endDate);
         });
     }
 }
