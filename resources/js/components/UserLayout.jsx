@@ -15,9 +15,9 @@ import { clearUserSession, getUserSession } from '../services/session.js';
 
 const NAV_LINKS = [
     { label: 'Dashboard', href: '/portal/dashboard', icon: '🏠' },
-    { label: 'Bookings', href: '/portal/bookings', icon: '📅' },
     { label: 'Cars', href: '/portal/cars', icon: '🚗' },
     { label: 'Drivers', href: '/portal/drivers', icon: '🧑‍✈️' },
+    { label: 'Bookings', href: '/portal/bookings', icon: '📅' },
 ];
 
 const UserLayout = ({ title, description, actions, children }) => {

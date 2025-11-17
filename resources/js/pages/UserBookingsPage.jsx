@@ -690,7 +690,7 @@ const UserBookingsPage = () => {
                 </Card>
             </Stack>
 
-            <Dialog open={dialogOpen} onClose={closeDialog} fullWidth maxWidth="sm" component="form" onSubmit={submitBooking}>
+            <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth="md" component="form" onSubmit={submitBooking}>
                 <DialogTitle>New booking</DialogTitle>
                 <DialogContent dividers>
                     <Stack spacing={3} mt={1}>
@@ -836,7 +836,7 @@ const UserBookingsPage = () => {
                     </Stack>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={closeDialog}>Cancel</Button>
+                    <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
                     <Button type="submit" variant="contained" disabled={creating}>
                         {creating ? 'Creating booking…' : 'Confirm booking'}
                     </Button>
