@@ -62,6 +62,7 @@ class UserController extends Controller
             'email' => $data['email'],
             'employee_number' => $data['number_employ'],
             'password' => $data['password'],
+            'role' => $data['role'],
             'is_active' => $data['is_active'] ?? true,
         ]);
 
@@ -80,6 +81,7 @@ class UserController extends Controller
             'username' => $data['username'] ?? null,
             'email' => $data['email'] ?? null,
             'employee_number' => $data['number_employ'] ?? null,
+            'role' => $data['role'] ?? null,
             'is_active' => $data['is_active'] ?? null,
         ], fn ($value) => ! is_null($value));
 
@@ -107,6 +109,13 @@ class UserController extends Controller
 
     }
 
+    public function destroy(User $user): JsonResponse
+    {
+        $user->delete();
+
+        return apiResponse('User deleted successfully.');
+    }
+
     private function transformUser(User $user): array
     {
         return [
@@ -115,6 +124,7 @@ class UserController extends Controller
             'username' => $user->username,
             'email' => $user->email,
             'number_employ' => $user->employee_number,
+            'role' => $user->role,
             'is_active' => $user->is_active,
         ];
     }
