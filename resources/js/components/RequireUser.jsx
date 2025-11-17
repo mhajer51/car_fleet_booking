@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { getAdminSession, getUserSession } from '../services/session.js';
 
 const RequireUser = ({ children }) => {
+    const location = useLocation();
     const adminSession = useMemo(() => getAdminSession(), []);
     const userSession = useMemo(() => getUserSession(), []);
 
@@ -11,7 +12,13 @@ const RequireUser = ({ children }) => {
     }
 
     if (!userSession?.token) {
-        return <Navigate to="/" replace />;
+        return (
+            <Navigate
+                to="/"
+                replace
+                state={{ from: location.pathname, reason: 'unauthorized' }}
+            />
+        );
     }
 
     return children;

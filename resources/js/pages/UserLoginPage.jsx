@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, Box, Button, Link, Stack, TextField, Typography } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import LoginLayout from '../components/LoginLayout.jsx';
 import TokenPreview from '../components/TokenPreview.jsx';
 import { loginUser } from '../services/auth.js';
@@ -13,6 +13,7 @@ const UserLoginPage = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [payload, setPayload] = useState(null);
+    const location = useLocation();
     const navigate = useNavigate();
     const existingUserSession = useMemo(() => getUserSession(), []);
     const existingAdminSession = useMemo(() => getAdminSession(), []);
@@ -54,6 +55,9 @@ const UserLoginPage = () => {
     return (
         <LoginLayout title="Welcome back" subtitle="Sign in to view and manage your trips.">
             <Stack component="form" spacing={3} onSubmit={handleSubmit}>
+                {location.state?.reason === 'unauthorized' && (
+                    <Alert severity="warning">Please sign in to view your portal.</Alert>
+                )}
                 {error && <Alert severity="error">{error}</Alert>}
                 {payload && (
                     <Alert severity="success">
