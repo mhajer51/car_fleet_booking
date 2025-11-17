@@ -14,7 +14,6 @@ import {
     DialogContent,
     DialogTitle,
     FormControlLabel,
-    Grid,
     MenuItem,
     Radio,
     RadioGroup,
@@ -449,26 +448,26 @@ const AdminBookingsPage = () => {
                 </Alert>
             )}
 
-            <Grid container spacing={4}>
-                <Grid item xs={12} md={4}>
-                    <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #e2e8f0' }}>
-                        <CardContent>
-                            <Typography variant="h6" fontWeight={700} gutterBottom>
-                                Filters
-                            </Typography>
-                            <Stack spacing={2}>
-                                <TextField
-                                    select
-                                    label="Booking status"
-                                    value={filters.status}
-                                    onChange={(event) => updateFilter('status', event.target.value)}
-                                >
-                                    {STATUS_OPTIONS.map((option) => (
-                                        <MenuItem key={option.value} value={option.value}>
-                                            {option.label}
-                                        </MenuItem>
-                                    ))}
-                                </TextField>
+
+            <Stack spacing={4}>
+                <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #e2e8f0' }}>
+                    <CardContent>
+                        <Typography variant="h6" fontWeight={700} gutterBottom>
+                            Filters
+                        </Typography>
+                        <Stack spacing={2}>
+                            <TextField
+                                select
+                                label="Booking status"
+                                value={filters.status}
+                                onChange={(event) => updateFilter('status', event.target.value)}
+                            >
+                                {STATUS_OPTIONS.map((option) => (
+                                    <MenuItem key={option.value} value={option.value}>
+                                        {option.label}
+                                    </MenuItem>
+                                ))}
+                            </TextField>
                             <Autocomplete
                                 options={users}
                                 value={selectedUser}
@@ -476,7 +475,7 @@ const AdminBookingsPage = () => {
                                 getOptionLabel={formatUserLabel}
                                 loading={lookupsLoading}
                                 isOptionEqualToValue={(option, value) => option?.id === value?.id}
-                            renderInput={(params) => (
+                                renderInput={(params) => (
                                     <TextField
                                         {...params}
                                         label="User"
@@ -491,7 +490,7 @@ const AdminBookingsPage = () => {
                                 getOptionLabel={formatCarLabel}
                                 loading={lookupsLoading}
                                 isOptionEqualToValue={(option, value) => option?.id === value?.id}
-                            renderInput={(params) => (
+                                renderInput={(params) => (
                                     <TextField
                                         {...params}
                                         label="Car"
@@ -506,7 +505,7 @@ const AdminBookingsPage = () => {
                                 getOptionLabel={formatDriverLabel}
                                 loading={lookupsLoading}
                                 isOptionEqualToValue={(option, value) => option?.id === value?.id}
-                            renderInput={(params) => (
+                                renderInput={(params) => (
                                     <TextField
                                         {...params}
                                         label="Driver"
@@ -514,32 +513,153 @@ const AdminBookingsPage = () => {
                                     />
                                 )}
                             />
-                                <TextField
-                                    label="From date"
-                                    type="date"
-                                    InputLabelProps={{ shrink: true }}
-                                    value={filters.from_date}
-                                    onChange={(event) => updateFilter('from_date', event.target.value)}
-                                />
-                                <TextField
-                                    label="To date"
-                                    type="date"
-                                    InputLabelProps={{ shrink: true }}
-                                    value={filters.to_date}
-                                    onChange={(event) => updateFilter('to_date', event.target.value)}
-                                />
-                                <Stack direction="row" spacing={2}>
-                                    <Button variant="contained" fullWidth onClick={loadBookings} disabled={loading}>
-                                        Apply filters
-                                    </Button>
-                                    <Button variant="text" fullWidth onClick={resetFilters}>
-                                        Reset
-                                    </Button>
-                                </Stack>
+                            <TextField
+                                label="From date"
+                                type="date"
+                                InputLabelProps={{ shrink: true }}
+                                value={filters.from_date}
+                                onChange={(event) => updateFilter('from_date', event.target.value)}
+                            />
+                            <TextField
+                                label="To date"
+                                type="date"
+                                InputLabelProps={{ shrink: true }}
+                                value={filters.to_date}
+                                onChange={(event) => updateFilter('to_date', event.target.value)}
+                            />
+                            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                                <Button variant="contained" fullWidth onClick={loadBookings} disabled={loading}>
+                                    Apply filters
+                                </Button>
+                                <Button variant="text" fullWidth onClick={resetFilters}>
+                                    Reset
+                                </Button>
                             </Stack>
-                        </CardContent>
-                    </Card>
-                </Grid>
+                        </Stack>
+                    </CardContent>
+                </Card>
+
+                <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #e2e8f0' }}>
+                    <CardContent>
+                        <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'center' }} spacing={2} mb={3}>
+                            <Box>
+                                <Typography variant="h6" fontWeight={700}>
+                                    Bookings table
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                    {totalRecords} bookings • Showing {visibleRange.from} - {visibleRange.to}
+                                </Typography>
+                            </Box>
+                        </Stack>
+
+                        <Box sx={{ border: '1px solid #e2e8f0', borderRadius: 2, overflowX: 'auto' }}>
+                            <Table>
+                                <TableHead>
+                                    <TableRow>
+                                        <TableCell>ID</TableCell>
+                                        <TableCell>User</TableCell>
+                                        <TableCell>Car</TableCell>
+                                        <TableCell>Driver</TableCell>
+                                        <TableCell>Price</TableCell>
+                                        <TableCell>Start</TableCell>
+                                        <TableCell>End</TableCell>
+                                        <TableCell>Notes</TableCell>
+                                        <TableCell>Status</TableCell>
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    {loading ? (
+                                        <TableRow>
+                                            <TableCell colSpan={9} align="center">
+                                                <Stack alignItems="center" py={4} spacing={1}>
+                                                    <CircularProgress size={24} />
+                                                    <Typography variant="body2" color="text.secondary">
+                                                        Loading bookings…
+                                                    </Typography>
+                                                </Stack>
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : bookings.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={9} align="center">
+                                                <Typography color="text.secondary" py={3}>
+                                                    No bookings match your filters.
+                                                </Typography>
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        bookings.map((booking) => {
+                                            const tone = statusTone[booking.status] ?? {
+                                                label: booking.status,
+                                                color: '#334155',
+                                                bg: 'rgba(148,163,184,.24)',
+                                            };
+                                            return (
+                                                <TableRow key={booking.id}>
+                                                    <TableCell>#{booking.id}</TableCell>
+                                                    <TableCell>
+                                                        <Typography fontWeight={600}>{booking.user?.name ?? '—'}</Typography>
+                                                        <Typography variant="body2" color="text.secondary">
+                                                            {booking.user?.username}
+                                                        </Typography>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Typography fontWeight={600}>{booking.car?.name ?? '—'}</Typography>
+                                                        <Typography variant="body2" color="text.secondary">
+                                                            {booking.car?.number}
+                                                        </Typography>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Typography fontWeight={600}>{booking.driver?.name ?? '—'}</Typography>
+                                                        <Typography variant="body2" color="text.secondary">
+                                                            {booking.driver?.license_number}
+                                                        </Typography>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Typography fontWeight={700}>{booking.price ?? '—'}</Typography>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Typography>{formatDate(booking.start_date)}</Typography>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Typography>{booking.open_booking ? 'Open booking' : formatDate(booking.end_date)}</Typography>
+                                                    </TableCell>
+                                                    <TableCell sx={{ maxWidth: 240 }}>
+                                                        <Typography noWrap title={booking.note}>
+                                                            {booking.note || '—'}
+                                                        </Typography>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Chip
+                                                            label={tone.label}
+                                                            size="small"
+                                                            sx={{
+                                                                color: tone.color,
+                                                                backgroundColor: tone.bg,
+                                                                fontWeight: 700,
+                                                            }}
+                                                        />
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </Box>
+
+                        <TablePagination
+                            component="div"
+                            count={totalRecords}
+                            page={pagination.page}
+                            onPageChange={handlePaginationChange}
+                            rowsPerPage={pagination.pageSize}
+                            onRowsPerPageChange={handleRowsPerPageChange}
+                            rowsPerPageOptions={[10, 25, 50]}
+                        />
+                    </CardContent>
+                </Card>
+            </Stack>
 
                 <Grid item xs={12} md={8}>
                     <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #e2e8f0' }}>
