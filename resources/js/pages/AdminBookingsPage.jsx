@@ -60,6 +60,39 @@ const defaultStartDate = () => {
     return localDate.toISOString().slice(0, 16);
 };
 
+const formatUserLabel = (user) => {
+    if (!user) {
+        return '';
+    }
+
+    const primary = user.name || user.username || user.employee_number || '';
+    const secondary = user.employee_number || user.username;
+
+    return secondary && secondary !== primary ? `${primary} • ${secondary}` : primary;
+};
+
+const formatCarLabel = (car) => {
+    if (!car) {
+        return '';
+    }
+
+    const primary = car.name || car.number || '';
+    const secondary = car.number && car.number !== primary ? car.number : null;
+
+    return secondary ? `${primary} • ${secondary}` : primary;
+};
+
+const formatDriverLabel = (driver) => {
+    if (!driver) {
+        return '';
+    }
+
+    const primary = driver.name || driver.license_number || '';
+    const secondary = driver.license_number && driver.license_number !== primary ? driver.license_number : null;
+
+    return secondary ? `${primary} • ${secondary}` : primary;
+};
+
 const initialForm = {
     mode: 'existing',
     userId: '',
@@ -388,37 +421,49 @@ const AdminBookingsPage = () => {
                                         </MenuItem>
                                     ))}
                                 </TextField>
-                                <Autocomplete
-                                    options={users}
-                                    value={selectedUser}
+                            <Autocomplete
+                                options={users}
+                                value={selectedUser}
                                 onChange={(_event, value) => updateFilter('user_id', value?.id ?? '')}
-                                getOptionLabel={(option) => option?.name ?? ''}
+                                getOptionLabel={formatUserLabel}
                                 loading={lookupsLoading}
                                 isOptionEqualToValue={(option, value) => option?.id === value?.id}
-                                renderInput={(params) => (
-                                    <TextField {...params} label="User" placeholder="Search by name" />
+                            renderInput={(params) => (
+                                    <TextField
+                                        {...params}
+                                        label="User"
+                                        placeholder="Search by employee number or name"
+                                    />
                                 )}
                             />
                             <Autocomplete
                                 options={cars}
                                 value={selectedCar}
                                 onChange={(_event, value) => updateFilter('car_id', value?.id ?? '')}
-                                getOptionLabel={(option) => option?.name ?? ''}
+                                getOptionLabel={formatCarLabel}
                                 loading={lookupsLoading}
                                 isOptionEqualToValue={(option, value) => option?.id === value?.id}
-                                renderInput={(params) => (
-                                    <TextField {...params} label="Car" placeholder="Search by name" />
+                            renderInput={(params) => (
+                                    <TextField
+                                        {...params}
+                                        label="Car"
+                                        placeholder="Search by car number or name"
+                                    />
                                 )}
                             />
                             <Autocomplete
                                 options={drivers}
                                 value={selectedDriver}
                                 onChange={(_event, value) => updateFilter('driver_id', value?.id ?? '')}
-                                getOptionLabel={(option) => option?.name ?? ''}
+                                getOptionLabel={formatDriverLabel}
                                 loading={lookupsLoading}
                                 isOptionEqualToValue={(option, value) => option?.id === value?.id}
-                                renderInput={(params) => (
-                                    <TextField {...params} label="Driver" placeholder="Search by name" />
+                            renderInput={(params) => (
+                                    <TextField
+                                        {...params}
+                                        label="Driver"
+                                        placeholder="Search by license or name"
+                                    />
                                 )}
                             />
                                 <TextField
@@ -610,11 +655,7 @@ const AdminBookingsPage = () => {
                                     loadAvailability('users', value);
                                 }}
                                 filterOptions={(options) => options}
-                                getOptionLabel={(option) =>
-                                    option?.name
-                                        ? `${option.name}${option.employee_number ? ` • ${option.employee_number}` : ''}`
-                                        : ''
-                                }
+                                getOptionLabel={formatUserLabel}
                                 loading={availabilityLoading.users}
                                 isOptionEqualToValue={(option, value) => option?.id === value?.id}
                                 renderInput={(params) => (
@@ -639,19 +680,17 @@ const AdminBookingsPage = () => {
                             options={availability.cars}
                             value={availability.cars.find((car) => car.id === Number(form.carId)) ?? null}
                             onChange={(_event, value) => handleFormChange('carId', value?.id ?? '')}
-                            onInputChange={(_event, value) => {
-                                setAvailabilitySearch((prev) => ({ ...prev, cars: value }));
-                                loadAvailability('cars', value);
-                            }}
-                            filterOptions={(options) => options}
-                            getOptionLabel={(option) =>
-                                option?.name ? `${option.name}${option.number ? ` • ${option.number}` : ''}` : ''
-                            }
-                            loading={availabilityLoading.cars}
-                            isOptionEqualToValue={(option, value) => option?.id === value?.id}
-                            renderInput={(params) => (
-                                <TextField
-                                    {...params}
+                                onInputChange={(_event, value) => {
+                                    setAvailabilitySearch((prev) => ({ ...prev, cars: value }));
+                                    loadAvailability('cars', value);
+                                }}
+                                filterOptions={(options) => options}
+                                getOptionLabel={formatCarLabel}
+                                loading={availabilityLoading.cars}
+                                isOptionEqualToValue={(option, value) => option?.id === value?.id}
+                                renderInput={(params) => (
+                                    <TextField
+                                        {...params}
                                     label="Car"
                                     required
                                     placeholder="Search by car name or number"
@@ -663,21 +702,17 @@ const AdminBookingsPage = () => {
                             options={availability.drivers}
                             value={availability.drivers.find((driver) => driver.id === Number(form.driverId)) ?? null}
                             onChange={(_event, value) => handleFormChange('driverId', value?.id ?? '')}
-                            onInputChange={(_event, value) => {
-                                setAvailabilitySearch((prev) => ({ ...prev, drivers: value }));
-                                loadAvailability('drivers', value);
-                            }}
-                            filterOptions={(options) => options}
-                            getOptionLabel={(option) =>
-                                option?.name
-                                    ? `${option.name}${option.license_number ? ` • ${option.license_number}` : ''}`
-                                    : ''
-                            }
-                            loading={availabilityLoading.drivers}
-                            isOptionEqualToValue={(option, value) => option?.id === value?.id}
-                            renderInput={(params) => (
-                                <TextField
-                                    {...params}
+                                onInputChange={(_event, value) => {
+                                    setAvailabilitySearch((prev) => ({ ...prev, drivers: value }));
+                                    loadAvailability('drivers', value);
+                                }}
+                                filterOptions={(options) => options}
+                                getOptionLabel={formatDriverLabel}
+                                loading={availabilityLoading.drivers}
+                                isOptionEqualToValue={(option, value) => option?.id === value?.id}
+                                renderInput={(params) => (
+                                    <TextField
+                                        {...params}
                                     label="Driver"
                                     required
                                     placeholder="Search by driver name or license number"
