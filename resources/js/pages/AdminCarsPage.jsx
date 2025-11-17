@@ -49,6 +49,18 @@ const activeTone = {
     false: { bg: 'rgba(248,113,113,.12)', color: '#b91c1c', label: 'Disabled' },
 };
 
+const emirateOptions = [
+    { value: 'dubai', label: 'Dubai' },
+    { value: 'abu_dhabi', label: 'Abu Dhabi' },
+    { value: 'sharjah', label: 'Sharjah' },
+    { value: 'ajman', label: 'Ajman' },
+    { value: 'umm_al_quwain', label: 'Umm Al Quwain' },
+    { value: 'ras_al_khaimah', label: 'Ras Al Khaimah' },
+    { value: 'fujairah', label: 'Fujairah' },
+];
+
+const getEmirateLabel = (value) => emirateOptions.find((option) => option.value === value)?.label ?? value;
+
 const badge = ({ bg, color, label }) => (
     <Chip
         label={label}
@@ -77,6 +89,8 @@ const AdminCarsPage = () => {
         model: '',
         color: '',
         number: '',
+        emirate: 'dubai',
+        notes: '',
         is_active: true,
     });
     const [saving, setSaving] = useState(false);
@@ -140,7 +154,7 @@ const AdminCarsPage = () => {
 
     const openCreateForm = () => {
         setFormMode('create');
-        setFormValues({ id: null, name: '', model: '', color: '', number: '', is_active: true });
+        setFormValues({ id: null, name: '', model: '', color: '', number: '', emirate: 'dubai', notes: '', is_active: true });
         setFormError('');
         setFormErrors({});
         setFormOpen(true);
@@ -148,7 +162,7 @@ const AdminCarsPage = () => {
 
     const openEditForm = (car) => {
         setFormMode('edit');
-        setFormValues(car);
+        setFormValues({ ...car, notes: car.notes ?? '' });
         setFormError('');
         setFormErrors({});
         setFormOpen(true);
@@ -177,6 +191,10 @@ const AdminCarsPage = () => {
 
         if (!formValues.number.trim()) {
             errors.number = ['Plate number is required.'];
+        }
+
+        if (!formValues.emirate) {
+            errors.emirate = ['Select the vehicle emirate.'];
         }
 
         return errors;
@@ -327,6 +345,8 @@ const AdminCarsPage = () => {
                                     <TableCell>Model</TableCell>
                                     <TableCell>Color</TableCell>
                                     <TableCell>Number</TableCell>
+                                    <TableCell>Emirate</TableCell>
+                                    <TableCell>Notes</TableCell>
                                     <TableCell>Statuses</TableCell>
                                     <TableCell align="right">Actions</TableCell>
                                 </TableRow>
@@ -334,7 +354,7 @@ const AdminCarsPage = () => {
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={6} align="center">
+                                        <TableCell colSpan={8} align="center">
                                             <Stack alignItems="center" py={3} spacing={1}>
                                                 <CircularProgress size={24} />
                                                 <Typography variant="body2" color="text.secondary">
@@ -351,6 +371,12 @@ const AdminCarsPage = () => {
                                             <TableCell>{car.color}</TableCell>
                                             <TableCell>
                                                 <Typography fontWeight={600}>{car.number}</Typography>
+                                            </TableCell>
+                                            <TableCell>{getEmirateLabel(car.emirate)}</TableCell>
+                                            <TableCell sx={{ maxWidth: 240 }}>
+                                                <Typography variant="body2" color="text.secondary" noWrap>
+                                                    {car.notes || '—'}
+                                                </Typography>
                                             </TableCell>
                                             <TableCell>
                                                 {badge(statusTone[car.status] ?? statusTone.available)}
@@ -394,7 +420,7 @@ const AdminCarsPage = () => {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={6} align="center">
+                                        <TableCell colSpan={8} align="center">
                                             <Typography variant="body2" color="text.secondary">
                                                 No vehicles match the current filters.
                                             </Typography>
@@ -462,6 +488,37 @@ const AdminCarsPage = () => {
                             required
                             error={!!formErrors.number}
                             helperText={formErrors.number?.[0] || formErrors.number}
+                        />
+                        <FormControl fullWidth error={!!formErrors.emirate}>
+                            <InputLabel id="car-emirate-select">Emirate</InputLabel>
+                            <Select
+                                labelId="car-emirate-select"
+                                label="Emirate"
+                                value={formValues.emirate}
+                                onChange={handleFormChange('emirate')}
+                                required
+                            >
+                                {emirateOptions.map((option) => (
+                                    <MenuItem key={option.value} value={option.value}>
+                                        {option.label}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                            {formErrors.emirate && (
+                                <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1 }}>
+                                    {formErrors.emirate?.[0] || formErrors.emirate}
+                                </Typography>
+                            )}
+                        </FormControl>
+                        <TextField
+                            label="Notes"
+                            value={formValues.notes}
+                            onChange={handleFormChange('notes')}
+                            fullWidth
+                            multiline
+                            minRows={2}
+                            error={!!formErrors.notes}
+                            helperText={formErrors.notes?.[0] || formErrors.notes}
                         />
                         <FormControlLabel
                             control={<Switch checked={!!formValues.is_active} onChange={handleFormChange('is_active')} />}
