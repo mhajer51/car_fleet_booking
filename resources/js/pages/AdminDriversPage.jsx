@@ -30,7 +30,6 @@ import {
     Typography,
     SvgIcon,
 } from '@mui/material';
-import { Delete as DeleteIcon, Edit as EditIcon, MoreHoriz } from '@mui/icons-material';
 import AdminLayout from '../components/AdminLayout.jsx';
 import {
     createAdminDriver,
@@ -39,19 +38,8 @@ import {
     updateAdminDriverStatus,
 } from '../services/admin.js';
 
-const EditIcon = (props) => (
-    <SvgIcon {...props}>
-        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" />
-        <path d="M20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
-    </SvgIcon>
-);
-
-const DeleteIcon = (props) => (
-    <SvgIcon {...props}>
-        <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12z" />
-        <path d="M19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
-    </SvgIcon>
-);
+import EditOutlinedIcon from '../components/icons/EditOutlinedIcon.jsx';
+import DeleteOutlineIcon from '../components/icons/DeleteOutlineIcon.jsx';
 
 const MoreHoriz = (props) => (
     <SvgIcon {...props}>
@@ -177,9 +165,6 @@ const AdminDriversPage = () => {
         setDialogOpen(false);
     };
 
-    const openStatusMenu = (driver, event) => {
-        setStatusMenu({ id: driver.id, anchorEl: event.currentTarget });
-    };
 
     const closeStatusMenu = () => setStatusMenu({ id: null, anchorEl: null });
 
@@ -259,9 +244,6 @@ const AdminDriversPage = () => {
                 <Stack direction="row" spacing={1}>
                     <Button variant="contained" onClick={openCreateDialog}>
                         Add new
-                    </Button>
-                    <Button variant="outlined" onClick={load} disabled={loading}>
-                        Refresh list
                     </Button>
                 </Stack>
             }
@@ -369,22 +351,13 @@ const AdminDriversPage = () => {
                                             <TableCell>{badge(activeTone[driver.is_active] ?? activeTone.true)}</TableCell>
                                             <TableCell align="right">
                                                 <Stack direction="row" spacing={1} justifyContent="flex-end" alignItems="center">
-                                                    <Button
-                                                        variant="outlined"
-                                                        size="small"
-                                                        onClick={(event) => openStatusMenu(driver, event)}
-                                                        endIcon={<MoreHoriz fontSize="small" />}
-                                                        disabled={statusUpdating === driver.id}
-                                                    >
-                                                        Update status
-                                                    </Button>
                                                     <IconButton
                                                         color="primary"
                                                         size="small"
                                                         onClick={() => openEditDialog(driver)}
                                                         aria-label={`Edit ${driver.name}`}
                                                     >
-                                                        <EditIcon fontSize="small" />
+                                                        <EditOutlinedIcon fontSize="small" />
                                                     </IconButton>
                                                     <IconButton
                                                         color="error"
@@ -393,7 +366,7 @@ const AdminDriversPage = () => {
                                                         onClick={() => handleDelete(driver)}
                                                         aria-label={`Disable ${driver.name}`}
                                                     >
-                                                        <DeleteIcon fontSize="small" />
+                                                        <DeleteOutlineIcon fontSize="small" />
                                                     </IconButton>
                                                 </Stack>
                                             </TableCell>
@@ -465,7 +438,7 @@ const AdminDriversPage = () => {
 
             <Dialog open={dialogOpen} onClose={closeDialog} fullWidth maxWidth="sm" component="form" onSubmit={handleSubmit}>
                 <DialogTitle>{dialogMode === 'create' ? 'Add driver' : 'Edit driver'}</DialogTitle>
-                <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+                <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
                     {submitError && (
                         <Alert severity="error" onClose={() => setSubmitError('')}>
                             {submitError}
@@ -503,7 +476,7 @@ const AdminDriversPage = () => {
                         </Select>
                     </FormControl>
                 </DialogContent>
-                <DialogActions sx={{ px: 3, pb: 2 }}>
+                <DialogActions dividers sx={{ px: 3, pb: 2 }}>
                     <Button onClick={closeDialog} disabled={submitting}>
                         Cancel
                     </Button>

@@ -30,7 +30,6 @@ import {
     Tooltip,
     Typography,
 } from '@mui/material';
-import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
 import IconButton from '@mui/material/IconButton';
 import AdminLayout from '../components/AdminLayout.jsx';
 import EditOutlinedIcon from '../components/icons/EditOutlinedIcon.jsx';
@@ -191,19 +190,6 @@ const AdminUsersPage = () => {
         }
     };
 
-    const handleToggleStatus = async (user) => {
-        setError('');
-        try {
-            await updateAdminUserStatus(user.id, { is_active: !user.is_active });
-            setUsers((prev) =>
-                prev.map((item) =>
-                    item.id === user.id ? { ...item, is_active: !item.is_active } : item,
-                ),
-            );
-        } catch (err) {
-            setError(err.message);
-        }
-    };
 
     const handleDelete = async (user) => {
         if (!window.confirm(`Delete ${user.name}? This cannot be undone.`)) {
@@ -225,9 +211,6 @@ const AdminUsersPage = () => {
             description="Manage every driver and dispatcher connected to the fleet."
             actions={
                 <Stack direction="row" spacing={1}>
-                    <Button variant="outlined" onClick={load} disabled={loading}>
-                        Refresh list
-                    </Button>
                     <Button variant="contained" onClick={handleOpenCreate}>
                         Add user
                     </Button>
@@ -342,15 +325,6 @@ const AdminUsersPage = () => {
                                                             <EditOutlinedIcon fontSize="small" />
                                                         </IconButton>
                                                     </Tooltip>
-                                                    <Tooltip title={user.is_active ? 'Suspend user' : 'Activate user'}>
-                                                        <IconButton
-                                                            size="small"
-                                                            color={user.is_active ? 'warning' : 'success'}
-                                                            onClick={() => handleToggleStatus(user)}
-                                                        >
-                                                            <PowerSettingsNewIcon fontSize="small" />
-                                                        </IconButton>
-                                                    </Tooltip>
                                                     <Tooltip title="Delete">
                                                         <IconButton
                                                             size="small"
@@ -428,22 +402,7 @@ const AdminUsersPage = () => {
                                 error={!!formErrors.number_employ}
                                 helperText={formErrors.number_employ?.[0]}
                             />
-                            <FormControl fullWidth error={!!formErrors.role}>
-                                <InputLabel id="user-role">Role</InputLabel>
-                                <Select
-                                    labelId="user-role"
-                                    label="Role"
-                                    value={form.role}
-                                    onChange={(event) => handleFormChange('role', event.target.value)}
-                                    required
-                                >
-                                    <MenuItem value="admin">Admin</MenuItem>
-                                    <MenuItem value="user">User</MenuItem>
-                                </Select>
-                                {formErrors.role && (
-                                    <FormHelperText>{formErrors.role?.[0]}</FormHelperText>
-                                )}
-                            </FormControl>
+
                             <TextField
                                 label="Password"
                                 type="password"
@@ -468,7 +427,7 @@ const AdminUsersPage = () => {
                             />
                         </Stack>
                     </DialogContent>
-                    <DialogActions>
+                    <DialogActions dividers>
                         <Button onClick={handleDialogClose} disabled={saving}>
                             Cancel
                         </Button>

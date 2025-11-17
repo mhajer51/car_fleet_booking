@@ -25,7 +25,7 @@ import {
     TableRow,
     TextField,
     Typography,
-    Switch,
+    Switch, IconButton,
 } from '@mui/material';
 import AdminLayout from '../components/AdminLayout.jsx';
 import {
@@ -35,6 +35,8 @@ import {
     updateAdminCar,
     updateAdminCarStatus,
 } from '../services/admin.js';
+import EditOutlinedIcon from "../components/icons/EditOutlinedIcon.jsx";
+import DeleteOutlineIcon from "../components/icons/DeleteOutlineIcon.jsx";
 
 const statusTone = {
     available: { bg: 'rgba(59,130,246,.12)', color: '#1d4ed8', label: 'Available' },
@@ -210,9 +212,6 @@ const AdminCarsPage = () => {
             description="Every vehicle with its availability, trim, and booking status."
             actions={
                 <Stack direction="row" spacing={1}>
-                    <Button variant="outlined" onClick={load} disabled={loading}>
-                        Refresh list
-                    </Button>
                     <Button variant="contained" onClick={openCreateForm}>
                         Add vehicle
                     </Button>
@@ -330,20 +329,26 @@ const AdminCarsPage = () => {
                                                 />
                                             </TableCell>
                                             <TableCell align="right">
-                                                <Stack direction="row" spacing={1} justifyContent="flex-end">
-                                                    <Button size="small" variant="outlined" onClick={() => openEditForm(car)}>
-                                                        Edit
-                                                    </Button>
-                                                    <Button
+                                                <Stack direction="row" spacing={1} justifyContent="flex-end" alignItems="center">
+                                                    <IconButton
+                                                        color="primary"
                                                         size="small"
-                                                        color="error"
-                                                        variant="outlined"
-                                                        onClick={() => confirmDelete(car)}
+                                                        onClick={() => openEditForm(car)}
+                                                        aria-label={`Edit ${car.name}`}
                                                     >
-                                                        Delete
-                                                    </Button>
+                                                        <EditOutlinedIcon fontSize="small" />
+                                                    </IconButton>
+                                                    <IconButton
+                                                        color="error"
+                                                        size="small"
+                                                        onClick={() => confirmDelete(car)}
+                                                        aria-label={`Disable ${car.name}`}
+                                                    >
+                                                        <DeleteOutlineIcon fontSize="small" />
+                                                    </IconButton>
                                                 </Stack>
                                             </TableCell>
+
                                         </TableRow>
                                     ))
                                 ) : (
@@ -374,7 +379,7 @@ const AdminCarsPage = () => {
 
             <Dialog open={formOpen} onClose={() => setFormOpen(false)} fullWidth maxWidth="sm">
                 <DialogTitle>{formMode === 'create' ? 'Add new vehicle' : 'Edit vehicle'}</DialogTitle>
-                <DialogContent sx={{ pt: 1 }}>
+                <DialogContent dividers sx={{ pt: 1 }}>
                     {formError && (
                         <Alert severity="error" sx={{ mb: 2 }}>
                             {formError}
@@ -411,7 +416,7 @@ const AdminCarsPage = () => {
                         />
                     </Stack>
                 </DialogContent>
-                <DialogActions>
+                <DialogActions dividers>
                     <Button onClick={() => setFormOpen(false)} disabled={saving}>
                         Cancel
                     </Button>
