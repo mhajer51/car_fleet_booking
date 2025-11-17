@@ -109,6 +109,17 @@ class CarController extends Controller
 
     }
 
+    public function destroy(Car $car): JsonResponse
+    {
+        if ($car->activeBookings()->exists()) {
+            return apiResponse('Cannot delete a car with active bookings.', [], 422);
+        }
+
+        $car->delete();
+
+        return apiResponse('Car deleted successfully.');
+    }
+
     private function transformCar(Car $car, ?int $activeBookingCount = null): array
     {
         $activeCount = $activeBookingCount ?? $car->loadCount('activeBookings')->active_bookings_count;

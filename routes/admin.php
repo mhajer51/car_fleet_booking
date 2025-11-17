@@ -21,6 +21,7 @@ Route::prefix('admin')->group(function (): void {
             Route::post('/', [AdminUserController::class, 'store'])->name('users.store');
             Route::put('{user}', [AdminUserController::class, 'update'])->name('users.update');
             Route::patch('{user}/status', [AdminUserController::class, 'updateStatus'])->name('users.update-status');
+            Route::delete('{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');
         });
 
         Route::prefix('cars')->group(function (): void {
@@ -28,6 +29,7 @@ Route::prefix('admin')->group(function (): void {
             Route::post('/', [AdminCarController::class, 'store'])->name('cars.store');
             Route::put('{car}', [AdminCarController::class, 'update'])->name('cars.update');
             Route::patch('{car}/status', [AdminCarController::class, 'updateStatus'])->name('cars.update-status');
+            Route::delete('{car}', [AdminCarController::class, 'destroy'])->name('cars.destroy');
         });
 
         Route::prefix('drivers')->group(function (): void {
