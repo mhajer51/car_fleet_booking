@@ -83,7 +83,6 @@ class OverviewController extends Controller
 
         $suggestions = $this->buildSuggestions($availableCars, $totalCars, (int) round($avgDuration), $bookingsToday);
 
-        $heatmap = $this->buildHeatmap();
         $trend = $this->buildTrend();
         $statusBreakdown = $this->buildStatusBreakdown($statusCounts);
         $topVehicles = $this->buildTopVehicles();
@@ -99,7 +98,6 @@ class OverviewController extends Controller
             'metrics' => $metrics,
             'timeline' => $timeline,
             'suggestions' => $suggestions,
-            'heatmap' => $heatmap,
             'trend' => $trend,
             'statusBreakdown' => $statusBreakdown,
             'topVehicles' => $topVehicles,
@@ -146,40 +144,6 @@ class OverviewController extends Controller
             : 'Share a thank-you note with active customers highlighting instant booking perks.';
 
         return $suggestions;
-    }
-
-    private function buildHeatmap(): array
-    {
-        $cities = ['Riyadh', 'Jeddah', 'Dammam'];
-        $cityTotals = array_fill_keys($cities, 0);
-
-        $bookings = Booking::query()->select(['id', 'user_id'])->get();
-        $total = $bookings->count();
-
-        foreach ($bookings as $booking) {
-            $index = $booking->user_id % count($cities);
-            $city = $cities[$index];
-            $cityTotals[$city] += 1;
-        }
-
-        if ($total === 0) {
-            $count = count($cities);
-            $share = intdiv(100, $count);
-            $remainder = 100 % $count;
-
-            return array_values(array_map(function ($city, $index) use ($share, $remainder) {
-                $value = $share + ($index < $remainder ? 1 : 0);
-                return ['label' => $city, 'value' => $value];
-            }, $cities, array_keys($cities)));
-        }
-
-        return collect($cityTotals)
-            ->map(fn (int $count, string $city) => [
-                'label' => $city,
-                'value' => (int) round(($count / max($total, 1)) * 100),
-            ])
-            ->values()
-            ->all();
     }
 
     private function buildTrend(): array
