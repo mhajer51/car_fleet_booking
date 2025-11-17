@@ -87,9 +87,10 @@ class BookingController extends Controller
         $driver = Driver::findOrFail($data['driver_id']);
         $startDate = Carbon::parse($data['start_date']);
         $endDate = isset($data['end_date']) ? Carbon::parse($data['end_date']) : null;
+        $price = (float) $data['price'];
 
         try {
-            $booking = $this->bookingService->create($user, $car, $driver, $startDate, $endDate, $guestName, $note);
+            $booking = $this->bookingService->create($user, $car, $driver, $startDate, $endDate, $guestName, $note, $price);
         } catch (BookingConflictException $exception) {
             return response()->json([
                 'message' => $exception->getMessage(),
@@ -194,6 +195,7 @@ class BookingController extends Controller
                 'name' => $booking->driver->name,
                 'license_number' => $booking->driver->license_number,
             ],
+            'price' => $booking->price,
             'start_date' => $booking->start_date,
             'end_date' => $booking->end_date,
             'guest_name' => $booking->guest_name,

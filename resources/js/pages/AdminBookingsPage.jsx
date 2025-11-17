@@ -99,9 +99,11 @@ const initialForm = {
     guestName: '',
     carId: '',
     driverId: '',
+    price: '',
     startDate: defaultStartDate(),
     endDate: '',
     openBooking: false,
+    note: '',
 };
 
 const formatDate = (value) => {
@@ -320,6 +322,11 @@ const AdminBookingsPage = () => {
     const validateForm = useCallback(() => {
         const errors = {};
 
+        const priceValue = Number(form.price);
+        if (Number.isNaN(priceValue) || priceValue < 0) {
+            errors.price = ['Price must be a positive number.'];
+        }
+
         if (form.mode === 'existing') {
             if (!form.userId) {
                 errors.userId = ['User selection is required.'];
@@ -354,7 +361,17 @@ const AdminBookingsPage = () => {
         }
 
         return errors;
-    }, [form.carId, form.driverId, form.endDate, form.guestName, form.mode, form.openBooking, form.startDate, form.userId]);
+    }, [
+        form.carId,
+        form.driverId,
+        form.endDate,
+        form.guestName,
+        form.mode,
+        form.openBooking,
+        form.price,
+        form.startDate,
+        form.userId,
+    ]);
 
     const submitBooking = async (event) => {
         event.preventDefault();
@@ -372,10 +389,15 @@ const AdminBookingsPage = () => {
         const payload = {
             car_id: Number(form.carId),
             driver_id: Number(form.driverId),
+            price: Number(form.price),
             start_date: form.startDate,
             end_date: form.openBooking ? null : form.endDate || null,
             open_booking: form.openBooking,
         };
+
+        if (form.note.trim()) {
+            payload.note = form.note.trim();
+        }
 
         if (form.mode === 'existing') {
             payload.user_id = Number(form.userId);
@@ -541,15 +563,17 @@ const AdminBookingsPage = () => {
                                             <TableCell>User</TableCell>
                                             <TableCell>Car</TableCell>
                                             <TableCell>Driver</TableCell>
+                                            <TableCell>Price</TableCell>
                                             <TableCell>Start</TableCell>
                                             <TableCell>End</TableCell>
+                                            <TableCell>Notes</TableCell>
                                             <TableCell>Status</TableCell>
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
                                         {loading ? (
                                             <TableRow>
-                                                <TableCell colSpan={7} align="center">
+                                                <TableCell colSpan={9} align="center">
                                                     <Stack alignItems="center" py={4} spacing={1}>
                                                         <CircularProgress size={24} />
                                                         <Typography variant="body2" color="text.secondary">
@@ -560,7 +584,7 @@ const AdminBookingsPage = () => {
                                             </TableRow>
                                         ) : bookings.length === 0 ? (
                                             <TableRow>
-                                                <TableCell colSpan={7} align="center">
+                                                <TableCell colSpan={9} align="center">
                                                     <Typography color="text.secondary" py={3}>
                                                         No bookings match your filters.
                                                     </Typography>
@@ -594,8 +618,14 @@ const AdminBookingsPage = () => {
                                                                 {booking.driver?.license_number}
                                                             </Typography>
                                                         </TableCell>
+                                                        <TableCell>{booking.price ? `$${Number(booking.price).toFixed(2)}` : '—'}</TableCell>
                                                         <TableCell>{formatDate(booking.start_date)}</TableCell>
                                                         <TableCell>{formatDate(booking.end_date)}</TableCell>
+                                                        <TableCell sx={{ maxWidth: 200 }}>
+                                                            <Typography variant="body2" color="text.secondary" noWrap title={booking.note}>
+                                                                {booking.note || '—'}
+                                                            </Typography>
+                                                        </TableCell>
                                                         <TableCell>
                                                             <Chip label={tone.label} size="small" sx={{ backgroundColor: tone.bg, color: tone.color, fontWeight: 600 }} />
                                                         </TableCell>
@@ -716,9 +746,9 @@ const AdminBookingsPage = () => {
                             getOptionLabel={formatCarLabel}
                             loading={availabilityLoading.cars}
                             isOptionEqualToValue={(option, value) => option?.id === value?.id}
-                                renderInput={(params) => (
-                                    <TextField
-                                        {...params}
+                            renderInput={(params) => (
+                                <TextField
+                                    {...params}
                                     label="Car"
                                     required
                                     placeholder="Search by car name or number"
@@ -735,9 +765,9 @@ const AdminBookingsPage = () => {
                             getOptionLabel={formatDriverLabel}
                             loading={availabilityLoading.drivers}
                             isOptionEqualToValue={(option, value) => option?.id === value?.id}
-                                renderInput={(params) => (
-                                    <TextField
-                                        {...params}
+                            renderInput={(params) => (
+                                <TextField
+                                    {...params}
                                     label="Driver"
                                     required
                                     placeholder="Search by driver name or license number"
@@ -746,6 +776,33 @@ const AdminBookingsPage = () => {
                                 />
                             )}
                         />
+
+                        <Stack spacing={1}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                                Pricing & Notes
+                            </Typography>
+                            <TextField
+                                type="number"
+                                label="Price"
+                                value={form.price}
+                                onChange={(event) => handleFormChange('price', event.target.value)}
+                                required
+                                inputProps={{ min: 0, step: 0.01 }}
+                                error={Boolean(formErrors.price)}
+                                helperText={formErrors.price?.[0] ?? 'Enter the booking cost (e.g., 120.00)'}
+                            />
+                            <TextField
+                                label="Notes"
+                                value={form.note}
+                                onChange={(event) => handleFormChange('note', event.target.value)}
+                                multiline
+                                minRows={2}
+                                maxRows={5}
+                                placeholder="Additional instructions or context"
+                                error={Boolean(formErrors.note)}
+                                helperText={formErrors.note?.[0]}
+                            />
+                        </Stack>
 
                         {formError && (
                             <Alert severity="error">{formError}</Alert>

@@ -18,12 +18,14 @@ class Booking extends Model
         'guest_name',
         'car_id',
         'driver_id',
+        'price',
         'start_date',
         'end_date',
         'note',
     ];
 
     protected $casts = [
+        'price' => 'decimal:2',
         'start_date' => 'datetime',
         'end_date' => 'datetime',
     ];
