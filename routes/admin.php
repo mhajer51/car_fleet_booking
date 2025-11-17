@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('admin')->group(function (): void {
     Route::post('login', [AdminAuthController::class, 'login'])->name('api.admin.login');
+    Route::post('refresh', [AdminAuthController::class, 'refresh'])->name('api.admin.refresh');
     Route::get('overview', AdminDashboardController::class)->name('api.admin.overview');
 
     Route::middleware('jwt:admin,' . Admin::class)->group(function (): void {

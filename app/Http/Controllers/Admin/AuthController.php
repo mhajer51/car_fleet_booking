@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\RefreshTokenRequest;
 use App\Http\Requests\Admin\AdminLoginRequest;
 use App\Models\Admin;
 use App\Services\Auth\JwtService;
@@ -31,16 +32,50 @@ class AuthController extends Controller
             return apiResponse('Admin account is inactive.', [], 403);
         }
 
-        $token = $this->jwtService->createToken([
+        return apiResponse('Admin logged in successfully.', $this->prepareAuthPayload($admin));
+    }
+
+    public function refresh(RefreshTokenRequest $request): JsonResponse
+    {
+        try {
+            $payload = $this->jwtService->validateToken($request->validated('refresh_token'), 'refresh');
+        } catch (\Throwable $exception) {
+            return apiResponse('Unauthorized', [], 401, ['token' => $exception->getMessage()]);
+        }
+
+        if (($payload['role'] ?? null) !== 'admin') {
+            return apiResponse('Unauthorized', [], 401);
+        }
+
+        /** @var Admin|null $admin */
+        $admin = Admin::query()->find($payload['sub'] ?? null);
+
+        if (!$admin || !$admin->is_active) {
+            return apiResponse('Unauthorized', [], 401);
+        }
+
+        return apiResponse('Session refreshed successfully.', $this->prepareAuthPayload($admin));
+    }
+
+    private function prepareAuthPayload(Admin $admin): array
+    {
+        $accessToken = $this->jwtService->createAccessToken([
             'sub' => $admin->id,
             'role' => 'admin',
         ]);
 
-        return apiResponse('Admin logged in successfully.', [
-            'token' => $token,
+        $refreshToken = $this->jwtService->createRefreshToken([
+            'sub' => $admin->id,
+            'role' => 'admin',
+        ]);
+
+        return [
+            'token' => $accessToken,
+            'refresh_token' => $refreshToken,
             'token_type' => 'Bearer',
             'expires_in' => $this->jwtService->getTtl(),
+            'refresh_expires_in' => $this->jwtService->getRefreshTtl(),
             'admin' => $admin->only(['id', 'name', 'email', 'username']),
-        ]);
+        ];
     }
 }
