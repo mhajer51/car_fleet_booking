@@ -347,6 +347,39 @@ const TopVehiclesCard = ({ vehicles }) => (
     </Card>
 );
 
+const SuggestionsCard = ({ suggestions }) => (
+    <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #e2e8f0', height: '100%' }}>
+        <CardContent>
+            <Typography variant="h6" gutterBottom fontWeight={600}>
+                Automated suggestions
+            </Typography>
+            <Stack spacing={1.5} mt={1}>
+                {suggestions.length === 0 && (
+                    <Typography color="text.secondary">
+                        We will surface opportunities here once ride data starts flowing.
+                    </Typography>
+                )}
+                {suggestions.map((suggestion, index) => (
+                    <Stack key={`${suggestion}-${index}`} direction="row" spacing={1.5} alignItems="flex-start">
+                        <Box
+                            sx={{
+                                width: 10,
+                                height: 10,
+                                borderRadius: '50%',
+                                backgroundColor: '#0ea5e9',
+                                mt: '6px',
+                            }}
+                        />
+                        <Typography variant="body2" color="text.primary">
+                            {suggestion}
+                        </Typography>
+                    </Stack>
+                ))}
+            </Stack>
+        </CardContent>
+    </Card>
+);
+
 const formatDuration = (minutes) => {
     if (!minutes) {
         return '0 min';
@@ -451,7 +484,10 @@ const UserDashboardPage = () => {
                             <TimelineCard timeline={data.timeline ?? []} />
                         </Grid>
                         <Grid item xs={12} md={6}>
-                            <TopVehiclesCard vehicles={data.topVehicles ?? []} />
+                            <Stack spacing={3} height="100%">
+                                <TopVehiclesCard vehicles={data.topVehicles ?? []} />
+                                <SuggestionsCard suggestions={data.suggestions ?? []} />
+                            </Stack>
                         </Grid>
                     </Grid>
 
