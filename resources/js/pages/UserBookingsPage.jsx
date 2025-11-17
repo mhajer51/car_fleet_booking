@@ -6,6 +6,7 @@ import {
     Button,
     Card,
     CardContent,
+    Checkbox,
     Chip,
     CircularProgress,
     Dialog,
@@ -23,7 +24,6 @@ import {
     TableRow,
     TextField,
     Typography,
-    Checkbox,
 } from '@mui/material';
 import UserLayout from '../components/UserLayout.jsx';
 import {
@@ -118,6 +118,10 @@ const formatDate = (value) => {
 const UserBookingsPage = () => {
     const session = useMemo(() => getUserSession(), []);
     const defaultUserId = session?.user?.id ?? '';
+    const defaultUserOption = session?.user
+        ? { id: session.user.id, name: session.user.name, username: session.user.username }
+        : null;
+
     const [bookings, setBookings] = useState([]);
     const [meta, setMeta] = useState({ total: 0 });
     const [loading, setLoading] = useState(true);
@@ -133,14 +137,25 @@ const UserBookingsPage = () => {
     });
     const [pagination, setPagination] = useState({ page: 0, pageSize: 10 });
     const [dialogOpen, setDialogOpen] = useState(false);
-    const [form, setForm] = useState({ ...initialForm, userId: defaultUserId });
+    const [form, setForm] = useState({ ...initialForm, userId: defaultUserId || '' });
+    const [formError, setFormError] = useState('');
     const [formErrors, setFormErrors] = useState({});
     const [creating, setCreating] = useState(false);
     const [returningBooking, setReturningBooking] = useState(null);
-    const [availability, setAvailability] = useState({ users: [], cars: [], drivers: [] });
+    const [availability, setAvailability] = useState({
+        users: defaultUserOption ? [defaultUserOption] : [],
+        cars: [],
+        drivers: [],
+    });
     const [availabilityLoading, setAvailabilityLoading] = useState({ users: false, cars: false, drivers: false });
 
     const totalRecords = meta?.total ?? bookings.length ?? 0;
+
+    const visibleRange = useMemo(() => {
+        const from = totalRecords === 0 ? 0 : pagination.page * pagination.pageSize + 1;
+        const to = Math.min(totalRecords, (pagination.page + 1) * pagination.pageSize);
+        return { from, to };
+    }, [pagination.page, pagination.pageSize, totalRecords]);
 
     const loadBookings = useCallback(async () => {
         setLoading(true);
@@ -163,128 +178,197 @@ const UserBookingsPage = () => {
         } finally {
             setLoading(false);
         }
-    }, [filters, pagination.page, pagination.pageSize]);
+    }, [filters.car_id, filters.driver_id, filters.from_date, filters.status, filters.to_date, filters.user_id, pagination.page, pagination.pageSize]);
 
     useEffect(() => {
         loadBookings();
     }, [loadBookings]);
 
-    const searchAvailability = useCallback(async (type, search = '') => {
-        const params = {
-            start_date: form.startDate,
-            end_date: form.openBooking ? undefined : form.endDate || undefined,
-            search,
-            per_page: 50,
-        };
+    useEffect(() => {
+        setPagination((prev) => ({ ...prev, page: 0 }));
+    }, [filters.status, filters.from_date, filters.to_date, filters.user_id, filters.car_id, filters.driver_id]);
 
-        const setLoadingKey = `${type}s`;
-        setAvailabilityLoading((prev) => ({ ...prev, [setLoadingKey]: true }));
-        try {
-            let response = { meta: {}, [`${type}s`]: [] };
-            if (type === 'user') {
-                response = await fetchAvailableBookingUsers(params);
-            } else if (type === 'car') {
-                response = await fetchAvailableBookingCars(params);
-            } else if (type === 'driver') {
-                response = await fetchAvailableBookingDrivers(params);
+    const buildAvailabilityParams = useCallback(
+        () => ({
+            start_date: form.startDate || defaultStartDate(),
+            end_date: form.openBooking ? null : form.endDate || null,
+            per_page: 20,
+        }),
+        [form.endDate, form.openBooking, form.startDate],
+    );
+
+    const loadAvailability = useCallback(
+        async (resource, search = '') => {
+            if (!form.startDate) {
+                return;
             }
-            setAvailability((prev) => ({ ...prev, [`${type}s`]: response[`${type}s`] ?? [] }));
-        } catch (err) {
-            setAvailability((prev) => ({ ...prev, [`${type}s`]: [] }));
-        } finally {
-            setAvailabilityLoading((prev) => ({ ...prev, [setLoadingKey]: false }));
-        }
-    }, [form.startDate, form.endDate, form.openBooking]);
+
+            setAvailabilityLoading((prev) => ({ ...prev, [resource]: true }));
+            setFormError('');
+            try {
+                const params = { ...buildAvailabilityParams(), search };
+                const payload = await (resource === 'users'
+                    ? fetchAvailableBookingUsers(params)
+                    : resource === 'cars'
+                        ? fetchAvailableBookingCars(params)
+                        : fetchAvailableBookingDrivers(params));
+
+                setAvailability((prev) => ({
+                    ...prev,
+                    [resource]: payload?.[resource] ?? payload ?? [],
+                }));
+            } catch (err) {
+                setFormError(err.message);
+            } finally {
+                setAvailabilityLoading((prev) => ({ ...prev, [resource]: false }));
+            }
+        },
+        [buildAvailabilityParams, form.startDate],
+    );
 
     useEffect(() => {
-        loadBookings();
-        searchAvailability('user');
-        searchAvailability('car');
-        searchAvailability('driver');
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+        if (!dialogOpen) {
+            return;
+        }
 
-    const handleFilterChange = (event) => {
-        const { name, value } = event.target;
-        setFilters((prev) => ({ ...prev, [name]: value }));
+        loadAvailability('users');
+        loadAvailability('cars');
+        loadAvailability('drivers');
+    }, [dialogOpen, loadAvailability]);
+
+    const addToAvailability = (resource, item) => {
+        if (!item?.id) {
+            return;
+        }
+
+        setAvailability((prev) => {
+            const list = prev[resource] ?? [];
+            const exists = list.some((entry) => entry.id === item.id);
+
+            if (exists) {
+                return prev;
+            }
+
+            return {
+                ...prev,
+                [resource]: [...list, item],
+            };
+        });
     };
 
-    const handleFilterAutoChange = (name) => (_, value) => {
-        setFilters((prev) => ({ ...prev, [name]: value?.id ?? '' }));
-    };
-
-    const applyFilters = (event) => {
-        event.preventDefault();
-        setPagination((prev) => ({ ...prev, page: 0 }));
-        loadBookings();
+    const updateFilter = (field, value) => {
+        setFilters((prev) => ({ ...prev, [field]: value }));
     };
 
     const resetFilters = () => {
-        const base = { status: 'all', from_date: '', to_date: '', user_id: defaultUserId, car_id: '', driver_id: '' };
-        setFilters(base);
-        setPagination({ page: 0, pageSize: 10 });
-        loadBookings();
+        setFilters({ status: 'all', from_date: '', to_date: '', user_id: defaultUserId, car_id: '', driver_id: '' });
     };
 
-    const handleChangePage = (_, newPage) => {
+    const handlePaginationChange = (_event, newPage) => {
         setPagination((prev) => ({ ...prev, page: newPage }));
     };
 
-    const handleChangeRowsPerPage = (event) => {
+    const handleRowsPerPageChange = (event) => {
         setPagination({ page: 0, pageSize: parseInt(event.target.value, 10) });
     };
 
-    const handleFormChange = (event) => {
-        const { name, value } = event.target;
-        setForm((prev) => ({ ...prev, [name]: value }));
+    const openDialog = () => {
+        setDialogOpen(true);
+        setForm({ ...initialForm, userId: defaultUserId || '', startDate: defaultStartDate() });
+        setFormError('');
+        setFormErrors({});
+        setMessage('');
     };
 
-    const handleUserSelect = (_, value) => {
-        setForm((prev) => ({ ...prev, userId: value?.id ?? '' }));
+    const closeDialog = () => {
+        setDialogOpen(false);
+        setForm({ ...initialForm, userId: defaultUserId || '' });
+        setFormError('');
+        setFormErrors({});
     };
 
-    const handleCarSelect = (_, value) => {
-        setForm((prev) => ({ ...prev, carId: value?.id ?? '' }));
+    const handleFormChange = (field, value) => {
+        setForm((prev) => ({ ...prev, [field]: value }));
+        setFormErrors((prev) => ({ ...prev, [field]: undefined }));
     };
 
-    const handleDriverSelect = (_, value) => {
-        setForm((prev) => ({ ...prev, driverId: value?.id ?? '' }));
-    };
+    const validateForm = useCallback(() => {
+        const errors = {};
 
-    const handleOpenToggle = (event) => {
-        const checked = event.target.checked;
-        setForm((prev) => ({
-            ...prev,
-            openBooking: checked,
-            endDate: checked ? '' : prev.endDate,
-        }));
-    };
+        const priceValue = Number(form.price);
+        if (Number.isNaN(priceValue) || priceValue < 0) {
+            errors.price = ['Price must be a positive number.'];
+        }
+
+        if (!form.userId) {
+            errors.userId = ['User selection is required.'];
+        }
+
+        if (!form.carId) {
+            errors.carId = ['Please choose a car.'];
+        }
+
+        if (!form.driverId) {
+            errors.driverId = ['Please choose a driver.'];
+        }
+
+        if (!form.startDate) {
+            errors.startDate = ['Start date is required.'];
+        }
+
+        if (!form.openBooking) {
+            if (!form.endDate) {
+                errors.endDate = ['End date is required unless booking is open.'];
+            } else {
+                const start = new Date(form.startDate);
+                const end = new Date(form.endDate);
+
+                if (start && end && end <= start) {
+                    errors.endDate = ['End date must be after the start date.'];
+                }
+            }
+        }
+
+        return errors;
+    }, [form.carId, form.driverId, form.endDate, form.openBooking, form.price, form.startDate, form.userId]);
 
     const submitBooking = async (event) => {
         event.preventDefault();
-        setCreating(true);
-        setError('');
+        setFormError('');
         setMessage('');
-        setFormErrors({});
+
+        const errors = validateForm();
+
+        if (Object.keys(errors).length) {
+            setFormErrors(errors);
+            setFormError('Please correct the highlighted fields.');
+            return;
+        }
+
+        const payload = {
+            user_id: Number(form.userId),
+            car_id: Number(form.carId),
+            driver_id: Number(form.driverId),
+            price: Number(form.price),
+            start_date: form.startDate,
+            end_date: form.openBooking ? null : form.endDate || null,
+            open_booking: form.openBooking,
+        };
+
+        if (form.note.trim()) {
+            payload.note = form.note.trim();
+        }
+
+        setCreating(true);
         try {
-            await createUserBooking({
-                user_id: form.userId || defaultUserId,
-                car_id: form.carId,
-                driver_id: form.driverId,
-                price: Number(form.price),
-                start_date: form.startDate,
-                end_date: form.openBooking ? null : form.endDate || null,
-                open_booking: form.openBooking,
-                note: form.note || null,
-            });
-            setMessage('Booking saved successfully.');
-            setForm({ ...initialForm, userId: defaultUserId });
-            setDialogOpen(false);
+            await createUserBooking(payload);
+            setMessage('Booking created successfully.');
+            closeDialog();
             loadBookings();
         } catch (err) {
-            setError(err.message);
-            if (err.errors) {
-                setFormErrors(err.errors);
+            setFormError(err.message);
+            if (err?.response?.data?.data) {
+                setFormErrors(err.response.data.data);
             }
         } finally {
             setCreating(false);
@@ -306,13 +390,34 @@ const UserBookingsPage = () => {
         }
     };
 
+    const selectedUser = useMemo(() => {
+        if (!filters.user_id) {
+            return null;
+        }
+        const id = Number(filters.user_id);
+        return availability.users.find((user) => user.id === id) ?? null;
+    }, [availability.users, filters.user_id]);
+
+    const selectedCar = useMemo(() => {
+        if (!filters.car_id) {
+            return null;
+        }
+        const id = Number(filters.car_id);
+        return availability.cars.find((car) => car.id === id) ?? null;
+    }, [availability.cars, filters.car_id]);
+
+    const selectedDriver = useMemo(() => {
+        if (!filters.driver_id) {
+            return null;
+        }
+        const id = Number(filters.driver_id);
+        return availability.drivers.find((driver) => driver.id === id) ?? null;
+    }, [availability.drivers, filters.driver_id]);
+
     const actions = (
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <Button variant="outlined" onClick={() => loadBookings()} disabled={loading}>
-                Refresh log
-            </Button>
-            <Button variant="contained" onClick={() => setDialogOpen(true)}>
-                New booking
+            <Button variant="contained" onClick={openDialog}>
+                New Booking
             </Button>
         </Stack>
     );
@@ -320,7 +425,7 @@ const UserBookingsPage = () => {
     return (
         <UserLayout
             title="Bookings"
-            description="Search, filter, and manage bookings exactly like the admin view."
+            description="Browse, filter, and create bookings with the same layout as admin."
             actions={actions}
         >
             {error && (
@@ -334,24 +439,21 @@ const UserBookingsPage = () => {
                 </Alert>
             )}
 
-            <Grid container spacing={4}>
-                <Grid item xs={12} md={4}>
-                    <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #e2e8f0', height: '100%' }}>
-                        <CardContent>
-                            <Typography variant="h6" fontWeight={700} gutterBottom>
-                                Filter bookings
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" gutterBottom>
-                                Use the same filters available to admins, including user, car, and driver.
-                            </Typography>
-                            <Stack component="form" spacing={2} onSubmit={applyFilters}>
+            <Stack spacing={4}>
+                <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #e2e8f0' }}>
+                    <CardContent>
+                        <Typography variant="h6" fontWeight={700} gutterBottom>
+                            Filters
+                        </Typography>
+
+                        <Grid container spacing={2}>
+                            <Grid item xs={12} md={3}>
                                 <TextField
                                     select
-                                    name="status"
-                                    label="Status"
+                                    fullWidth
+                                    label="Booking status"
                                     value={filters.status}
-                                    onChange={handleFilterChange}
-                                    InputLabelProps={{ shrink: true }}
+                                    onChange={(event) => updateFilter('status', event.target.value)}
                                     SelectProps={{ native: true }}
                                 >
                                     {STATUS_OPTIONS.map((option) => (
@@ -360,109 +462,123 @@ const UserBookingsPage = () => {
                                         </option>
                                     ))}
                                 </TextField>
+                            </Grid>
+                            <Grid item xs={12} md={3}>
+                                <TextField
+                                    type="date"
+                                    fullWidth
+                                    label="From date"
+                                    InputLabelProps={{ shrink: true }}
+                                    value={filters.from_date}
+                                    onChange={(event) => updateFilter('from_date', event.target.value)}
+                                />
+                            </Grid>
+                            <Grid item xs={12} md={3}>
+                                <TextField
+                                    type="date"
+                                    fullWidth
+                                    label="To date"
+                                    InputLabelProps={{ shrink: true }}
+                                    value={filters.to_date}
+                                    onChange={(event) => updateFilter('to_date', event.target.value)}
+                                />
+                            </Grid>
+                            <Grid item xs={12} md={3}>
                                 <Autocomplete
                                     options={availability.users}
+                                    value={selectedUser}
                                     loading={availabilityLoading.users}
                                     getOptionLabel={formatUserLabel}
-                                    value={availability.users.find((user) => user.id === filters.user_id) || null}
-                                    onChange={handleFilterAutoChange('user_id')}
-                                    onInputChange={(_, value) => searchAvailability('user', value)}
+                                    onChange={(_, value) => updateFilter('user_id', value?.id ?? '')}
+                                    onInputChange={(_, value) => loadAvailability('users', value)}
                                     renderInput={(params) => (
                                         <TextField
                                             {...params}
                                             label="User"
-                                            InputLabelProps={{ shrink: true }}
                                             placeholder="Search users"
+                                            InputLabelProps={{ shrink: true }}
                                         />
                                     )}
                                 />
+                            </Grid>
+                            <Grid item xs={12} md={3}>
                                 <Autocomplete
                                     options={availability.cars}
+                                    value={selectedCar}
                                     loading={availabilityLoading.cars}
                                     getOptionLabel={formatCarLabel}
-                                    value={availability.cars.find((car) => car.id === filters.car_id) || null}
-                                    onChange={handleFilterAutoChange('car_id')}
-                                    onInputChange={(_, value) => searchAvailability('car', value)}
+                                    onChange={(_, value) => updateFilter('car_id', value?.id ?? '')}
+                                    onInputChange={(_, value) => loadAvailability('cars', value)}
                                     renderInput={(params) => (
                                         <TextField
                                             {...params}
                                             label="Car"
-                                            InputLabelProps={{ shrink: true }}
                                             placeholder="Search cars"
+                                            InputLabelProps={{ shrink: true }}
                                         />
                                     )}
                                 />
+                            </Grid>
+                            <Grid item xs={12} md={3}>
                                 <Autocomplete
                                     options={availability.drivers}
+                                    value={selectedDriver}
                                     loading={availabilityLoading.drivers}
                                     getOptionLabel={formatDriverLabel}
-                                    value={availability.drivers.find((driver) => driver.id === filters.driver_id) || null}
-                                    onChange={handleFilterAutoChange('driver_id')}
-                                    onInputChange={(_, value) => searchAvailability('driver', value)}
+                                    onChange={(_, value) => updateFilter('driver_id', value?.id ?? '')}
+                                    onInputChange={(_, value) => loadAvailability('drivers', value)}
                                     renderInput={(params) => (
                                         <TextField
                                             {...params}
                                             label="Driver"
-                                            InputLabelProps={{ shrink: true }}
                                             placeholder="Search drivers"
+                                            InputLabelProps={{ shrink: true }}
                                         />
                                     )}
                                 />
-                                <TextField
-                                    name="from_date"
-                                    label="From date"
-                                    type="date"
-                                    value={filters.from_date}
-                                    onChange={handleFilterChange}
-                                    InputLabelProps={{ shrink: true }}
-                                />
-                                <TextField
-                                    name="to_date"
-                                    label="To date"
-                                    type="date"
-                                    value={filters.to_date}
-                                    onChange={handleFilterChange}
-                                    InputLabelProps={{ shrink: true }}
-                                />
+                            </Grid>
+                            <Grid item xs={12} md={6}>
                                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                                    <Button type="submit" variant="contained" fullWidth disabled={loading}>
+                                    <Button variant="contained" fullWidth onClick={loadBookings} disabled={loading}>
                                         Apply filters
                                     </Button>
                                     <Button variant="text" fullWidth onClick={resetFilters}>
                                         Reset
                                     </Button>
                                 </Stack>
-                            </Stack>
-                        </CardContent>
-                    </Card>
-                </Grid>
+                            </Grid>
+                        </Grid>
+                    </CardContent>
+                </Card>
 
-                <Grid item xs={12} md={8}>
-                    <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #e2e8f0' }}>
-                        <CardContent>
-                            <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'center' }} spacing={2} mb={3}>
-                                <Box>
-                                    <Typography variant="h6" fontWeight={700}>
-                                        Booking history
-                                    </Typography>
-                                    <Typography variant="body2" color="text.secondary">
-                                        {totalRecords} bookings • Matching your filters
-                                    </Typography>
-                                </Box>
-                                <Button variant="outlined" onClick={() => loadBookings()} disabled={loading}>
-                                    Refresh bookings
-                                </Button>
-                            </Stack>
+                <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #e2e8f0' }}>
+                    <CardContent>
+                        <Stack direction={{ xs: 'column', md: 'row' }} alignItems={{ xs: 'flex-start', md: 'center' }} justifyContent="space-between" spacing={2} mb={3}>
+                            <Box>
+                                <Typography variant="h6" fontWeight={700} gutterBottom>
+                                    Bookings table
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                    Showing {visibleRange.from}-{visibleRange.to} of {totalRecords} bookings
+                                </Typography>
+                            </Box>
+                            <Button variant="outlined" onClick={loadBookings} disabled={loading}>
+                                Refresh
+                            </Button>
+                        </Stack>
 
+                        <Box sx={{ overflowX: 'auto' }}>
                             <Table>
                                 <TableHead>
                                     <TableRow>
+                                        <TableCell>#</TableCell>
                                         <TableCell>User</TableCell>
                                         <TableCell>Car</TableCell>
                                         <TableCell>Driver</TableCell>
                                         <TableCell>Price</TableCell>
                                         <TableCell>Start</TableCell>
                                         <TableCell>End</TableCell>
+                                        <TableCell>Note</TableCell>
                                         <TableCell>Status</TableCell>
                                         <TableCell align="right">Actions</TableCell>
                                     </TableRow>
@@ -470,7 +586,7 @@ const UserBookingsPage = () => {
                                 <TableBody>
                                     {loading ? (
                                         <TableRow>
-                                            <TableCell colSpan={8} align="center">
+                                            <TableCell colSpan={10} align="center">
                                                 <Stack alignItems="center" py={4} spacing={1}>
                                                     <CircularProgress size={24} />
                                                     <Typography variant="body2" color="text.secondary">
@@ -481,7 +597,7 @@ const UserBookingsPage = () => {
                                         </TableRow>
                                     ) : !bookings.length ? (
                                         <TableRow>
-                                            <TableCell colSpan={8} align="center">
+                                            <TableCell colSpan={10} align="center">
                                                 <Typography color="text.secondary" py={3}>
                                                     No bookings match your filters.
                                                 </Typography>
@@ -489,37 +605,45 @@ const UserBookingsPage = () => {
                                         </TableRow>
                                     ) : (
                                         bookings.map((booking) => {
-                                            const tone = statusTone[booking.status] ?? { label: booking.status, color: '#94a3b8', bg: '#e2e8f0' };
+                                            const tone = statusTone[booking.status] ?? {
+                                                label: booking.status,
+                                                color: '#334155',
+                                                bg: 'rgba(148,163,184,.24)',
+                                            };
                                             return (
                                                 <TableRow key={booking.id} hover>
+                                                    <TableCell>#{booking.id}</TableCell>
                                                     <TableCell>
-                                                        <Typography fontWeight={600}>{booking.user?.name ?? booking.guest_name ?? 'Guest'}</Typography>
-                                                        {booking.user?.username && (
-                                                            <Typography variant="body2" color="text.secondary">
-                                                                {booking.user.username}
-                                                            </Typography>
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Typography fontWeight={600}>{booking.car?.name ?? ''}</Typography>
+                                                        <Typography fontWeight={600}>{booking.user?.name ?? '—'}</Typography>
                                                         <Typography variant="body2" color="text.secondary">
-                                                            {booking.car?.emirate} {booking.car?.number}
+                                                            {booking.user?.username}
                                                         </Typography>
                                                     </TableCell>
                                                     <TableCell>
-                                                        <Typography fontWeight={600}>{booking.driver?.name ?? ''}</Typography>
+                                                        <Typography fontWeight={600}>{booking.car?.name ?? '—'}</Typography>
+                                                        <Typography variant="body2" color="text.secondary">
+                                                            {booking.car?.number}
+                                                        </Typography>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Typography fontWeight={600}>{booking.driver?.name ?? '—'}</Typography>
                                                         <Typography variant="body2" color="text.secondary">
                                                             {booking.driver?.license_number}
                                                         </Typography>
                                                     </TableCell>
                                                     <TableCell>
-                                                        <Typography>{Number(booking.price ?? 0).toFixed(2)}</Typography>
+                                                        <Typography fontWeight={700}>{booking.price ?? '—'}</Typography>
                                                     </TableCell>
                                                     <TableCell>
                                                         <Typography>{formatDate(booking.start_date)}</Typography>
                                                     </TableCell>
                                                     <TableCell>
-                                                        <Typography>{booking.end_date ? formatDate(booking.end_date) : 'Open booking'}</Typography>
+                                                        <Typography>{booking.open_booking ? 'Open booking' : formatDate(booking.end_date)}</Typography>
+                                                    </TableCell>
+                                                    <TableCell sx={{ maxWidth: 240 }}>
+                                                        <Typography noWrap title={booking.note}>
+                                                            {booking.note || '—'}
+                                                        </Typography>
                                                     </TableCell>
                                                     <TableCell>
                                                         <Chip
@@ -533,21 +657,17 @@ const UserBookingsPage = () => {
                                                         />
                                                     </TableCell>
                                                     <TableCell align="right">
-                                                        {booking.status === 'active' ? (
+                                                        <Stack direction="row" spacing={1} justifyContent="flex-end">
                                                             <Button
                                                                 size="small"
-                                                                color="success"
-                                                                variant="contained"
+                                                                variant="outlined"
+                                                                color="secondary"
+                                                                disabled={returningBooking === booking.id || booking.status === 'completed'}
                                                                 onClick={() => closeBooking(booking.id)}
-                                                                disabled={returningBooking === booking.id}
                                                             >
-                                                                {returningBooking === booking.id ? 'Completing…' : 'Return vehicle'}
+                                                                {returningBooking === booking.id ? 'Closing…' : 'Return'}
                                                             </Button>
-                                                        ) : (
-                                                            <Typography variant="body2" color="text.secondary">
-                                                                —
-                                                            </Typography>
-                                                        )}
+                                                        </Stack>
                                                     </TableCell>
                                                 </TableRow>
                                             );
@@ -555,128 +675,164 @@ const UserBookingsPage = () => {
                                     )}
                                 </TableBody>
                             </Table>
-                            <TablePagination
-                                component="div"
-                                count={totalRecords}
-                                page={pagination.page}
-                                onPageChange={handleChangePage}
-                                rowsPerPage={pagination.pageSize}
-                                onRowsPerPageChange={handleChangeRowsPerPage}
-                                rowsPerPageOptions={[5, 10, 25, 50]}
-                            />
-                        </CardContent>
-                    </Card>
-                </Grid>
-            </Grid>
+                        </Box>
+
+                        <TablePagination
+                            component="div"
+                            count={totalRecords}
+                            page={pagination.page}
+                            onPageChange={handlePaginationChange}
+                            rowsPerPage={pagination.pageSize}
+                            onRowsPerPageChange={handleRowsPerPageChange}
+                            rowsPerPageOptions={[10, 25, 50]}
+                        />
+                    </CardContent>
+                </Card>
+            </Stack>
 
             <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth="md" component="form" onSubmit={submitBooking}>
                 <DialogTitle>New booking</DialogTitle>
                 <DialogContent dividers>
-                    <Stack spacing={2} mt={1}>
-                        <Autocomplete
-                            options={availability.users}
-                            loading={availabilityLoading.users}
-                            getOptionLabel={formatUserLabel}
-                            value={availability.users.find((user) => user.id === form.userId) || null}
-                            onChange={handleUserSelect}
-                            onInputChange={(_, value) => searchAvailability('user', value)}
-                            renderInput={(params) => (
-                                <TextField
-                                    {...params}
-                                    label="User"
-                                    placeholder="Search for a user"
-                                    InputLabelProps={{ shrink: true }}
-                                    error={Boolean(formErrors.user_id)}
-                                    helperText={formErrors.user_id?.[0]}
-                                />
-                            )}
-                        />
-                        <Autocomplete
-                            options={availability.cars}
-                            loading={availabilityLoading.cars}
-                            getOptionLabel={formatCarLabel}
-                            value={availability.cars.find((car) => car.id === form.carId) || null}
-                            onChange={handleCarSelect}
-                            onInputChange={(_, value) => searchAvailability('car', value)}
-                            renderInput={(params) => (
-                                <TextField
-                                    {...params}
-                                    label="Car"
-                                    placeholder="Search available cars"
-                                    InputLabelProps={{ shrink: true }}
-                                    required
-                                    error={Boolean(formErrors.car_id)}
-                                    helperText={formErrors.car_id?.[0]}
-                                />
-                            )}
-                        />
-                        <Autocomplete
-                            options={availability.drivers}
-                            loading={availabilityLoading.drivers}
-                            getOptionLabel={formatDriverLabel}
-                            value={availability.drivers.find((driver) => driver.id === form.driverId) || null}
-                            onChange={handleDriverSelect}
-                            onInputChange={(_, value) => searchAvailability('driver', value)}
-                            renderInput={(params) => (
-                                <TextField
-                                    {...params}
-                                    label="Driver"
-                                    placeholder="Search available drivers"
-                                    InputLabelProps={{ shrink: true }}
-                                    required
-                                    error={Boolean(formErrors.driver_id)}
-                                    helperText={formErrors.driver_id?.[0]}
-                                />
-                            )}
-                        />
-                        <TextField
-                            name="price"
-                            label="Price"
-                            type="number"
-                            value={form.price}
-                            onChange={handleFormChange}
-                            required
-                            InputLabelProps={{ shrink: true }}
-                            error={Boolean(formErrors.price)}
-                            helperText={formErrors.price?.[0]}
-                        />
-                        <TextField
-                            name="startDate"
-                            label="Start date"
-                            type="datetime-local"
-                            value={form.startDate}
-                            onChange={handleFormChange}
-                            required
-                            InputLabelProps={{ shrink: true }}
-                            error={Boolean(formErrors.start_date)}
-                            helperText={formErrors.start_date?.[0]}
-                        />
-                        <TextField
-                            name="endDate"
-                            label="End date"
-                            type="datetime-local"
-                            value={form.endDate}
-                            onChange={handleFormChange}
-                            disabled={form.openBooking}
-                            InputLabelProps={{ shrink: true }}
-                            error={Boolean(formErrors.end_date)}
-                            helperText={formErrors.end_date?.[0]}
-                        />
-                        <FormControlLabel
-                            control={<Checkbox checked={form.openBooking} onChange={handleOpenToggle} />}
-                            label="Open trip without a return date"
-                        />
-                        <TextField
-                            name="note"
-                            label="Note"
-                            multiline
-                            minRows={3}
-                            value={form.note}
-                            onChange={handleFormChange}
-                            InputLabelProps={{ shrink: true }}
-                            error={Boolean(formErrors.note)}
-                            helperText={formErrors.note?.[0] || 'Add any special instructions for this booking.'}
-                        />
+                    <Stack spacing={3} mt={1}>
+                        <Stack spacing={1}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                                Booking window
+                            </Typography>
+                            <TextField
+                                type="datetime-local"
+                                label="Start date"
+                                value={form.startDate}
+                                onChange={(event) => handleFormChange('startDate', event.target.value)}
+                                InputLabelProps={{ shrink: true }}
+                                required
+                                error={Boolean(formErrors.startDate)}
+                                helperText={formErrors.startDate?.[0]}
+                            />
+                            <TextField
+                                type="datetime-local"
+                                label="End date"
+                                value={form.endDate}
+                                onChange={(event) => handleFormChange('endDate', event.target.value)}
+                                InputLabelProps={{ shrink: true }}
+                                disabled={form.openBooking}
+                                error={Boolean(formErrors.endDate)}
+                                helperText={
+                                    formErrors.endDate?.[0]
+                                        || (form.openBooking ? 'Open booking without a return time' : 'Specify an optional return time')
+                                }
+                            />
+                            <FormControlLabel
+                                control={
+                                    <Checkbox
+                                        checked={form.openBooking}
+                                        onChange={(event) => handleFormChange('openBooking', event.target.checked)}
+                                    />
+                                }
+                                label="Open booking without return date"
+                            />
+                        </Stack>
+
+                        <Stack spacing={1}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                                Assignment
+                            </Typography>
+                            <Autocomplete
+                                options={availability.users}
+                                loading={availabilityLoading.users}
+                                value={availability.users.find((user) => user.id === form.userId) || defaultUserOption || null}
+                                getOptionLabel={formatUserLabel}
+                                onChange={(_, value) => {
+                                    handleFormChange('userId', value?.id ?? '');
+                                    addToAvailability('users', value);
+                                }}
+                                onInputChange={(_, value) => loadAvailability('users', value)}
+                                renderInput={(params) => (
+                                    <TextField
+                                        {...params}
+                                        label="User"
+                                        placeholder="Search for a user"
+                                        InputLabelProps={{ shrink: true }}
+                                        required
+                                        error={Boolean(formErrors.userId)}
+                                        helperText={formErrors.userId?.[0]}
+                                    />
+                                )}
+                            />
+                            <Autocomplete
+                                options={availability.cars}
+                                loading={availabilityLoading.cars}
+                                value={availability.cars.find((car) => car.id === form.carId) || null}
+                                getOptionLabel={formatCarLabel}
+                                onChange={(_, value) => {
+                                    handleFormChange('carId', value?.id ?? '');
+                                    addToAvailability('cars', value);
+                                }}
+                                onInputChange={(_, value) => loadAvailability('cars', value)}
+                                renderInput={(params) => (
+                                    <TextField
+                                        {...params}
+                                        label="Car"
+                                        placeholder="Search available cars"
+                                        InputLabelProps={{ shrink: true }}
+                                        required
+                                        error={Boolean(formErrors.carId)}
+                                        helperText={formErrors.carId?.[0]}
+                                    />
+                                )}
+                            />
+                            <Autocomplete
+                                options={availability.drivers}
+                                loading={availabilityLoading.drivers}
+                                value={availability.drivers.find((driver) => driver.id === form.driverId) || null}
+                                getOptionLabel={formatDriverLabel}
+                                onChange={(_, value) => {
+                                    handleFormChange('driverId', value?.id ?? '');
+                                    addToAvailability('drivers', value);
+                                }}
+                                onInputChange={(_, value) => loadAvailability('drivers', value)}
+                                renderInput={(params) => (
+                                    <TextField
+                                        {...params}
+                                        label="Driver"
+                                        placeholder="Search available drivers"
+                                        InputLabelProps={{ shrink: true }}
+                                        required
+                                        error={Boolean(formErrors.driverId)}
+                                        helperText={formErrors.driverId?.[0]}
+                                    />
+                                )}
+                            />
+                        </Stack>
+
+                        <Stack spacing={1}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                                Details
+                            </Typography>
+                            <TextField
+                                type="number"
+                                label="Price"
+                                value={form.price}
+                                onChange={(event) => handleFormChange('price', event.target.value)}
+                                InputLabelProps={{ shrink: true }}
+                                required
+                                error={Boolean(formErrors.price)}
+                                helperText={formErrors.price?.[0]}
+                            />
+                            <TextField
+                                label="Note"
+                                multiline
+                                minRows={3}
+                                value={form.note}
+                                onChange={(event) => handleFormChange('note', event.target.value)}
+                                InputLabelProps={{ shrink: true }}
+                                helperText={formErrors.note?.[0] || 'Add any special instructions for this booking.'}
+                                error={Boolean(formErrors.note)}
+                            />
+                        </Stack>
+
+                        {formError && (
+                            <Alert severity="error">{formError}</Alert>
+                        )}
                     </Stack>
                 </DialogContent>
                 <DialogActions>
