@@ -18,6 +18,8 @@ const NAV_LINKS = [
     { label: 'Cars', href: '/portal/cars', icon: '🚗' },
     { label: 'Drivers', href: '/portal/drivers', icon: '🧑‍✈️' },
     { label: 'Bookings', href: '/portal/bookings', icon: '📅' },
+    { label: 'Profile', href: '/portal/profile', icon: '👤' },
+    { label: 'Password', href: '/portal/password', icon: '🔒' },
 ];
 
 const UserLayout = ({ title, description, actions, children }) => {

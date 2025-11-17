@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\BookingController as AdminBookingController;
 use App\Http\Controllers\Admin\CarController as AdminCarController;
 use App\Http\Controllers\Admin\DriverController as AdminDriverController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\ProfileController as AdminProfileController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Models\Admin;
 use Illuminate\Support\Facades\Route;
@@ -16,6 +17,9 @@ Route::prefix('admin')->group(function (): void {
 
     Route::middleware('jwt:admin,' . Admin::class)->group(function (): void {
         Route::get('dashboard', AdminDashboardController::class)->name('dashboard');
+
+        Route::put('profile', [AdminProfileController::class, 'update'])->name('admin.profile.update');
+        Route::put('profile/password', [AdminProfileController::class, 'updatePassword'])->name('admin.profile.update-password');
 
         Route::prefix('users')->group(function (): void {
             Route::get('/', [AdminUserController::class, 'index'])->name('users.index');
