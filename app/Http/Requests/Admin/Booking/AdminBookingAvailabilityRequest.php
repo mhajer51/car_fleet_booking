@@ -20,6 +20,7 @@ class AdminBookingAvailabilityRequest extends FormRequest
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'search' => ['nullable', 'string', 'max:255'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:50'],
+            'booking_id' => ['nullable', 'integer', 'exists:bookings,id'],
         ];
     }
 

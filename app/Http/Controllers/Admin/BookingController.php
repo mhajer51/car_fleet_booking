@@ -139,9 +139,9 @@ class BookingController extends Controller
 
     public function availableUsers(AdminBookingAvailabilityRequest $request): JsonResponse
     {
-        [$startDate, $endDate, $search, $perPage] = $this->extractAvailabilityFilters($request);
+        [$startDate, $endDate, $search, $perPage, $bookingId] = $this->extractAvailabilityFilters($request);
 
-        $usersQuery = User::query()->availableForPeriod($startDate, $endDate);
+        $usersQuery = User::query()->availableForPeriod($startDate, $endDate, $bookingId);
 
         if ($search !== '') {
             $usersQuery->where(function ($builder) use ($search): void {
@@ -163,9 +163,9 @@ class BookingController extends Controller
 
     public function availableCars(AdminBookingAvailabilityRequest $request): JsonResponse
     {
-        [$startDate, $endDate, $search, $perPage] = $this->extractAvailabilityFilters($request);
+        [$startDate, $endDate, $search, $perPage, $bookingId] = $this->extractAvailabilityFilters($request);
 
-        $carsQuery = Car::query()->availableForPeriod($startDate, $endDate);
+        $carsQuery = Car::query()->availableForPeriod($startDate, $endDate, $bookingId);
 
         if ($search !== '') {
             $carsQuery->where(function ($builder) use ($search): void {
@@ -187,9 +187,9 @@ class BookingController extends Controller
 
     public function availableDrivers(AdminBookingAvailabilityRequest $request): JsonResponse
     {
-        [$startDate, $endDate, $search, $perPage] = $this->extractAvailabilityFilters($request);
+        [$startDate, $endDate, $search, $perPage, $bookingId] = $this->extractAvailabilityFilters($request);
 
-        $driversQuery = Driver::query()->availableForPeriod($startDate, $endDate);
+        $driversQuery = Driver::query()->availableForPeriod($startDate, $endDate, $bookingId);
 
         if ($search !== '') {
             $driversQuery->where(function ($builder) use ($search): void {
@@ -249,8 +249,9 @@ class BookingController extends Controller
         $search = trim((string) ($filters['search'] ?? ''));
         $perPage = (int) ($filters['per_page'] ?? 10);
         $perPage = $perPage > 0 ? min($perPage, 50) : 10;
+        $bookingId = $filters['booking_id'] ?? null;
 
-        return [$startDate, $endDate, $search, $perPage];
+        return [$startDate, $endDate, $search, $perPage, $bookingId];
     }
 
     private function buildAvailabilityResponse($paginator, string $key, $items): array

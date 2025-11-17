@@ -331,9 +331,10 @@ const AdminBookingsPage = () => {
         () => ({
             start_date: form.startDate || defaultStartDate(),
             end_date: form.openBooking ? null : form.endDate || null,
+            booking_id: editingBooking?.id,
             per_page: 20,
         }),
-        [form.endDate, form.openBooking, form.startDate],
+        [editingBooking?.id, form.endDate, form.openBooking, form.startDate],
     );
 
     const loadAvailability = useCallback(
