@@ -12,6 +12,7 @@ import {
     DialogActions,
     DialogContent,
     DialogTitle,
+    FormControlLabel,
     Grid,
     MenuItem,
     Stack,
@@ -24,6 +25,7 @@ import {
     TextField,
     Typography,
 } from '@mui/material';
+import Checkbox from '@mui/material/Checkbox';
 import UserLayout from '../components/UserLayout.jsx';
 import {
     createUserBooking,
@@ -656,10 +658,23 @@ const UserBookingsPage = () => {
                                 value={form.endDate}
                                 onChange={(event) => handleFormChange('endDate', event.target.value)}
                                 InputLabelProps={{ shrink: true }}
-                                required={!form.openBooking}
                                 disabled={form.openBooking}
                                 error={Boolean(formErrors.endDate)}
-                                helperText={form.openBooking ? 'Open bookings have no end date.' : formErrors.endDate?.[0]}
+                                helperText={
+                                    formErrors.endDate?.[0]
+                                        || (form.openBooking
+                                            ? 'Open bookings have no end date.'
+                                            : 'Specify an optional return time')
+                                }
+                            />
+                            <FormControlLabel
+                                control={
+                                    <Checkbox
+                                        checked={form.openBooking}
+                                        onChange={(event) => handleFormChange('openBooking', event.target.checked)}
+                                    />
+                                }
+                                label="Open booking without return date"
                             />
                         </Stack>
 
