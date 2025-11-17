@@ -14,6 +14,10 @@ use InvalidArgumentException;
 
 class BookingService
 {
+    public function __construct(private readonly BookingNotificationService $notificationService)
+    {
+    }
+
     public function create(?User $user, Car $car, Driver $driver, Carbon $startDate, ?Carbon $endDate = null, ?string $guestName = null, ?string $note = null, ?float $price = null): Booking
     {
         if ($user && !$user->is_active) {
@@ -48,7 +52,7 @@ class BookingService
             throw new BookingConflictException('Driver is already assigned to another booking during this time.');
         }
 
-        return DB::transaction(function () use ($user, $car, $driver, $startDate, $endDate, $guestName, $note, $price) {
+        $booking = DB::transaction(function () use ($user, $car, $driver, $startDate, $endDate, $guestName, $note, $price) {
             return Booking::create([
                 'user_id' => $user?->id,
                 'guest_name' => $guestName,
@@ -60,6 +64,10 @@ class BookingService
                 'note' => $note,
             ]);
         });
+
+        $this->notificationService->notifyAdmins($booking, 'created');
+
+        return $booking;
     }
 
     public function update(Booking $booking, ?User $user, Car $car, Driver $driver, Carbon $startDate, ?Carbon $endDate = null, ?string $guestName = null, ?string $note = null, ?float $price = null): Booking
@@ -98,7 +106,7 @@ class BookingService
             throw new BookingConflictException('Driver is already assigned to another booking during this time.');
         }
 
-        DB::transaction(function () use ($booking, $user, $car, $driver, $startDate, $endDate, $guestName, $note, $price) {
+        $booking = DB::transaction(function () use ($booking, $user, $car, $driver, $startDate, $endDate, $guestName, $note, $price) {
             $booking->update([
                 'user_id' => $user?->id,
                 'guest_name' => $guestName,
@@ -109,9 +117,13 @@ class BookingService
                 'end_date' => $endDate,
                 'note' => $note,
             ]);
+
+            return $booking->refresh();
         });
 
-        return $booking->refresh();
+        $this->notificationService->notifyAdmins($booking, 'updated');
+
+        return $booking;
     }
 
     public function close(Booking $booking): Booking
