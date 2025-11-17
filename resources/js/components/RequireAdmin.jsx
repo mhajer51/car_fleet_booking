@@ -1,11 +1,16 @@
 import { useMemo } from 'react';
 import { Navigate } from 'react-router-dom';
-import { getAdminSession } from '../services/session.js';
+import { getAdminSession, getUserSession } from '../services/session.js';
 
 const RequireAdmin = ({ children }) => {
-    const session = useMemo(() => getAdminSession(), []);
+    const adminSession = useMemo(() => getAdminSession(), []);
+    const userSession = useMemo(() => getUserSession(), []);
 
-    if (!session?.token) {
+    if (userSession?.token) {
+        return <Navigate to="/portal/dashboard" replace />;
+    }
+
+    if (!adminSession?.token) {
         return <Navigate to="/admin" replace />;
     }
 
