@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     Alert,
+    AlertTitle,
     Avatar,
     Box,
     Button,
@@ -13,7 +14,9 @@ import {
     DialogContent,
     DialogTitle,
     FormControl,
+    IconButton,
     InputLabel,
+    Menu,
     MenuItem,
     Select,
     Stack,
@@ -26,6 +29,7 @@ import {
     TextField,
     Typography,
 } from '@mui/material';
+import { Delete as DeleteIcon, Edit as EditIcon, MoreHoriz } from '@mui/icons-material';
 import AdminLayout from '../components/AdminLayout.jsx';
 import {
     createAdminDriver,
@@ -69,6 +73,7 @@ const AdminDriversPage = () => {
         is_active: true,
     });
     const [editingDriverId, setEditingDriverId] = useState(null);
+    const [statusMenu, setStatusMenu] = useState({ id: null, anchorEl: null });
 
     const totalRecords = meta?.total ?? 0;
 
@@ -149,6 +154,12 @@ const AdminDriversPage = () => {
         setDialogOpen(false);
     };
 
+    const openStatusMenu = (driver, event) => {
+        setStatusMenu({ id: driver.id, anchorEl: event.currentTarget });
+    };
+
+    const closeStatusMenu = () => setStatusMenu({ id: null, anchorEl: null });
+
     const handleFormChange = (field) => (event) => {
         const value =
             field === 'is_active' ? event.target.value === 'true' || event.target.value === true : event.target.value;
@@ -190,6 +201,30 @@ const AdminDriversPage = () => {
             setError(err.message);
         } finally {
             setStatusUpdating(null);
+        }
+    };
+
+    const handleStatusChange = async (driver, isActive) => {
+        if (!driver) {
+            closeStatusMenu();
+            return;
+        }
+
+        if (statusUpdating === driver.id || driver.is_active === isActive) {
+            closeStatusMenu();
+            return;
+        }
+
+        setStatusUpdating(driver.id);
+        setError('');
+        try {
+            await updateAdminDriverStatus(driver.id, { is_active: isActive });
+            await load();
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setStatusUpdating(null);
+            closeStatusMenu();
         }
     };
 
@@ -264,7 +299,9 @@ const AdminDriversPage = () => {
                                     <TableCell>Phone</TableCell>
                                     <TableCell>Assignment</TableCell>
                                     <TableCell>Status</TableCell>
-                                    <TableCell align="right">Actions</TableCell>
+                                    <TableCell align="right" width={200}>
+                                        Actions
+                                    </TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
@@ -308,19 +345,33 @@ const AdminDriversPage = () => {
                                             </TableCell>
                                             <TableCell>{badge(activeTone[driver.is_active] ?? activeTone.true)}</TableCell>
                                             <TableCell align="right">
-                                                <Stack direction="row" spacing={1} justifyContent="flex-end">
-                                                    <Button size="small" variant="text" onClick={() => openEditDialog(driver)}>
-                                                        Edit
-                                                    </Button>
+                                                <Stack direction="row" spacing={1} justifyContent="flex-end" alignItems="center">
                                                     <Button
+                                                        variant="outlined"
                                                         size="small"
+                                                        onClick={(event) => openStatusMenu(driver, event)}
+                                                        endIcon={<MoreHoriz fontSize="small" />}
+                                                        disabled={statusUpdating === driver.id}
+                                                    >
+                                                        Update status
+                                                    </Button>
+                                                    <IconButton
+                                                        color="primary"
+                                                        size="small"
+                                                        onClick={() => openEditDialog(driver)}
+                                                        aria-label={`Edit ${driver.name}`}
+                                                    >
+                                                        <EditIcon fontSize="small" />
+                                                    </IconButton>
+                                                    <IconButton
                                                         color="error"
-                                                        variant="text"
+                                                        size="small"
                                                         disabled={statusUpdating === driver.id}
                                                         onClick={() => handleDelete(driver)}
+                                                        aria-label={`Disable ${driver.name}`}
                                                     >
-                                                        Delete
-                                                    </Button>
+                                                        <DeleteIcon fontSize="small" />
+                                                    </IconButton>
                                                 </Stack>
                                             </TableCell>
                                         </TableRow>
@@ -350,6 +401,44 @@ const AdminDriversPage = () => {
                     </Box>
                 </CardContent>
             </Card>
+
+            <Menu
+                anchorEl={statusMenu.anchorEl}
+                open={Boolean(statusMenu.anchorEl)}
+                onClose={closeStatusMenu}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            >
+                {statusMenu.id && (
+                    <Box px={2} py={1.5} sx={{ maxWidth: 260 }}>
+                        <Alert severity="info" sx={{ mb: 1.5 }}>
+                            <AlertTitle>Status options</AlertTitle>
+                            Toggle driver availability to mirror the car roster experience.
+                        </Alert>
+                        <Stack spacing={1}>
+                            <Button
+                                variant="outlined"
+                                size="small"
+                                fullWidth
+                                onClick={() => handleStatusChange(drivers.find((d) => d.id === statusMenu.id), true)}
+                                disabled={statusUpdating === statusMenu.id}
+                            >
+                                Mark as enabled
+                            </Button>
+                            <Button
+                                variant="outlined"
+                                size="small"
+                                color="error"
+                                fullWidth
+                                onClick={() => handleStatusChange(drivers.find((d) => d.id === statusMenu.id), false)}
+                                disabled={statusUpdating === statusMenu.id}
+                            >
+                                Mark as disabled
+                            </Button>
+                        </Stack>
+                    </Box>
+                )}
+            </Menu>
 
             <Dialog open={dialogOpen} onClose={closeDialog} fullWidth maxWidth="sm" component="form" onSubmit={handleSubmit}>
                 <DialogTitle>{dialogMode === 'create' ? 'Add driver' : 'Edit driver'}</DialogTitle>
