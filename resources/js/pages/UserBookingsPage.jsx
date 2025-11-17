@@ -1,188 +1,262 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     Alert,
+    Autocomplete,
     Box,
     Button,
     Card,
     CardContent,
     Chip,
     CircularProgress,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
     FormControlLabel,
     Grid,
-    MenuItem,
     Stack,
-    TextField,
-    Typography,
-    Checkbox,
     Table,
     TableBody,
     TableCell,
     TableHead,
+    TablePagination,
     TableRow,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    TableContainer,
+    TextField,
+    Typography,
+    Checkbox,
 } from '@mui/material';
 import UserLayout from '../components/UserLayout.jsx';
 import {
     createUserBooking,
-    fetchAvailableCars,
+    fetchAvailableBookingCars,
+    fetchAvailableBookingDrivers,
+    fetchAvailableBookingUsers,
     fetchUserBookings,
     returnUserBooking,
 } from '../services/user.js';
 import { getUserSession } from '../services/session.js';
 
 const STATUS_OPTIONS = [
-    { value: '', label: 'All statuses' },
-    { value: 'upcoming', label: 'Scheduled' },
-    { value: 'active', label: 'Active' },
-    { value: 'completed', label: 'Completed' },
+    { label: 'All statuses', value: 'all' },
+    { label: 'Scheduled', value: 'upcoming' },
+    { label: 'Active', value: 'active' },
+    { label: 'Completed', value: 'completed' },
 ];
 
-const initialFilters = {
-    status: '',
-    from: '',
-    to: '',
+const statusTone = {
+    upcoming: { label: 'Scheduled', color: '#f97316', bg: 'rgba(249,115,22,.12)' },
+    active: { label: 'Active', color: '#0f766e', bg: 'rgba(16,185,129,.12)' },
+    completed: { label: 'Completed', color: '#1d4ed8', bg: 'rgba(59,130,246,.12)' },
 };
 
-const initialBooking = {
-    car_id: '',
-    start_date: '',
-    end_date: '',
-    open_booking: false,
+const defaultStartDate = () => {
+    const now = new Date();
+    now.setSeconds(0, 0);
+    const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+    return localDate.toISOString().slice(0, 16);
+};
+
+const formatUserLabel = (user) => {
+    if (!user) {
+        return '';
+    }
+
+    const primary = user.name || user.username || user.employee_number || '';
+    const secondary = user.employee_number || user.username;
+
+    return secondary && secondary !== primary ? `${primary} • ${secondary}` : primary;
+};
+
+const formatCarLabel = (car) => {
+    if (!car) {
+        return '';
+    }
+
+    const primary = car.name || car.number || '';
+    const secondary = car.number && car.number !== primary ? car.emirate + ' ' + car.number : null;
+
+    return secondary ? `${primary} • ${secondary}` : primary;
+};
+
+const formatDriverLabel = (driver) => {
+    if (!driver) {
+        return '';
+    }
+
+    const primary = driver.name || driver.license_number || '';
+    const secondary = driver.license_number && driver.license_number !== primary ? driver.license_number : null;
+
+    return secondary ? `${primary} • ${secondary}` : primary;
+};
+
+const initialForm = {
+    userId: '',
+    carId: '',
+    driverId: '',
+    price: '',
+    startDate: defaultStartDate(),
+    endDate: '',
+    openBooking: false,
+    note: '',
 };
 
 const formatDate = (value) => {
-    if (!value) return '—';
+    if (!value) {
+        return '—';
+    }
+
     try {
-        const date = new Date(value);
-        return new Intl.DateTimeFormat('en-US', {
+        return new Date(value).toLocaleString('en-US', {
             dateStyle: 'medium',
             timeStyle: 'short',
-        }).format(date);
+        });
     } catch (error) {
         return value;
     }
 };
 
-const statusTone = {
-    upcoming: { label: 'Scheduled', color: '#f97316' },
-    active: { label: 'Active', color: '#0ea5e9' },
-    completed: { label: 'Completed', color: '#22c55e' },
-};
-
 const UserBookingsPage = () => {
     const session = useMemo(() => getUserSession(), []);
-    const [filters, setFilters] = useState(initialFilters);
+    const defaultUserId = session?.user?.id ?? '';
     const [bookings, setBookings] = useState([]);
-    const [cars, setCars] = useState([]);
+    const [meta, setMeta] = useState({ total: 0 });
     const [loading, setLoading] = useState(true);
-    const [creating, setCreating] = useState(false);
-    const [returningId, setReturningId] = useState(null);
     const [error, setError] = useState('');
     const [message, setMessage] = useState('');
-    const [bookingForm, setBookingForm] = useState(initialBooking);
-    const [carsLoading, setCarsLoading] = useState(false);
+    const [filters, setFilters] = useState({
+        status: 'all',
+        from_date: '',
+        to_date: '',
+        user_id: defaultUserId,
+        car_id: '',
+        driver_id: '',
+    });
+    const [pagination, setPagination] = useState({ page: 0, pageSize: 10 });
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [form, setForm] = useState({ ...initialForm, userId: defaultUserId });
+    const [formErrors, setFormErrors] = useState({});
+    const [creating, setCreating] = useState(false);
+    const [returningBooking, setReturningBooking] = useState(null);
+    const [availability, setAvailability] = useState({ users: [], cars: [], drivers: [] });
+    const [availabilityLoading, setAvailabilityLoading] = useState({ users: false, cars: false, drivers: false });
 
-    const loadBookings = async (customFilters = filters) => {
+    const totalRecords = meta?.total ?? bookings.length ?? 0;
+
+    const loadBookings = useCallback(async () => {
         setLoading(true);
         setError('');
         try {
             const payload = await fetchUserBookings({
-                ...customFilters,
-                user_id: session?.user?.id,
+                page: pagination.page + 1,
+                per_page: pagination.pageSize,
+                status: filters.status !== 'all' ? filters.status : undefined,
+                from_date: filters.from_date || undefined,
+                to_date: filters.to_date || undefined,
+                user_id: filters.user_id || undefined,
+                car_id: filters.car_id || undefined,
+                driver_id: filters.driver_id || undefined,
             });
-            setBookings(payload.bookings ?? payload ?? []);
+            setBookings(payload.bookings ?? []);
+            setMeta(payload.meta ?? {});
         } catch (err) {
             setError(err.message);
         } finally {
             setLoading(false);
         }
-    };
-
-    const buildAvailabilityParams = () => {
-        if (!bookingForm.start_date) {
-            return null;
-        }
-
-        const params = { start_date: bookingForm.start_date };
-        if (!bookingForm.open_booking && bookingForm.end_date) {
-            params.end_date = bookingForm.end_date;
-        }
-
-        return params;
-    };
-
-    const loadCars = async (range = null) => {
-        const params = range ?? buildAvailabilityParams();
-        if (!params) {
-            setCars([]);
-            return;
-        }
-
-        setCarsLoading(true);
-        try {
-            const payload = await fetchAvailableCars(params);
-            setCars(payload.cars ?? payload ?? []);
-        } catch (err) {
-            setCars([]);
-        } finally {
-            setCarsLoading(false);
-        }
-    };
+    }, [filters, pagination.page, pagination.pageSize]);
 
     useEffect(() => {
         loadBookings();
-        loadCars();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [loadBookings]);
+
+    const searchAvailability = useCallback(async (type, search = '') => {
+        const params = {
+            start_date: form.startDate,
+            end_date: form.openBooking ? undefined : form.endDate || undefined,
+            search,
+            per_page: 50,
+        };
+
+        const setLoadingKey = `${type}s`;
+        setAvailabilityLoading((prev) => ({ ...prev, [setLoadingKey]: true }));
+        try {
+            let response = { meta: {}, [`${type}s`]: [] };
+            if (type === 'user') {
+                response = await fetchAvailableBookingUsers(params);
+            } else if (type === 'car') {
+                response = await fetchAvailableBookingCars(params);
+            } else if (type === 'driver') {
+                response = await fetchAvailableBookingDrivers(params);
+            }
+            setAvailability((prev) => ({ ...prev, [`${type}s`]: response[`${type}s`] ?? [] }));
+        } catch (err) {
+            setAvailability((prev) => ({ ...prev, [`${type}s`]: [] }));
+        } finally {
+            setAvailabilityLoading((prev) => ({ ...prev, [setLoadingKey]: false }));
+        }
+    }, [form.startDate, form.endDate, form.openBooking]);
 
     useEffect(() => {
-        if (!bookingForm.start_date) {
-            setCars([]);
-            return;
-        }
-
-        loadCars(buildAvailabilityParams());
+        loadBookings();
+        searchAvailability('user');
+        searchAvailability('car');
+        searchAvailability('driver');
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [bookingForm.start_date, bookingForm.end_date, bookingForm.open_booking]);
+    }, []);
 
     const handleFilterChange = (event) => {
         const { name, value } = event.target;
         setFilters((prev) => ({ ...prev, [name]: value }));
     };
 
+    const handleFilterAutoChange = (name) => (_, value) => {
+        setFilters((prev) => ({ ...prev, [name]: value?.id ?? '' }));
+    };
+
     const applyFilters = (event) => {
         event.preventDefault();
+        setPagination((prev) => ({ ...prev, page: 0 }));
         loadBookings();
     };
 
     const resetFilters = () => {
-        setFilters(initialFilters);
-        loadBookings(initialFilters);
+        const base = { status: 'all', from_date: '', to_date: '', user_id: defaultUserId, car_id: '', driver_id: '' };
+        setFilters(base);
+        setPagination({ page: 0, pageSize: 10 });
+        loadBookings();
     };
 
-    const handleBookingChange = (event) => {
+    const handleChangePage = (_, newPage) => {
+        setPagination((prev) => ({ ...prev, page: newPage }));
+    };
+
+    const handleChangeRowsPerPage = (event) => {
+        setPagination({ page: 0, pageSize: parseInt(event.target.value, 10) });
+    };
+
+    const handleFormChange = (event) => {
         const { name, value } = event.target;
-        setBookingForm((prev) => {
-            const next = { ...prev, [name]: value };
-            if (name === 'start_date' || name === 'end_date') {
-                next.car_id = '';
-            }
-            return next;
-        });
+        setForm((prev) => ({ ...prev, [name]: value }));
+    };
+
+    const handleUserSelect = (_, value) => {
+        setForm((prev) => ({ ...prev, userId: value?.id ?? '' }));
+    };
+
+    const handleCarSelect = (_, value) => {
+        setForm((prev) => ({ ...prev, carId: value?.id ?? '' }));
+    };
+
+    const handleDriverSelect = (_, value) => {
+        setForm((prev) => ({ ...prev, driverId: value?.id ?? '' }));
     };
 
     const handleOpenToggle = (event) => {
         const checked = event.target.checked;
-        setBookingForm((prev) => ({
+        setForm((prev) => ({
             ...prev,
-            car_id: '',
-            open_booking: checked,
-            end_date: checked ? '' : prev.end_date,
+            openBooking: checked,
+            endDate: checked ? '' : prev.endDate,
         }));
     };
 
@@ -191,49 +265,44 @@ const UserBookingsPage = () => {
         setCreating(true);
         setError('');
         setMessage('');
+        setFormErrors({});
         try {
-            const payload = await createUserBooking({
-                ...bookingForm,
-                user_id: session?.user?.id,
-                car_id: bookingForm.car_id ? Number(bookingForm.car_id) : null,
-                end_date: bookingForm.open_booking ? null : bookingForm.end_date || null,
+            await createUserBooking({
+                user_id: form.userId || defaultUserId,
+                car_id: form.carId,
+                driver_id: form.driverId,
+                price: Number(form.price),
+                start_date: form.startDate,
+                end_date: form.openBooking ? null : form.endDate || null,
+                open_booking: form.openBooking,
+                note: form.note || null,
             });
             setMessage('Booking saved successfully.');
-            setBookingForm(initialBooking);
+            setForm({ ...initialForm, userId: defaultUserId });
+            setDialogOpen(false);
             loadBookings();
-            loadCars();
-            return payload;
         } catch (err) {
             setError(err.message);
+            if (err.errors) {
+                setFormErrors(err.errors);
+            }
         } finally {
             setCreating(false);
         }
     };
 
-    const openDialog = () => {
-        setDialogOpen(true);
-        setBookingForm(initialBooking);
-        setMessage('');
-        setError('');
-    };
-
-    const closeDialog = () => {
-        setDialogOpen(false);
-    };
-
     const closeBooking = async (bookingId) => {
-        setReturningId(bookingId);
+        setReturningBooking(bookingId);
         setError('');
         setMessage('');
         try {
             await returnUserBooking(bookingId);
             setMessage('The booking was closed and the vehicle was returned.');
             loadBookings();
-            loadCars();
         } catch (err) {
             setError(err.message);
         } finally {
-            setReturningId(null);
+            setReturningBooking(null);
         }
     };
 
@@ -242,24 +311,16 @@ const UserBookingsPage = () => {
             <Button variant="outlined" onClick={() => loadBookings()} disabled={loading}>
                 Refresh log
             </Button>
-            <Button variant="contained" onClick={openDialog}>
+            <Button variant="contained" onClick={() => setDialogOpen(true)}>
                 New booking
             </Button>
         </Stack>
     );
 
-    const carHelperText = !bookingForm.start_date
-        ? 'Select a start date to display the available cars.'
-        : carsLoading
-            ? 'Updating the available cars…'
-            : !cars.length
-                ? 'No cars are available for the selected dates.'
-                : '';
-
     return (
         <UserLayout
-            title="My bookings"
-            description="Create new bookings and monitor your open trips."
+            title="Bookings"
+            description="Search, filter, and manage bookings exactly like the admin view."
             actions={actions}
         >
             {error && (
@@ -281,7 +342,7 @@ const UserBookingsPage = () => {
                                 Filter bookings
                             </Typography>
                             <Typography variant="body2" color="text.secondary" gutterBottom>
-                                Match the admin filters with the same controls you already know.
+                                Use the same filters available to admins, including user, car, and driver.
                             </Typography>
                             <Stack component="form" spacing={2} onSubmit={applyFilters}>
                                 <TextField
@@ -291,26 +352,75 @@ const UserBookingsPage = () => {
                                     value={filters.status}
                                     onChange={handleFilterChange}
                                     InputLabelProps={{ shrink: true }}
+                                    SelectProps={{ native: true }}
                                 >
                                     {STATUS_OPTIONS.map((option) => (
-                                        <MenuItem key={option.value} value={option.value}>
+                                        <option key={option.value} value={option.value}>
                                             {option.label}
-                                        </MenuItem>
+                                        </option>
                                     ))}
                                 </TextField>
+                                <Autocomplete
+                                    options={availability.users}
+                                    loading={availabilityLoading.users}
+                                    getOptionLabel={formatUserLabel}
+                                    value={availability.users.find((user) => user.id === filters.user_id) || null}
+                                    onChange={handleFilterAutoChange('user_id')}
+                                    onInputChange={(_, value) => searchAvailability('user', value)}
+                                    renderInput={(params) => (
+                                        <TextField
+                                            {...params}
+                                            label="User"
+                                            InputLabelProps={{ shrink: true }}
+                                            placeholder="Search users"
+                                        />
+                                    )}
+                                />
+                                <Autocomplete
+                                    options={availability.cars}
+                                    loading={availabilityLoading.cars}
+                                    getOptionLabel={formatCarLabel}
+                                    value={availability.cars.find((car) => car.id === filters.car_id) || null}
+                                    onChange={handleFilterAutoChange('car_id')}
+                                    onInputChange={(_, value) => searchAvailability('car', value)}
+                                    renderInput={(params) => (
+                                        <TextField
+                                            {...params}
+                                            label="Car"
+                                            InputLabelProps={{ shrink: true }}
+                                            placeholder="Search cars"
+                                        />
+                                    )}
+                                />
+                                <Autocomplete
+                                    options={availability.drivers}
+                                    loading={availabilityLoading.drivers}
+                                    getOptionLabel={formatDriverLabel}
+                                    value={availability.drivers.find((driver) => driver.id === filters.driver_id) || null}
+                                    onChange={handleFilterAutoChange('driver_id')}
+                                    onInputChange={(_, value) => searchAvailability('driver', value)}
+                                    renderInput={(params) => (
+                                        <TextField
+                                            {...params}
+                                            label="Driver"
+                                            InputLabelProps={{ shrink: true }}
+                                            placeholder="Search drivers"
+                                        />
+                                    )}
+                                />
                                 <TextField
-                                    name="from"
+                                    name="from_date"
                                     label="From date"
                                     type="date"
-                                    value={filters.from}
+                                    value={filters.from_date}
                                     onChange={handleFilterChange}
                                     InputLabelProps={{ shrink: true }}
                                 />
                                 <TextField
-                                    name="to"
+                                    name="to_date"
                                     label="To date"
                                     type="date"
-                                    value={filters.to}
+                                    value={filters.to_date}
                                     onChange={handleFilterChange}
                                     InputLabelProps={{ shrink: true }}
                                 />
@@ -336,163 +446,241 @@ const UserBookingsPage = () => {
                                         Booking history
                                     </Typography>
                                     <Typography variant="body2" color="text.secondary">
-                                        {bookings.length} bookings • Matching your filters
+                                        {totalRecords} bookings • Matching your filters
                                     </Typography>
                                 </Box>
-                                <Button variant="outlined" onClick={() => loadCars()} disabled={creating || carsLoading}>
-                                    Refresh cars list
+                                <Button variant="outlined" onClick={() => loadBookings()} disabled={loading}>
+                                    Refresh bookings
                                 </Button>
                             </Stack>
 
-                            <TableContainer sx={{ border: '1px solid #e2e8f0', borderRadius: 2 }}>
-                                <Table>
-                                    <TableHead>
+                            <Table>
+                                <TableHead>
+                                    <TableRow>
+                                        <TableCell>User</TableCell>
+                                        <TableCell>Car</TableCell>
+                                        <TableCell>Driver</TableCell>
+                                        <TableCell>Price</TableCell>
+                                        <TableCell>Start</TableCell>
+                                        <TableCell>End</TableCell>
+                                        <TableCell>Status</TableCell>
+                                        <TableCell align="right">Actions</TableCell>
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    {loading ? (
                                         <TableRow>
-                                            <TableCell>Car</TableCell>
-                                            <TableCell>Start</TableCell>
-                                            <TableCell>End</TableCell>
-                                            <TableCell>Status</TableCell>
-                                            <TableCell align="right">Actions</TableCell>
-                                        </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                        {loading ? (
-                                            <TableRow>
-                                                <TableCell colSpan={5} align="center">
-                                                    <Stack alignItems="center" py={4} spacing={1}>
-                                                        <CircularProgress size={24} />
-                                                        <Typography variant="body2" color="text.secondary">
-                                                            Loading bookings…
-                                                        </Typography>
-                                                    </Stack>
-                                                </TableCell>
-                                            </TableRow>
-                                        ) : !bookings.length ? (
-                                            <TableRow>
-                                                <TableCell colSpan={5} align="center">
-                                                    <Typography color="text.secondary" py={3}>
-                                                        No bookings match your filters.
+                                            <TableCell colSpan={8} align="center">
+                                                <Stack alignItems="center" py={4} spacing={1}>
+                                                    <CircularProgress size={24} />
+                                                    <Typography variant="body2" color="text.secondary">
+                                                        Loading bookings…
                                                     </Typography>
-                                                </TableCell>
-                                            </TableRow>
-                                        ) : (
-                                            bookings.map((booking) => {
-                                                const tone = statusTone[booking.status] ?? { label: booking.status, color: '#94a3b8' };
-                                                return (
-                                                    <TableRow key={booking.id}>
-                                                        <TableCell>
-                                                            <Typography fontWeight={600}>{booking.car?.name ?? '—'}</Typography>
+                                                </Stack>
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : !bookings.length ? (
+                                        <TableRow>
+                                            <TableCell colSpan={8} align="center">
+                                                <Typography color="text.secondary" py={3}>
+                                                    No bookings match your filters.
+                                                </Typography>
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        bookings.map((booking) => {
+                                            const tone = statusTone[booking.status] ?? { label: booking.status, color: '#94a3b8', bg: '#e2e8f0' };
+                                            return (
+                                                <TableRow key={booking.id} hover>
+                                                    <TableCell>
+                                                        <Typography fontWeight={600}>{booking.user?.name ?? booking.guest_name ?? 'Guest'}</Typography>
+                                                        {booking.user?.username && (
                                                             <Typography variant="body2" color="text.secondary">
-                                                                {booking.car?.model} • {booking.car?.number}
+                                                                {booking.user.username}
                                                             </Typography>
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <Typography>{formatDate(booking.start_date)}</Typography>
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <Typography>{booking.open_booking ? 'Open booking' : formatDate(booking.end_date)}</Typography>
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <Chip
-                                                                label={tone.label}
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Typography fontWeight={600}>{booking.car?.name ?? ''}</Typography>
+                                                        <Typography variant="body2" color="text.secondary">
+                                                            {booking.car?.emirate} {booking.car?.number}
+                                                        </Typography>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Typography fontWeight={600}>{booking.driver?.name ?? ''}</Typography>
+                                                        <Typography variant="body2" color="text.secondary">
+                                                            {booking.driver?.license_number}
+                                                        </Typography>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Typography>{Number(booking.price ?? 0).toFixed(2)}</Typography>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Typography>{formatDate(booking.start_date)}</Typography>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Typography>{booking.end_date ? formatDate(booking.end_date) : 'Open booking'}</Typography>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Chip
+                                                            label={tone.label}
+                                                            size="small"
+                                                            sx={{
+                                                                color: tone.color,
+                                                                backgroundColor: tone.bg,
+                                                                fontWeight: 700,
+                                                            }}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell align="right">
+                                                        {booking.status === 'active' ? (
+                                                            <Button
                                                                 size="small"
-                                                                sx={{
-                                                                    color: tone.color,
-                                                                    backgroundColor: `${tone.color}22`,
-                                                                    fontWeight: 700,
-                                                                }}
-                                                            />
-                                                        </TableCell>
-                                                        <TableCell align="right">
-                                                            {booking.status === 'active' ? (
-                                                                <Button
-                                                                    size="small"
-                                                                    color="success"
-                                                                    variant="contained"
-                                                                    onClick={() => closeBooking(booking.id)}
-                                                                    disabled={returningId === booking.id}
-                                                                >
-                                                                    {returningId === booking.id ? 'Completing…' : 'Return vehicle'}
-                                                                </Button>
-                                                            ) : (
-                                                                <Typography variant="body2" color="text.secondary">
-                                                                    —
-                                                                </Typography>
-                                                            )}
-                                                        </TableCell>
-                                                    </TableRow>
-                                                );
-                                            })
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </TableContainer>
+                                                                color="success"
+                                                                variant="contained"
+                                                                onClick={() => closeBooking(booking.id)}
+                                                                disabled={returningBooking === booking.id}
+                                                            >
+                                                                {returningBooking === booking.id ? 'Completing…' : 'Return vehicle'}
+                                                            </Button>
+                                                        ) : (
+                                                            <Typography variant="body2" color="text.secondary">
+                                                                —
+                                                            </Typography>
+                                                        )}
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })
+                                    )}
+                                </TableBody>
+                            </Table>
+                            <TablePagination
+                                component="div"
+                                count={totalRecords}
+                                page={pagination.page}
+                                onPageChange={handleChangePage}
+                                rowsPerPage={pagination.pageSize}
+                                onRowsPerPageChange={handleChangeRowsPerPage}
+                                rowsPerPageOptions={[5, 10, 25, 50]}
+                            />
                         </CardContent>
                     </Card>
                 </Grid>
             </Grid>
 
-            <Dialog open={dialogOpen} onClose={closeDialog} fullWidth maxWidth="sm" component="form" onSubmit={submitBooking}>
+            <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth="md" component="form" onSubmit={submitBooking}>
                 <DialogTitle>New booking</DialogTitle>
                 <DialogContent dividers>
                     <Stack spacing={2} mt={1}>
+                        <Autocomplete
+                            options={availability.users}
+                            loading={availabilityLoading.users}
+                            getOptionLabel={formatUserLabel}
+                            value={availability.users.find((user) => user.id === form.userId) || null}
+                            onChange={handleUserSelect}
+                            onInputChange={(_, value) => searchAvailability('user', value)}
+                            renderInput={(params) => (
+                                <TextField
+                                    {...params}
+                                    label="User"
+                                    placeholder="Search for a user"
+                                    InputLabelProps={{ shrink: true }}
+                                    error={Boolean(formErrors.user_id)}
+                                    helperText={formErrors.user_id?.[0]}
+                                />
+                            )}
+                        />
+                        <Autocomplete
+                            options={availability.cars}
+                            loading={availabilityLoading.cars}
+                            getOptionLabel={formatCarLabel}
+                            value={availability.cars.find((car) => car.id === form.carId) || null}
+                            onChange={handleCarSelect}
+                            onInputChange={(_, value) => searchAvailability('car', value)}
+                            renderInput={(params) => (
+                                <TextField
+                                    {...params}
+                                    label="Car"
+                                    placeholder="Search available cars"
+                                    InputLabelProps={{ shrink: true }}
+                                    required
+                                    error={Boolean(formErrors.car_id)}
+                                    helperText={formErrors.car_id?.[0]}
+                                />
+                            )}
+                        />
+                        <Autocomplete
+                            options={availability.drivers}
+                            loading={availabilityLoading.drivers}
+                            getOptionLabel={formatDriverLabel}
+                            value={availability.drivers.find((driver) => driver.id === form.driverId) || null}
+                            onChange={handleDriverSelect}
+                            onInputChange={(_, value) => searchAvailability('driver', value)}
+                            renderInput={(params) => (
+                                <TextField
+                                    {...params}
+                                    label="Driver"
+                                    placeholder="Search available drivers"
+                                    InputLabelProps={{ shrink: true }}
+                                    required
+                                    error={Boolean(formErrors.driver_id)}
+                                    helperText={formErrors.driver_id?.[0]}
+                                />
+                            )}
+                        />
                         <TextField
-                            select
-                            name="car_id"
-                            label="Choose a car"
-                            value={bookingForm.car_id}
-                            onChange={handleBookingChange}
+                            name="price"
+                            label="Price"
+                            type="number"
+                            value={form.price}
+                            onChange={handleFormChange}
                             required
-                            helperText={carHelperText}
-                            disabled={!bookingForm.start_date || carsLoading}
                             InputLabelProps={{ shrink: true }}
-                        >
-                            <MenuItem value="" disabled>
-                                Pick an available vehicle
-                            </MenuItem>
-                            {carsLoading && (
-                                <MenuItem value="" disabled>
-                                    Loading cars…
-                                </MenuItem>
-                            )}
-                            {!carsLoading && bookingForm.start_date && !cars.length && (
-                                <MenuItem value="" disabled>
-                                    No cars are available for this range
-                                </MenuItem>
-                            )}
-                            {!carsLoading &&
-                                cars.map((car) => (
-                                    <MenuItem key={car.id} value={car.id}>
-                                        {car.name} • {car.model}
-                                    </MenuItem>
-                                ))}
-                        </TextField>
+                            error={Boolean(formErrors.price)}
+                            helperText={formErrors.price?.[0]}
+                        />
                         <TextField
-                            name="start_date"
+                            name="startDate"
                             label="Start date"
                             type="datetime-local"
-                            value={bookingForm.start_date}
-                            onChange={handleBookingChange}
+                            value={form.startDate}
+                            onChange={handleFormChange}
                             required
                             InputLabelProps={{ shrink: true }}
+                            error={Boolean(formErrors.start_date)}
+                            helperText={formErrors.start_date?.[0]}
                         />
                         <TextField
-                            name="end_date"
+                            name="endDate"
                             label="End date"
                             type="datetime-local"
-                            value={bookingForm.end_date}
-                            onChange={handleBookingChange}
-                            disabled={bookingForm.open_booking}
+                            value={form.endDate}
+                            onChange={handleFormChange}
+                            disabled={form.openBooking}
                             InputLabelProps={{ shrink: true }}
+                            error={Boolean(formErrors.end_date)}
+                            helperText={formErrors.end_date?.[0]}
                         />
                         <FormControlLabel
-                            control={<Checkbox checked={bookingForm.open_booking} onChange={handleOpenToggle} />}
+                            control={<Checkbox checked={form.openBooking} onChange={handleOpenToggle} />}
                             label="Open trip without a return date"
+                        />
+                        <TextField
+                            name="note"
+                            label="Note"
+                            multiline
+                            minRows={3}
+                            value={form.note}
+                            onChange={handleFormChange}
+                            InputLabelProps={{ shrink: true }}
+                            error={Boolean(formErrors.note)}
+                            helperText={formErrors.note?.[0] || 'Add any special instructions for this booking.'}
                         />
                     </Stack>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={closeDialog}>Cancel</Button>
+                    <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
                     <Button type="submit" variant="contained" disabled={creating}>
                         {creating ? 'Creating booking…' : 'Confirm booking'}
                     </Button>
