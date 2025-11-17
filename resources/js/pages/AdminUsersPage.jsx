@@ -8,11 +8,18 @@ import {
     CardContent,
     Chip,
     CircularProgress,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
     FormControl,
+    FormControlLabel,
+    FormHelperText,
     InputLabel,
     MenuItem,
     Select,
     Stack,
+    Switch,
     Table,
     TableBody,
     TableCell,
@@ -20,10 +27,21 @@ import {
     TablePagination,
     TableRow,
     TextField,
+    Tooltip,
     Typography,
 } from '@mui/material';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
+import IconButton from '@mui/material/IconButton';
 import AdminLayout from '../components/AdminLayout.jsx';
-import { fetchAdminUsers } from '../services/admin.js';
+import {
+    createAdminUser,
+    deleteAdminUser,
+    fetchAdminUsers,
+    updateAdminUser,
+    updateAdminUserStatus,
+} from '../services/admin.js';
 
 const statusChip = (isActive) => (
     <Chip
@@ -42,10 +60,23 @@ const AdminUsersPage = () => {
     const [meta, setMeta] = useState({ total: 0 });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [saving, setSaving] = useState(false);
     const [searchInput, setSearchInput] = useState('');
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [pagination, setPagination] = useState({ page: 0, pageSize: 10 });
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [formErrors, setFormErrors] = useState({});
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [form, setForm] = useState({
+        name: '',
+        username: '',
+        email: '',
+        number_employ: '',
+        password: '',
+        role: 'user',
+        is_active: true,
+    });
 
     const totalRecords = meta?.total ?? 0;
 
@@ -95,14 +126,112 @@ const AdminUsersPage = () => {
         setPagination({ page: 0, pageSize: parseInt(event.target.value, 10) });
     };
 
+    const handleOpenCreate = () => {
+        setSelectedUser(null);
+        setForm({
+            name: '',
+            username: '',
+            email: '',
+            number_employ: '',
+            password: '',
+            role: 'user',
+            is_active: true,
+        });
+        setFormErrors({});
+        setDialogOpen(true);
+    };
+
+    const handleOpenEdit = (user) => {
+        setSelectedUser(user);
+        setForm({ ...user, password: '' });
+        setFormErrors({});
+        setDialogOpen(true);
+    };
+
+    const handleDialogClose = () => {
+        if (saving) return;
+        setDialogOpen(false);
+    };
+
+    const handleFormChange = (field, value) => {
+        setForm((prev) => ({ ...prev, [field]: value }));
+    };
+
+    const handleSubmit = async (event) => {
+        event.preventDefault();
+        setSaving(true);
+        setFormErrors({});
+        setError('');
+
+        try {
+            const payload = { ...form };
+
+            if (!payload.password) {
+                delete payload.password;
+            }
+
+            if (selectedUser) {
+                await updateAdminUser(selectedUser.id, payload);
+            } else {
+                await createAdminUser(payload);
+            }
+
+            setDialogOpen(false);
+            await load();
+        } catch (err) {
+            if (err?.message && typeof err?.message === 'string') {
+                setError(err.message);
+            }
+
+            if (err?.response?.data?.data) {
+                setFormErrors(err.response.data.data);
+            }
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleToggleStatus = async (user) => {
+        setError('');
+        try {
+            await updateAdminUserStatus(user.id, { is_active: !user.is_active });
+            setUsers((prev) =>
+                prev.map((item) =>
+                    item.id === user.id ? { ...item, is_active: !item.is_active } : item,
+                ),
+            );
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
+    const handleDelete = async (user) => {
+        if (!window.confirm(`Delete ${user.name}? This cannot be undone.`)) {
+            return;
+        }
+
+        setError('');
+        try {
+            await deleteAdminUser(user.id);
+            await load();
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
     return (
         <AdminLayout
             title="People directory"
             description="Manage every driver and dispatcher connected to the fleet."
             actions={
-                <Button variant="outlined" onClick={load} disabled={loading}>
-                    Refresh list
-                </Button>
+                <Stack direction="row" spacing={1}>
+                    <Button variant="outlined" onClick={load} disabled={loading}>
+                        Refresh list
+                    </Button>
+                    <Button variant="contained" onClick={handleOpenCreate}>
+                        Add user
+                    </Button>
+                </Stack>
             }
         >
             {error && (
@@ -161,6 +290,7 @@ const AdminUsersPage = () => {
                                     <TableCell>Email</TableCell>
                                     <TableCell>Employee #</TableCell>
                                     <TableCell>Status</TableCell>
+                                    <TableCell align="right">Actions</TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
@@ -201,6 +331,37 @@ const AdminUsersPage = () => {
                                             <TableCell>{user.email}</TableCell>
                                             <TableCell>{user.number_employ}</TableCell>
                                             <TableCell>{statusChip(user.is_active)}</TableCell>
+                                            <TableCell align="right">
+                                                <Stack direction="row" spacing={1} justifyContent="flex-end">
+                                                    <Tooltip title="Edit">
+                                                        <IconButton
+                                                            size="small"
+                                                            color="primary"
+                                                            onClick={() => handleOpenEdit(user)}
+                                                        >
+                                                            <EditOutlinedIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                    <Tooltip title={user.is_active ? 'Suspend user' : 'Activate user'}>
+                                                        <IconButton
+                                                            size="small"
+                                                            color={user.is_active ? 'warning' : 'success'}
+                                                            onClick={() => handleToggleStatus(user)}
+                                                        >
+                                                            <PowerSettingsNewIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                    <Tooltip title="Delete">
+                                                        <IconButton
+                                                            size="small"
+                                                            color="error"
+                                                            onClick={() => handleDelete(user)}
+                                                        >
+                                                            <DeleteOutlineIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                </Stack>
+                                            </TableCell>
                                         </TableRow>
                                     ))
                                 ) : (
@@ -228,6 +389,95 @@ const AdminUsersPage = () => {
                     </Box>
                 </CardContent>
             </Card>
+
+            <Dialog open={dialogOpen} onClose={handleDialogClose} fullWidth maxWidth="sm">
+                <form onSubmit={handleSubmit}>
+                    <DialogTitle>{selectedUser ? 'Edit user' : 'Add new user'}</DialogTitle>
+                    <DialogContent dividers>
+                        <Stack spacing={2} mt={1}>
+                            <TextField
+                                label="Full name"
+                                value={form.name}
+                                onChange={(event) => handleFormChange('name', event.target.value)}
+                                required
+                                error={!!formErrors.name}
+                                helperText={formErrors.name?.[0]}
+                            />
+                            <TextField
+                                label="Username"
+                                value={form.username}
+                                onChange={(event) => handleFormChange('username', event.target.value)}
+                                required
+                                error={!!formErrors.username}
+                                helperText={formErrors.username?.[0]}
+                            />
+                            <TextField
+                                label="Email"
+                                type="email"
+                                value={form.email}
+                                onChange={(event) => handleFormChange('email', event.target.value)}
+                                required
+                                error={!!formErrors.email}
+                                helperText={formErrors.email?.[0]}
+                            />
+                            <TextField
+                                label="Employee number"
+                                value={form.number_employ}
+                                onChange={(event) => handleFormChange('number_employ', event.target.value)}
+                                required
+                                error={!!formErrors.number_employ}
+                                helperText={formErrors.number_employ?.[0]}
+                            />
+                            <FormControl fullWidth error={!!formErrors.role}>
+                                <InputLabel id="user-role">Role</InputLabel>
+                                <Select
+                                    labelId="user-role"
+                                    label="Role"
+                                    value={form.role}
+                                    onChange={(event) => handleFormChange('role', event.target.value)}
+                                    required
+                                >
+                                    <MenuItem value="admin">Admin</MenuItem>
+                                    <MenuItem value="user">User</MenuItem>
+                                </Select>
+                                {formErrors.role && (
+                                    <FormHelperText>{formErrors.role?.[0]}</FormHelperText>
+                                )}
+                            </FormControl>
+                            <TextField
+                                label="Password"
+                                type="password"
+                                value={form.password}
+                                onChange={(event) => handleFormChange('password', event.target.value)}
+                                required={!selectedUser}
+                                error={!!formErrors.password}
+                                helperText={
+                                    selectedUser
+                                        ? formErrors.password?.[0] || 'Leave blank to keep the current password.'
+                                        : formErrors.password?.[0]
+                                }
+                            />
+                            <FormControlLabel
+                                control={(
+                                    <Switch
+                                        checked={form.is_active}
+                                        onChange={(event) => handleFormChange('is_active', event.target.checked)}
+                                    />
+                                )}
+                                label={form.is_active ? 'Active' : 'Suspended'}
+                            />
+                        </Stack>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={handleDialogClose} disabled={saving}>
+                            Cancel
+                        </Button>
+                        <Button type="submit" variant="contained" disabled={saving}>
+                            {saving ? 'Saving…' : 'Save user'}
+                        </Button>
+                    </DialogActions>
+                </form>
+            </Dialog>
         </AdminLayout>
     );
 };
