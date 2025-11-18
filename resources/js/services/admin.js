@@ -53,6 +53,66 @@ export const deleteAdminCar = (carId) =>
         .delete(`/admin/cars/${carId}`)
         .then((response) => response.data?.data ?? response.data);
 
+export const fetchPlateSources = (params = {}) =>
+    http
+        .get('/admin/plates/sources', { params })
+        .then((response) => response.data?.data ?? response.data);
+
+export const createPlateSource = (payload) =>
+    http
+        .post('/admin/plates/sources', payload)
+        .then((response) => response.data?.data ?? response.data);
+
+export const updatePlateSource = (id, payload) =>
+    http
+        .put(`/admin/plates/sources/${id}`, payload)
+        .then((response) => response.data?.data ?? response.data);
+
+export const deletePlateSource = (id) =>
+    http
+        .delete(`/admin/plates/sources/${id}`)
+        .then((response) => response.data?.data ?? response.data);
+
+export const fetchPlateCategories = (params = {}) =>
+    http
+        .get('/admin/plates/categories', { params })
+        .then((response) => response.data?.data ?? response.data);
+
+export const createPlateCategory = (payload) =>
+    http
+        .post('/admin/plates/categories', payload)
+        .then((response) => response.data?.data ?? response.data);
+
+export const updatePlateCategory = (id, payload) =>
+    http
+        .put(`/admin/plates/categories/${id}`, payload)
+        .then((response) => response.data?.data ?? response.data);
+
+export const deletePlateCategory = (id) =>
+    http
+        .delete(`/admin/plates/categories/${id}`)
+        .then((response) => response.data?.data ?? response.data);
+
+export const fetchPlateCodes = (params = {}) =>
+    http
+        .get('/admin/plates/codes', { params })
+        .then((response) => response.data?.data ?? response.data);
+
+export const createPlateCode = (payload) =>
+    http
+        .post('/admin/plates/codes', payload)
+        .then((response) => response.data?.data ?? response.data);
+
+export const updatePlateCode = (id, payload) =>
+    http
+        .put(`/admin/plates/codes/${id}`, payload)
+        .then((response) => response.data?.data ?? response.data);
+
+export const deletePlateCode = (id) =>
+    http
+        .delete(`/admin/plates/codes/${id}`)
+        .then((response) => response.data?.data ?? response.data);
+
 export const fetchAdminDrivers = (params = {}) =>
     http
         .get('/admin/drivers', { params })
