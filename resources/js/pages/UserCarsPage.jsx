@@ -28,7 +28,7 @@ import {
     Switch,
 } from '@mui/material';
 import UserLayout from '../components/UserLayout.jsx';
-import { createUserCar, fetchUserCars } from '../services/user.js';
+import { createUserCar, fetchPlateCategories, fetchPlateCodes, fetchPlateSources, fetchUserCars } from '../services/user.js';
 
 const statusTone = {
     available: { bg: 'rgba(59,130,246,.12)', color: '#1d4ed8', label: 'Available' },
@@ -73,11 +73,19 @@ const UserCarsPage = () => {
     const [formOpen, setFormOpen] = useState(false);
     const [formError, setFormError] = useState('');
     const [formErrors, setFormErrors] = useState({});
+    const [sourceOptions, setSourceOptions] = useState([]);
+    const [categoryOptions, setCategoryOptions] = useState([]);
+    const [codeOptions, setCodeOptions] = useState([]);
+    const [loadingCategories, setLoadingCategories] = useState(false);
+    const [loadingCodes, setLoadingCodes] = useState(false);
     const [formValues, setFormValues] = useState({
         name: '',
         model: '',
         color: '',
         number: '',
+        plate_source_id: '',
+        plate_category_id: '',
+        plate_code_id: '',
         emirate: 'dubai',
         notes: '',
         is_active: true,
@@ -85,6 +93,49 @@ const UserCarsPage = () => {
     const [saving, setSaving] = useState(false);
 
     const totalRecords = meta?.total ?? 0;
+
+    const loadPlateSources = useCallback(async () => {
+        try {
+            const payload = await fetchPlateSources({ per_page: 100 });
+            setSourceOptions(payload.sources ?? []);
+        } catch (err) {
+            console.error(err);
+        }
+    }, []);
+
+    const loadPlateCategories = useCallback(async (plateSourceId) => {
+        if (!plateSourceId) {
+            setCategoryOptions([]);
+            return;
+        }
+
+        setLoadingCategories(true);
+        try {
+            const payload = await fetchPlateCategories({ plate_source_id: plateSourceId, per_page: 100 });
+            setCategoryOptions(payload.categories ?? []);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoadingCategories(false);
+        }
+    }, []);
+
+    const loadPlateCodes = useCallback(async (plateCategoryId) => {
+        if (!plateCategoryId) {
+            setCodeOptions([]);
+            return;
+        }
+
+        setLoadingCodes(true);
+        try {
+            const payload = await fetchPlateCodes({ plate_category_id: plateCategoryId, per_page: 100 });
+            setCodeOptions(payload.codes ?? []);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoadingCodes(false);
+        }
+    }, []);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -116,6 +167,22 @@ const UserCarsPage = () => {
     }, [load]);
 
     useEffect(() => {
+        loadPlateSources();
+    }, [loadPlateSources]);
+
+    useEffect(() => {
+        if (formOpen && formValues.plate_source_id) {
+            loadPlateCategories(formValues.plate_source_id);
+        }
+    }, [formOpen, formValues.plate_source_id, loadPlateCategories]);
+
+    useEffect(() => {
+        if (formOpen && formValues.plate_category_id) {
+            loadPlateCodes(formValues.plate_category_id);
+        }
+    }, [formOpen, formValues.plate_category_id, loadPlateCodes]);
+
+    useEffect(() => {
         const handler = setTimeout(() => setSearch(searchInput.trim()), 400);
         return () => clearTimeout(handler);
     }, [searchInput]);
@@ -139,9 +206,22 @@ const UserCarsPage = () => {
     };
 
     const openCreateForm = () => {
-        setFormValues({ name: '', model: '', color: '', number: '', emirate: 'dubai', notes: '', is_active: true });
+        setFormValues({
+            name: '',
+            model: '',
+            color: '',
+            number: '',
+            plate_source_id: '',
+            plate_category_id: '',
+            plate_code_id: '',
+            emirate: 'dubai',
+            notes: '',
+            is_active: true,
+        });
         setFormError('');
         setFormErrors({});
+        setCategoryOptions([]);
+        setCodeOptions([]);
         setFormOpen(true);
     };
 
@@ -149,6 +229,26 @@ const UserCarsPage = () => {
         const value = field === 'is_active' ? event.target.checked : event.target.value;
         setFormValues((prev) => ({ ...prev, [field]: value }));
         setFormErrors((prev) => ({ ...prev, [field]: undefined }));
+    };
+
+    const handlePlateSourceChange = async (event) => {
+        const value = event.target.value;
+        setFormValues((prev) => ({
+            ...prev,
+            plate_source_id: value,
+            plate_category_id: '',
+            plate_code_id: '',
+        }));
+        setFormErrors((prev) => ({ ...prev, plate_source_id: undefined, plate_category_id: undefined, plate_code_id: undefined }));
+        setCodeOptions([]);
+        await loadPlateCategories(value);
+    };
+
+    const handlePlateCategoryChange = async (event) => {
+        const value = event.target.value;
+        setFormValues((prev) => ({ ...prev, plate_category_id: value, plate_code_id: '' }));
+        setFormErrors((prev) => ({ ...prev, plate_category_id: undefined, plate_code_id: undefined }));
+        await loadPlateCodes(value);
     };
 
     const validateForm = useCallback(() => {
@@ -168,6 +268,18 @@ const UserCarsPage = () => {
 
         if (!formValues.number.trim()) {
             errors.number = ['Plate number is required.'];
+        }
+
+        if (!formValues.plate_source_id) {
+            errors.plate_source_id = ['Select a plate source.'];
+        }
+
+        if (!formValues.plate_category_id) {
+            errors.plate_category_id = ['Select a plate category.'];
+        }
+
+        if (!formValues.plate_code_id) {
+            errors.plate_code_id = ['Select a plate code.'];
         }
 
         if (!formValues.emirate) {
@@ -393,6 +505,69 @@ const UserCarsPage = () => {
                             error={!!formErrors.number}
                             helperText={formErrors.number?.[0] || formErrors.number}
                         />
+                        <FormControl fullWidth error={!!formErrors.plate_source_id}>
+                            <InputLabel id="user-car-plate-source-select">Plate source</InputLabel>
+                            <Select
+                                labelId="user-car-plate-source-select"
+                                label="Plate source"
+                                value={formValues.plate_source_id}
+                                onChange={handlePlateSourceChange}
+                                required
+                            >
+                                {sourceOptions.map((option) => (
+                                    <MenuItem key={option.id} value={option.id}>
+                                        {option.title}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                            {formErrors.plate_source_id && (
+                                <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1 }}>
+                                    {formErrors.plate_source_id?.[0] || formErrors.plate_source_id}
+                                </Typography>
+                            )}
+                        </FormControl>
+                        <FormControl fullWidth error={!!formErrors.plate_category_id} disabled={!formValues.plate_source_id || loadingCategories}>
+                            <InputLabel id="user-car-plate-category-select">Plate category</InputLabel>
+                            <Select
+                                labelId="user-car-plate-category-select"
+                                label="Plate category"
+                                value={formValues.plate_category_id}
+                                onChange={handlePlateCategoryChange}
+                                required
+                            >
+                                {categoryOptions.map((option) => (
+                                    <MenuItem key={option.id} value={option.id}>
+                                        {option.title}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                            {formErrors.plate_category_id && (
+                                <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1 }}>
+                                    {formErrors.plate_category_id?.[0] || formErrors.plate_category_id}
+                                </Typography>
+                            )}
+                        </FormControl>
+                        <FormControl fullWidth error={!!formErrors.plate_code_id} disabled={!formValues.plate_category_id || loadingCodes}>
+                            <InputLabel id="user-car-plate-code-select">Plate code</InputLabel>
+                            <Select
+                                labelId="user-car-plate-code-select"
+                                label="Plate code"
+                                value={formValues.plate_code_id}
+                                onChange={handleFormChange('plate_code_id')}
+                                required
+                            >
+                                {codeOptions.map((option) => (
+                                    <MenuItem key={option.id} value={option.id}>
+                                        {option.title}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                            {formErrors.plate_code_id && (
+                                <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1 }}>
+                                    {formErrors.plate_code_id?.[0] || formErrors.plate_code_id}
+                                </Typography>
+                            )}
+                        </FormControl>
                         <FormControl fullWidth error={!!formErrors.emirate}>
                             <InputLabel id="car-emirate-select">Emirate</InputLabel>
                             <Select

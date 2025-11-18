@@ -5,6 +5,9 @@ use App\Http\Controllers\Admin\BookingController as AdminBookingController;
 use App\Http\Controllers\Admin\CarController as AdminCarController;
 use App\Http\Controllers\Admin\DriverController as AdminDriverController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\PlateCategoryController as AdminPlateCategoryController;
+use App\Http\Controllers\Admin\PlateCodeController as AdminPlateCodeController;
+use App\Http\Controllers\Admin\PlateSourceController as AdminPlateSourceController;
 use App\Http\Controllers\Admin\ProfileController as AdminProfileController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Models\Admin;
@@ -42,6 +45,23 @@ Route::prefix('admin')->group(function (): void {
             Route::post('/', [AdminDriverController::class, 'store'])->name('drivers.store');
             Route::put('{driver}', [AdminDriverController::class, 'update'])->name('drivers.update');
             Route::patch('{driver}/status', [AdminDriverController::class, 'updateStatus'])->name('drivers.update-status');
+        });
+
+        Route::prefix('plates')->group(function (): void {
+            Route::get('sources', [AdminPlateSourceController::class, 'index'])->name('plates.sources.index');
+            Route::post('sources', [AdminPlateSourceController::class, 'store'])->name('plates.sources.store');
+            Route::put('sources/{plate_source}', [AdminPlateSourceController::class, 'update'])->name('plates.sources.update');
+            Route::delete('sources/{plate_source}', [AdminPlateSourceController::class, 'destroy'])->name('plates.sources.destroy');
+
+            Route::get('categories', [AdminPlateCategoryController::class, 'index'])->name('plates.categories.index');
+            Route::post('categories', [AdminPlateCategoryController::class, 'store'])->name('plates.categories.store');
+            Route::put('categories/{plate_category}', [AdminPlateCategoryController::class, 'update'])->name('plates.categories.update');
+            Route::delete('categories/{plate_category}', [AdminPlateCategoryController::class, 'destroy'])->name('plates.categories.destroy');
+
+            Route::get('codes', [AdminPlateCodeController::class, 'index'])->name('plates.codes.index');
+            Route::post('codes', [AdminPlateCodeController::class, 'store'])->name('plates.codes.store');
+            Route::put('codes/{plate_code}', [AdminPlateCodeController::class, 'update'])->name('plates.codes.update');
+            Route::delete('codes/{plate_code}', [AdminPlateCodeController::class, 'destroy'])->name('plates.codes.destroy');
         });
 
         Route::prefix('bookings')->group(function (): void {
