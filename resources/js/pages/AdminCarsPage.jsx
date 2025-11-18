@@ -72,6 +72,17 @@ const badge = ({ bg, color, label }) => (
     />
 );
 
+const buildViolationSearchUrl = (car) => {
+    const query = new URLSearchParams({
+        plateNumber: car.number ?? '',
+        plateSource: car.plate_source?.title ?? '',
+        plateCategory: car.plate_category?.title ?? '',
+        plateCode: car.plate_code?.title ?? '',
+    });
+
+    return `https://ums.rta.ae/violations/public-fines/fines-search?${query.toString()}`;
+};
+
 const AdminCarsPage = () => {
     const [cars, setCars] = useState([]);
     const [meta, setMeta] = useState({ total: 0 });
@@ -379,6 +390,11 @@ const AdminCarsPage = () => {
         setDeleting(false);
     };
 
+    const handleCheckViolations = (car) => {
+        const url = buildViolationSearchUrl(car);
+        window.open(url, '_blank', 'noopener,noreferrer');
+    };
+
     const handleDelete = async () => {
         if (!deleteTarget) return;
 
@@ -527,6 +543,14 @@ const AdminCarsPage = () => {
                                             </TableCell>
                                             <TableCell align="right">
                                                 <Stack direction="row" spacing={1} justifyContent="flex-end" alignItems="center">
+                                                    <Button
+                                                        size="small"
+                                                        variant="outlined"
+                                                        onClick={() => handleCheckViolations(car)}
+                                                        aria-label={`Check violations for ${car.name}`}
+                                                    >
+                                                        Violations
+                                                    </Button>
                                                     <IconButton
                                                         color="primary"
                                                         size="small"
