@@ -4,6 +4,7 @@ import AdminDashboardPage from './pages/AdminDashboardPage.jsx';
 import AdminUsersPage from './pages/AdminUsersPage.jsx';
 import AdminDriversPage from './pages/AdminDriversPage.jsx';
 import AdminCarsPage from './pages/AdminCarsPage.jsx';
+import AdminSponsorsPage from './pages/AdminSponsorsPage.jsx';
 import AdminPlateCodesPage from './pages/AdminPlateCodesPage.jsx';
 import AdminBookingsPage from './pages/AdminBookingsPage.jsx';
 import AdminProfilePage from './pages/AdminProfilePage.jsx';
@@ -89,6 +90,14 @@ const AppRouter = () => (
             element={
                 <RequireAdmin>
                     <AdminCarsPage />
+                </RequireAdmin>
+            }
+        />
+        <Route
+            path="/admin/sponsors"
+            element={
+                <RequireAdmin>
+                    <AdminSponsorsPage />
                 </RequireAdmin>
             }
         />

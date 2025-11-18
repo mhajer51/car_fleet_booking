@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\PlateCategoryController as AdminPlateCategoryCont
 use App\Http\Controllers\Admin\PlateCodeController as AdminPlateCodeController;
 use App\Http\Controllers\Admin\PlateSourceController as AdminPlateSourceController;
 use App\Http\Controllers\Admin\ProfileController as AdminProfileController;
+use App\Http\Controllers\Admin\SponsorController as AdminSponsorController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Models\Admin;
 use Illuminate\Support\Facades\Route;
@@ -38,6 +39,14 @@ Route::prefix('admin')->group(function (): void {
             Route::put('{car}', [AdminCarController::class, 'update'])->name('cars.update');
             Route::patch('{car}/status', [AdminCarController::class, 'updateStatus'])->name('cars.update-status');
             Route::delete('{car}', [AdminCarController::class, 'destroy'])->name('cars.destroy');
+        });
+
+        Route::prefix('sponsors')->group(function (): void {
+            Route::get('/', [AdminSponsorController::class, 'index'])->name('sponsors.index');
+            Route::post('/', [AdminSponsorController::class, 'store'])->name('sponsors.store');
+            Route::put('{sponsor}', [AdminSponsorController::class, 'update'])->name('sponsors.update');
+            Route::patch('{sponsor}/status', [AdminSponsorController::class, 'updateStatus'])->name('sponsors.update-status');
+            Route::delete('{sponsor}', [AdminSponsorController::class, 'destroy'])->name('sponsors.destroy');
         });
 
         Route::prefix('drivers')->group(function (): void {
