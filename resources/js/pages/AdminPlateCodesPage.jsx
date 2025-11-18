@@ -54,9 +54,15 @@ const SectionHeader = ({ title, action }) => (
 
 const AdminPlateCodesPage = () => {
     const [sources, setSources] = useState([]);
+    const [sourceMeta, setSourceMeta] = useState({ total: 0, per_page: 10, current_page: 1 });
+    const [sourceOptions, setSourceOptions] = useState([]);
+
     const [categories, setCategories] = useState([]);
+    const [categoryMeta, setCategoryMeta] = useState({ total: 0, per_page: 10, current_page: 1 });
+    const [categoryOptions, setCategoryOptions] = useState([]);
+
     const [codes, setCodes] = useState([]);
-    const [meta, setMeta] = useState({ total: 0, per_page: 10, current_page: 1 });
+    const [codeMeta, setCodeMeta] = useState({ total: 0, per_page: 10, current_page: 1 });
     const [filters, setFilters] = useState({ source: '', category: '', search: '' });
     const [searchInput, setSearchInput] = useState('');
     const [loading, setLoading] = useState(false);
@@ -72,43 +78,67 @@ const AdminPlateCodesPage = () => {
     const [deleteType, setDeleteType] = useState('source');
     const [deleting, setDeleting] = useState(false);
 
+    const loadSourceOptions = useCallback(async () => {
+        const payload = await fetchPlateSources({ per_page: 100 });
+        setSourceOptions(payload.sources ?? []);
+    }, []);
+
     const loadSources = useCallback(async () => {
-        const payload = await fetchPlateSources();
+        const payload = await fetchPlateSources({
+            per_page: sourceMeta.per_page ?? 10,
+            page: sourceMeta.current_page ?? 1,
+        });
         setSources(payload.sources ?? []);
+        setSourceMeta((prev) => ({ ...prev, ...(payload.meta ?? {}) }));
+    }, [sourceMeta.current_page, sourceMeta.per_page]);
+
+    const loadCategoryOptions = useCallback(async (sourceId) => {
+        const payload = await fetchPlateCategories({ plate_source_id: sourceId || undefined, per_page: 100 });
+        setCategoryOptions(payload.categories ?? []);
     }, []);
 
     const loadCategories = useCallback(async () => {
-        const payload = await fetchPlateCategories({ plate_source_id: filters.source || undefined });
+        const payload = await fetchPlateCategories({
+            per_page: categoryMeta.per_page ?? 10,
+            page: categoryMeta.current_page ?? 1,
+            plate_source_id: filters.source || undefined,
+        });
         setCategories(payload.categories ?? []);
-    }, [filters.source]);
+        setCategoryMeta((prev) => ({ ...prev, ...(payload.meta ?? {}) }));
+    }, [categoryMeta.current_page, categoryMeta.per_page, filters.source]);
 
     const loadCodes = useCallback(async () => {
         setLoading(true);
         setError('');
         try {
             const payload = await fetchPlateCodes({
-                per_page: meta.per_page ?? 10,
-                page: meta.current_page ?? 1,
+                per_page: codeMeta.per_page ?? 10,
+                page: codeMeta.current_page ?? 1,
                 plate_source_id: filters.source || undefined,
                 plate_category_id: filters.category || undefined,
                 search: filters.search || undefined,
             });
             setCodes(payload.codes ?? []);
-            setMeta((prev) => ({ ...prev, ...(payload.meta ?? {}) }));
+            setCodeMeta((prev) => ({ ...prev, ...(payload.meta ?? {}) }));
         } catch (err) {
             setError(err.message);
         } finally {
             setLoading(false);
         }
-    }, [filters.category, filters.search, filters.source, meta.current_page, meta.per_page]);
+    }, [codeMeta.current_page, codeMeta.per_page, filters.category, filters.search, filters.source]);
 
     useEffect(() => {
         loadSources();
-    }, [loadSources]);
+        loadSourceOptions();
+    }, [loadSourceOptions, loadSources]);
 
     useEffect(() => {
         loadCategories();
     }, [loadCategories]);
+
+    useEffect(() => {
+        loadCategoryOptions(filters.source);
+    }, [filters.source, loadCategoryOptions]);
 
     useEffect(() => {
         const handler = setTimeout(() => {
@@ -118,8 +148,13 @@ const AdminPlateCodesPage = () => {
     }, [searchInput]);
 
     useEffect(() => {
-        setMeta((prev) => ({ ...prev, current_page: 1 }));
-    }, [filters.category, filters.source, filters.search]);
+        setCategoryMeta((prev) => ({ ...prev, current_page: 1 }));
+        setCodeMeta((prev) => ({ ...prev, current_page: 1 }));
+    }, [filters.source]);
+
+    useEffect(() => {
+        setCodeMeta((prev) => ({ ...prev, current_page: 1 }));
+    }, [filters.category, filters.search]);
 
     useEffect(() => {
         loadCodes();
@@ -157,7 +192,10 @@ const AdminPlateCodesPage = () => {
                     const payload = await createPlateSource({ title: formValues.title });
                     setSources((prev) => [...prev, payload.source]);
                 }
+                await loadSources();
+                await loadSourceOptions();
                 await loadCategories();
+                await loadCategoryOptions(filters.source);
             }
 
             if (formTarget === 'category') {
@@ -169,6 +207,8 @@ const AdminPlateCodesPage = () => {
                     const payload = await createPlateCategory(body);
                     setCategories((prev) => [...prev, payload.category]);
                 }
+                await loadCategories();
+                await loadCategoryOptions(filters.source || formValues.plate_source_id);
                 await loadCodes();
             }
 
@@ -203,18 +243,21 @@ const AdminPlateCodesPage = () => {
         try {
             if (deleteType === 'source') {
                 await deletePlateSource(deleteTarget.id);
-                setSources((prev) => prev.filter((item) => item.id !== deleteTarget.id));
+                await loadSources();
+                await loadSourceOptions();
                 await loadCategories();
+                await loadCategoryOptions(filters.source);
                 await loadCodes();
             }
             if (deleteType === 'category') {
                 await deletePlateCategory(deleteTarget.id);
-                setCategories((prev) => prev.filter((item) => item.id !== deleteTarget.id));
+                await loadCategories();
+                await loadCategoryOptions(filters.source);
                 await loadCodes();
             }
             if (deleteType === 'code') {
                 await deletePlateCode(deleteTarget.id);
-                setCodes((prev) => prev.filter((item) => item.id !== deleteTarget.id));
+                await loadCodes();
             }
         } catch (err) {
             setError(err.message);
@@ -225,19 +268,24 @@ const AdminPlateCodesPage = () => {
     };
 
     const selectedCategories = useMemo(() => {
-        if (!filters.source) return categories;
-        return categories.filter((category) => category.source?.id === Number(filters.source));
-    }, [categories, filters.source]);
+        if (!filters.source) return categoryOptions;
+        return categoryOptions.filter((category) => category.source?.id === Number(filters.source));
+    }, [categoryOptions, filters.source]);
+
+    const formCategories = useMemo(() => {
+        if (!formValues.plate_source_id) return categoryOptions;
+        return categoryOptions.filter((category) => category.source?.id === Number(formValues.plate_source_id));
+    }, [categoryOptions, formValues.plate_source_id]);
 
     return (
         <AdminLayout
-            title="لوحات المركبات"
-            description="إدارة مصادر اللوحات والفئات والأكواد المرتبطة بها"
+            title="Vehicle Plates"
+            description="Manage plate sources, categories, and codes"
             actions={
                 <Stack direction="row" spacing={1}>
-                    <Button variant="contained" onClick={() => openForm('source')}>إضافة مصدر</Button>
-                    <Button variant="outlined" onClick={() => openForm('category')}>إضافة فئة</Button>
-                    <Button variant="outlined" onClick={() => openForm('code')}>إضافة كود</Button>
+                    <Button variant="contained" onClick={() => openForm('source')}>Add Source</Button>
+                    <Button variant="outlined" onClick={() => openForm('category')}>Add Category</Button>
+                    <Button variant="outlined" onClick={() => openForm('code')}>Add Code</Button>
                 </Stack>
             }
         >
@@ -245,7 +293,7 @@ const AdminPlateCodesPage = () => {
                 <Grid item xs={12} md={4}>
                     <Card>
                         <CardContent>
-                            <SectionHeader title="المصادر" action={null} />
+                            <SectionHeader title="Sources" action={null} />
                             <Stack spacing={1}>
                                 {sources.map((source) => (
                                     <Stack
@@ -275,10 +323,21 @@ const AdminPlateCodesPage = () => {
                                 ))}
                                 {sources.length === 0 && (
                                     <Typography color="text.secondary" textAlign="center">
-                                        لا توجد مصادر بعد.
+                                        No sources found.
                                     </Typography>
                                 )}
                             </Stack>
+                            <TablePagination
+                                component="div"
+                                count={sourceMeta.total ?? 0}
+                                page={(sourceMeta.current_page ?? 1) - 1}
+                                onPageChange={(_e, page) => setSourceMeta((prev) => ({ ...prev, current_page: page + 1 }))}
+                                rowsPerPage={sourceMeta.per_page ?? 10}
+                                onRowsPerPageChange={(e) =>
+                                    setSourceMeta({ ...sourceMeta, per_page: parseInt(e.target.value, 10), current_page: 1 })
+                                }
+                                rowsPerPageOptions={[5, 10, 25, 50]}
+                            />
                         </CardContent>
                     </Card>
                 </Grid>
@@ -286,7 +345,7 @@ const AdminPlateCodesPage = () => {
                 <Grid item xs={12} md={4}>
                     <Card>
                         <CardContent>
-                            <SectionHeader title="الفئات" action={null} />
+                            <SectionHeader title="Categories" action={null} />
                             <Stack spacing={1}>
                                 {categories.map((category) => (
                                     <Stack
@@ -321,10 +380,23 @@ const AdminPlateCodesPage = () => {
                                 ))}
                                 {categories.length === 0 && (
                                     <Typography color="text.secondary" textAlign="center">
-                                        لا توجد فئات بعد.
+                                        No categories found.
                                     </Typography>
                                 )}
                             </Stack>
+                            <TablePagination
+                                component="div"
+                                count={categoryMeta.total ?? 0}
+                                page={(categoryMeta.current_page ?? 1) - 1}
+                                onPageChange={(_e, page) =>
+                                    setCategoryMeta((prev) => ({ ...prev, current_page: page + 1 }))
+                                }
+                                rowsPerPage={categoryMeta.per_page ?? 10}
+                                onRowsPerPageChange={(e) =>
+                                    setCategoryMeta({ ...categoryMeta, per_page: parseInt(e.target.value, 10), current_page: 1 })
+                                }
+                                rowsPerPageOptions={[5, 10, 25, 50]}
+                            />
                         </CardContent>
                     </Card>
                 </Grid>
@@ -332,27 +404,27 @@ const AdminPlateCodesPage = () => {
                 <Grid item xs={12} md={4}>
                     <Card>
                         <CardContent>
-                            <SectionHeader title="الأكواد" action={null} />
+                            <SectionHeader title="Codes" action={null} />
                             <Stack spacing={2} mb={2}>
                                 <TextField
-                                    label="بحث"
+                                    label="Search"
                                     size="small"
                                     value={searchInput}
                                     onChange={(e) => setSearchInput(e.target.value)}
-                                    placeholder="ابحث عن الكود"
+                                    placeholder="Search codes"
                                 />
                                 <TextField
                                     select
                                     size="small"
-                                    label="المصدر"
+                                    label="Source"
                                     value={filters.source}
                                     onChange={(e) => {
                                         const value = e.target.value;
                                         setFilters((prev) => ({ ...prev, source: value, category: '' }));
                                     }}
                                 >
-                                    <MenuItem value="">الكل</MenuItem>
-                                    {sources.map((source) => (
+                                    <MenuItem value="">All</MenuItem>
+                                    {sourceOptions.map((source) => (
                                         <MenuItem key={source.id} value={source.id}>
                                             {source.title}
                                         </MenuItem>
@@ -361,12 +433,12 @@ const AdminPlateCodesPage = () => {
                                 <TextField
                                     select
                                     size="small"
-                                    label="الفئة"
+                                    label="Category"
                                     value={filters.category}
                                     onChange={(e) => setFilters((prev) => ({ ...prev, category: e.target.value }))}
                                     disabled={selectedCategories.length === 0}
                                 >
-                                    <MenuItem value="">الكل</MenuItem>
+                                    <MenuItem value="">All</MenuItem>
                                     {selectedCategories.map((category) => (
                                         <MenuItem key={category.id} value={category.id}>
                                             {category.title}
@@ -384,10 +456,10 @@ const AdminPlateCodesPage = () => {
                             <Table size="small">
                                 <TableHead>
                                     <TableRow>
-                                        <TableCell>الكود</TableCell>
-                                        <TableCell>الفئة</TableCell>
-                                        <TableCell>المصدر</TableCell>
-                                        <TableCell align="right">إجراءات</TableCell>
+                                        <TableCell>Code</TableCell>
+                                        <TableCell>Category</TableCell>
+                                        <TableCell>Source</TableCell>
+                                        <TableCell align="right">Actions</TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
@@ -416,7 +488,7 @@ const AdminPlateCodesPage = () => {
                                     {codes.length === 0 && (
                                         <TableRow>
                                             <TableCell colSpan={4} align="center" sx={{ py: 3 }}>
-                                                {loading ? 'جاري التحميل...' : 'لا توجد أكواد بعد.'}
+                                                {loading ? 'Loading...' : 'No codes found.'}
                                             </TableCell>
                                         </TableRow>
                                     )}
@@ -424,12 +496,12 @@ const AdminPlateCodesPage = () => {
                             </Table>
                             <TablePagination
                                 component="div"
-                                count={meta.total ?? 0}
-                                page={(meta.current_page ?? 1) - 1}
-                                onPageChange={(_e, page) => setMeta((prev) => ({ ...prev, current_page: page + 1 }))}
-                                rowsPerPage={meta.per_page ?? 10}
+                                count={codeMeta.total ?? 0}
+                                page={(codeMeta.current_page ?? 1) - 1}
+                                onPageChange={(_e, page) => setCodeMeta((prev) => ({ ...prev, current_page: page + 1 }))}
+                                rowsPerPage={codeMeta.per_page ?? 10}
                                 onRowsPerPageChange={(e) =>
-                                    setMeta({ ...meta, per_page: parseInt(e.target.value, 10), current_page: 1 })
+                                    setCodeMeta({ ...codeMeta, per_page: parseInt(e.target.value, 10), current_page: 1 })
                                 }
                                 rowsPerPageOptions={[5, 10, 25, 50]}
                             />
@@ -442,32 +514,33 @@ const AdminPlateCodesPage = () => {
                 <DialogTitle>
                     {formTarget === 'source'
                         ? formValues.id
-                            ? 'تعديل مصدر'
-                            : 'إضافة مصدر'
+                            ? 'Edit Source'
+                            : 'Add Source'
                         : formTarget === 'category'
                             ? formValues.id
-                                ? 'تعديل فئة'
-                                : 'إضافة فئة'
+                                ? 'Edit Category'
+                                : 'Add Category'
                             : formValues.id
-                                ? 'تعديل كود'
-                                : 'إضافة كود'}
+                                ? 'Edit Code'
+                                : 'Add Code'}
                 </DialogTitle>
                 <DialogContent dividers>
                     <Stack spacing={2} mt={1}>
                         {(formTarget === 'category' || formTarget === 'code') && (
                             <TextField
                                 select
-                                label="المصدر"
+                                label="Source"
                                 value={formValues.plate_source_id}
                                 onChange={(e) => {
                                     const value = e.target.value;
                                     setFormValues((prev) => ({ ...prev, plate_source_id: value, plate_category_id: '' }));
+                                    loadCategoryOptions(value);
                                 }}
                                 error={Boolean(formErrors.plate_source_id)}
                                 helperText={formErrors.plate_source_id?.[0]}
                             >
-                                <MenuItem value="">اختر المصدر</MenuItem>
-                                {sources.map((source) => (
+                                <MenuItem value="">Select source</MenuItem>
+                                {sourceOptions.map((source) => (
                                     <MenuItem key={source.id} value={source.id}>
                                         {source.title}
                                     </MenuItem>
@@ -478,30 +551,24 @@ const AdminPlateCodesPage = () => {
                         {formTarget === 'code' && (
                             <TextField
                                 select
-                                label="الفئة"
+                                label="Category"
                                 value={formValues.plate_category_id}
                                 onChange={(e) => setFormValues((prev) => ({ ...prev, plate_category_id: e.target.value }))}
                                 error={Boolean(formErrors.plate_category_id)}
                                 helperText={formErrors.plate_category_id?.[0]}
                                 disabled={!formValues.plate_source_id}
                             >
-                                <MenuItem value="">اختر الفئة</MenuItem>
-                                {categories
-                                    .filter((category) =>
-                                        formValues.plate_source_id
-                                            ? category.source?.id === Number(formValues.plate_source_id)
-                                            : true
-                                    )
-                                    .map((category) => (
-                                        <MenuItem key={category.id} value={category.id}>
-                                            {category.title}
-                                        </MenuItem>
-                                    ))}
+                                <MenuItem value="">Select category</MenuItem>
+                                {formCategories.map((category) => (
+                                    <MenuItem key={category.id} value={category.id}>
+                                        {category.title}
+                                    </MenuItem>
+                                ))}
                             </TextField>
                         )}
 
                         <TextField
-                            label="العنوان"
+                            label="Title"
                             value={formValues.title}
                             onChange={(e) => setFormValues((prev) => ({ ...prev, title: e.target.value }))}
                             error={Boolean(formErrors.title)}
@@ -510,17 +577,17 @@ const AdminPlateCodesPage = () => {
                     </Stack>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setFormOpen(false)}>إلغاء</Button>
+                    <Button onClick={() => setFormOpen(false)}>Cancel</Button>
                     <Button variant="contained" onClick={handleSave} disabled={saving}>
-                        {saving ? 'جاري الحفظ...' : 'حفظ'}
+                        {saving ? 'Saving...' : 'Save'}
                     </Button>
                 </DialogActions>
             </Dialog>
 
             <ConfirmDialog
                 open={Boolean(deleteTarget)}
-                title="تأكيد الحذف"
-                description="سيتم حذف هذا السجل بشكل نهائي."
+                title="Confirm deletion"
+                description="This record will be deleted permanently."
                 onCancel={() => setDeleteTarget(null)}
                 onConfirm={handleDelete}
                 loading={deleting}

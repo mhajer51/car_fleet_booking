@@ -13,6 +13,9 @@ class PlateCategoryController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
+        $perPage = (int) $request->integer('per_page', 15);
+        $perPage = $perPage > 0 ? min($perPage, 100) : 15;
+
         $search = trim((string) $request->query('search', ''));
         $sourceId = $request->query('plate_source_id');
 
@@ -26,7 +29,9 @@ class PlateCategoryController extends Controller
             $query->where('title', 'like', "%{$search}%");
         }
 
-        $categories = $query->orderBy('title')->get()->map(function (PlateCategory $category) {
+        $paginator = $query->orderBy('title')->paginate($perPage);
+
+        $categories = $paginator->getCollection()->map(function (PlateCategory $category) {
             return [
                 'id' => $category->id,
                 'title' => $category->title,
@@ -37,7 +42,15 @@ class PlateCategoryController extends Controller
             ];
         });
 
-        return apiResponse('Plate categories fetched successfully.', ['categories' => $categories]);
+        return apiResponse('Plate categories fetched successfully.', [
+            'categories' => $categories,
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'last_page' => $paginator->lastPage(),
+            ],
+        ]);
     }
 
     public function store(PlateCategoryStoreRequest $request): JsonResponse

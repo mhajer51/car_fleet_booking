@@ -13,6 +13,9 @@ class PlateSourceController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
+        $perPage = (int) $request->integer('per_page', 15);
+        $perPage = $perPage > 0 ? min($perPage, 100) : 15;
+
         $search = trim((string) $request->query('search', ''));
 
         $query = PlateSource::query();
@@ -21,14 +24,24 @@ class PlateSourceController extends Controller
             $query->where('title', 'like', "%{$search}%");
         }
 
-        $sources = $query->orderBy('title')->get()->map(function (PlateSource $source) {
+        $paginator = $query->orderBy('title')->paginate($perPage);
+
+        $sources = $paginator->getCollection()->map(function (PlateSource $source) {
             return [
                 'id' => $source->id,
                 'title' => $source->title,
             ];
         });
 
-        return apiResponse('Plate sources fetched successfully.', ['sources' => $sources]);
+        return apiResponse('Plate sources fetched successfully.', [
+            'sources' => $sources,
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'last_page' => $paginator->lastPage(),
+            ],
+        ]);
     }
 
     public function store(PlateSourceStoreRequest $request): JsonResponse
