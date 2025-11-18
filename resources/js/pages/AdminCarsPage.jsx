@@ -29,6 +29,7 @@ import {
 } from '@mui/material';
 import AdminLayout from '../components/AdminLayout.jsx';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
+import { searchViolationsByPlate } from '../services/violations.js';
 import {
     createAdminCar,
     deleteAdminCar,
@@ -83,6 +84,35 @@ const buildViolationSearchUrl = (car) => {
     return `https://ums.rta.ae/violations/public-fines/fines-search?${query.toString()}`;
 };
 
+const extractViolations = (payload) => {
+    const data = payload?.data ?? payload ?? {};
+
+    if (Array.isArray(data)) return data;
+
+    const candidates = [
+        data.violations,
+        data.fines,
+        data.results,
+        data.items,
+        data.data,
+    ];
+
+    for (const candidate of candidates) {
+        if (Array.isArray(candidate)) return candidate;
+        if (candidate?.items && Array.isArray(candidate.items)) return candidate.items;
+    }
+
+    return [];
+};
+
+const resolveField = (violation, keys, fallback = '—') => {
+    for (const key of keys) {
+        if (violation?.[key]) return violation[key];
+    }
+
+    return fallback;
+};
+
 const AdminCarsPage = () => {
     const [cars, setCars] = useState([]);
     const [meta, setMeta] = useState({ total: 0 });
@@ -114,6 +144,15 @@ const AdminCarsPage = () => {
     const [statusUpdatingId, setStatusUpdatingId] = useState(null);
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [deleting, setDeleting] = useState(false);
+
+    const [violationsState, setViolationsState] = useState({
+        open: false,
+        loading: false,
+        error: '',
+        car: null,
+        results: [],
+        raw: null,
+    });
 
     const [sourceOptions, setSourceOptions] = useState([]);
     const [categoryOptions, setCategoryOptions] = useState([]);
@@ -390,9 +429,53 @@ const AdminCarsPage = () => {
         setDeleting(false);
     };
 
-    const handleCheckViolations = (car) => {
-        const url = buildViolationSearchUrl(car);
-        window.open(url, '_blank', 'noopener,noreferrer');
+    const handleCheckViolations = async (car) => {
+        if (!car) return;
+
+        setViolationsState({
+            open: true,
+            loading: true,
+            error: '',
+            car,
+            results: [],
+            raw: null,
+        });
+
+        try {
+            const payload = {
+                plateNumber: car.number,
+                plateSource: car.plate_source?.title,
+                plateCategory: car.plate_category?.title,
+                plateCode: car.plate_code?.title,
+            };
+
+            const response = await searchViolationsByPlate(payload);
+            const normalized = extractViolations(response);
+
+            setViolationsState((prev) => ({
+                ...prev,
+                loading: false,
+                results: normalized,
+                raw: response,
+            }));
+        } catch (err) {
+            setViolationsState((prev) => ({
+                ...prev,
+                loading: false,
+                error: err.message || 'Unable to fetch violations right now.',
+            }));
+        }
+    };
+
+    const closeViolationsDialog = () => {
+        setViolationsState({
+            open: false,
+            loading: false,
+            error: '',
+            car: null,
+            results: [],
+            raw: null,
+        });
     };
 
     const handleDelete = async () => {
@@ -750,6 +833,115 @@ const AdminCarsPage = () => {
                     <Button variant="contained" onClick={handleFormSubmit} disabled={saving}>
                         {formMode === 'create' ? 'Add vehicle' : 'Save changes'}
                     </Button>
+                </DialogActions>
+            </Dialog>
+
+            <Dialog
+                open={violationsState.open}
+                onClose={closeViolationsDialog}
+                fullWidth
+                maxWidth="md"
+            >
+                <DialogTitle>
+                    {violationsState.car
+                        ? `Violations for ${violationsState.car.name || violationsState.car.number}`
+                        : 'Violations'}
+                </DialogTitle>
+                <DialogContent dividers>
+                    <Stack spacing={2}>
+                        {violationsState.error && <Alert severity="error">{violationsState.error}</Alert>}
+
+                        {violationsState.loading ? (
+                            <Stack alignItems="center" py={4} spacing={1}>
+                                <CircularProgress size={28} />
+                                <Typography variant="body2" color="text.secondary">
+                                    Fetching violations…
+                                </Typography>
+                            </Stack>
+                        ) : violationsState.results.length ? (
+                            <Table size="small">
+                                <TableHead>
+                                    <TableRow>
+                                        <TableCell>Reference</TableCell>
+                                        <TableCell>Date</TableCell>
+                                        <TableCell>Description</TableCell>
+                                        <TableCell>Amount</TableCell>
+                                        <TableCell>Status</TableCell>
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    {violationsState.results.map((violation, index) => {
+                                        const reference = resolveField(violation, [
+                                            'ticketNumber',
+                                            'fineNumber',
+                                            'referenceNumber',
+                                            'violationNumber',
+                                            'trafficNo',
+                                            'id',
+                                        ]);
+                                        const date = resolveField(violation, [
+                                            'violationDate',
+                                            'issueDate',
+                                            'offenceDate',
+                                            'date',
+                                            'createdAt',
+                                        ]);
+                                        const description = resolveField(violation, [
+                                            'description',
+                                            'offence',
+                                            'offenceDescription',
+                                            'remarks',
+                                            'fineName',
+                                        ]);
+                                        const amount = resolveField(violation, [
+                                            'amount',
+                                            'fineAmount',
+                                            'totalAmount',
+                                            'dueAmount',
+                                            'value',
+                                        ]);
+                                        const status = resolveField(violation, [
+                                            'status',
+                                            'state',
+                                            'violationStatus',
+                                            'paymentStatus',
+                                        ]);
+
+                                        return (
+                                            <TableRow key={reference || `violation-${index}`}>
+                                                <TableCell>{reference}</TableCell>
+                                                <TableCell>{date}</TableCell>
+                                                <TableCell>
+                                                    <Typography variant="body2" color="text.primary">
+                                                        {description}
+                                                    </Typography>
+                                                </TableCell>
+                                                <TableCell>{amount}</TableCell>
+                                                <TableCell>{status}</TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
+                                </TableBody>
+                            </Table>
+                        ) : (
+                            <Typography variant="body2" color="text.secondary">
+                                No violations were found for this plate.
+                            </Typography>
+                        )}
+                    </Stack>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={closeViolationsDialog}>Close</Button>
+                    {violationsState.car && (
+                        <Button
+                            component="a"
+                            href={buildViolationSearchUrl(violationsState.car)}
+                            target="_blank"
+                            rel="noreferrer noopener"
+                        >
+                            Open RTA site
+                        </Button>
+                    )}
                 </DialogActions>
             </Dialog>
 
