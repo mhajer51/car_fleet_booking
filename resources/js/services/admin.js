@@ -53,6 +53,31 @@ export const deleteAdminCar = (carId) =>
         .delete(`/admin/cars/${carId}`)
         .then((response) => response.data?.data ?? response.data);
 
+export const fetchAdminSponsors = (params = {}) =>
+    http
+        .get('/admin/sponsors', { params })
+        .then((response) => response.data?.data ?? response.data);
+
+export const createAdminSponsor = (payload) =>
+    http
+        .post('/admin/sponsors', payload)
+        .then((response) => response.data?.data ?? response.data);
+
+export const updateAdminSponsor = (sponsorId, payload) =>
+    http
+        .put(`/admin/sponsors/${sponsorId}`, payload)
+        .then((response) => response.data?.data ?? response.data);
+
+export const updateAdminSponsorStatus = (sponsorId, payload) =>
+    http
+        .patch(`/admin/sponsors/${sponsorId}/status`, payload)
+        .then((response) => response.data?.data ?? response.data);
+
+export const deleteAdminSponsor = (sponsorId) =>
+    http
+        .delete(`/admin/sponsors/${sponsorId}`)
+        .then((response) => response.data?.data ?? response.data);
+
 export const fetchPlateSources = (params = {}) =>
     http
         .get('/admin/plates/sources', { params })

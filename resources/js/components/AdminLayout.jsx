@@ -18,6 +18,7 @@ const NAV_LINKS = [
     { label: 'Users', href: '/admin/users', icon: '👥' },
     { label: 'Drivers', href: '/admin/drivers', icon: '🧑‍✈️' },
     { label: 'Cars', href: '/admin/cars', icon: '🚗' },
+    { label: 'Sponsors', href: '/admin/sponsors', icon: '🤝' },
     { label: 'Plates', href: '/admin/plates', icon: '🔖' },
     { label: 'Bookings', href: '/admin/bookings', icon: '📅' },
     { label: 'Profile', href: '/admin/profile', icon: '👤' },
