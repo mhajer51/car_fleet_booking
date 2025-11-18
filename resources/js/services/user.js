@@ -35,6 +35,15 @@ export const fetchUserCars = (params = {}) =>
 export const createUserCar = (payload) =>
     http.post('/user/cars', payload).then((response) => unwrap(response));
 
+export const fetchPlateSources = (params = {}) =>
+    http.get('/user/plates/sources', { params }).then((response) => unwrap(response));
+
+export const fetchPlateCategories = (params = {}) =>
+    http.get('/user/plates/categories', { params }).then((response) => unwrap(response));
+
+export const fetchPlateCodes = (params = {}) =>
+    http.get('/user/plates/codes', { params }).then((response) => unwrap(response));
+
 export const fetchUserDrivers = (params = {}) =>
     http.get('/user/drivers', { params }).then((response) => unwrap(response));
 

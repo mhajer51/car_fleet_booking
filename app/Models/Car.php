@@ -17,6 +17,9 @@ class Car extends Model
         'model',
         'color',
         'number',
+        'plate_source_id',
+        'plate_category_id',
+        'plate_code_id',
         'emirate',
         'notes',
         'is_active',
@@ -29,6 +32,21 @@ class Car extends Model
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class);
+    }
+
+    public function plateSource()
+    {
+        return $this->belongsTo(PlateSource::class);
+    }
+
+    public function plateCategory()
+    {
+        return $this->belongsTo(PlateCategory::class);
+    }
+
+    public function plateCode()
+    {
+        return $this->belongsTo(PlateCode::class);
     }
 
     public function activeBookings(): HasMany

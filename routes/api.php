@@ -5,6 +5,7 @@ use App\Http\Controllers\Portal\OverviewController as PortalOverviewController;
 use App\Http\Controllers\User\AuthController as UserAuthController;
 use App\Http\Controllers\User\BookingController;
 use App\Http\Controllers\User\CarController;
+use App\Http\Controllers\User\PlateController;
 use App\Http\Controllers\User\DriverController;
 use App\Http\Controllers\User\ProfileController;
 use App\Models\User;
@@ -32,6 +33,12 @@ Route::prefix('user')->group(function (): void {
         Route::get('bookings/available/users', [BookingController::class, 'availableUsers']);
         Route::get('bookings/available/cars', [BookingController::class, 'availableCars']);
         Route::get('bookings/available/drivers', [BookingController::class, 'availableDrivers']);
+
+        Route::prefix('plates')->group(function (): void {
+            Route::get('sources', [PlateController::class, 'sources']);
+            Route::get('categories', [PlateController::class, 'categories']);
+            Route::get('codes', [PlateController::class, 'codes']);
+        });
 
         Route::get('cars', [CarController::class, 'index']);
         Route::post('cars', [CarController::class, 'store']);

@@ -23,6 +23,21 @@ class AdminCarUpdateRequest extends FormRequest
             'model' => ['sometimes', 'string', 'max:255'],
             'color' => ['sometimes', 'string', 'max:255'],
             'number' => ['sometimes', 'string', 'max:255', Rule::unique('cars', 'number')->ignore($carId)],
+            'plate_source_id' => ['sometimes', 'integer', 'exists:plate_sources,id'],
+            'plate_category_id' => [
+                'sometimes',
+                'integer',
+                Rule::exists('plate_categories', 'id')->where(
+                    fn ($query) => $query->where('plate_source_id', $this->input('plate_source_id', $this->route('car')?->plate_source_id))
+                ),
+            ],
+            'plate_code_id' => [
+                'sometimes',
+                'integer',
+                Rule::exists('plate_codes', 'id')->where(
+                    fn ($query) => $query->where('plate_category_id', $this->input('plate_category_id', $this->route('car')?->plate_category_id))
+                ),
+            ],
             'emirate' => [
                 'sometimes',
                 'string',

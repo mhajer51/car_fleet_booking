@@ -21,7 +21,9 @@ class CarController extends Controller
         $status = $request->query('status');
         $isActive = $request->query('is_active');
 
-        $query = Car::query()->withCount('activeBookings');
+        $query = Car::query()
+            ->with(['plateSource', 'plateCategory', 'plateCode'])
+            ->withCount('activeBookings');
 
         if ($search !== '') {
             $query->where(function ($builder) use ($search): void {
@@ -74,6 +76,9 @@ class CarController extends Controller
                 'model' => $data['model'],
                 'color' => $data['color'],
                 'number' => $data['number'],
+                'plate_source_id' => $data['plate_source_id'],
+                'plate_category_id' => $data['plate_category_id'],
+                'plate_code_id' => $data['plate_code_id'],
                 'emirate' => $data['emirate'],
                 'notes' => $data['notes'] ?? null,
                 'is_active' => $data['is_active'] ?? true,
@@ -88,7 +93,7 @@ class CarController extends Controller
             throw $exception;
         }
 
-        $car = $this->transformCar($car, 0);
+        $car = $this->transformCar($car->load(['plateSource', 'plateCategory', 'plateCode']), 0);
 
         return apiResponse('Car created successfully.', compact('car'));
     }
@@ -126,6 +131,12 @@ class CarController extends Controller
             'color' => $car->color,
             'number' => $car->number,
             'emirate' => $car->emirate,
+            'plate_source_id' => $car->plate_source_id,
+            'plate_category_id' => $car->plate_category_id,
+            'plate_code_id' => $car->plate_code_id,
+            'plate_source' => $car->plateSource?->only(['id', 'title']),
+            'plate_category' => $car->plateCategory?->only(['id', 'title']),
+            'plate_code' => $car->plateCode?->only(['id', 'title']),
             'notes' => $car->notes,
             'status' => $isBooked ? 'booked' : 'available',
             'is_active' => $car->is_active,

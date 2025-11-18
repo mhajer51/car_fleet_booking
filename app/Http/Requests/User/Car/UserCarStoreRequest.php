@@ -21,6 +21,21 @@ class UserCarStoreRequest extends FormRequest
             'model' => ['required', 'string', 'max:255'],
             'color' => ['required', 'string', 'max:255'],
             'number' => ['required', 'string', 'max:255', 'unique:cars,number'],
+            'plate_source_id' => ['required', 'integer', 'exists:plate_sources,id'],
+            'plate_category_id' => [
+                'required',
+                'integer',
+                Rule::exists('plate_categories', 'id')->where(
+                    fn ($query) => $query->where('plate_source_id', $this->input('plate_source_id'))
+                ),
+            ],
+            'plate_code_id' => [
+                'required',
+                'integer',
+                Rule::exists('plate_codes', 'id')->where(
+                    fn ($query) => $query->where('plate_category_id', $this->input('plate_category_id'))
+                ),
+            ],
             'emirate' => [
                 'required',
                 'string',
