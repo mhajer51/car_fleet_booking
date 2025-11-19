@@ -163,7 +163,11 @@ const UserLayout = ({ title, description, actions, children }) => {
                     ModalProps={{ keepMounted: true }}
                     sx={{
                         display: { xs: 'block', md: 'none' },
-                        '& .MuiDrawer-paper': { width: drawerWidth, borderRight: 'none' },
+                        '& .MuiDrawer-paper': {
+                            width: { xs: '100vw', sm: drawerWidth },
+                            maxWidth: drawerWidth,
+                            borderRight: 'none',
+                        },
                     }}
                 >
                     {drawerContent}
