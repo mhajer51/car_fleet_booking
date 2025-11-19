@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\PlateSourceController as AdminPlateSourceControll
 use App\Http\Controllers\Admin\ProfileController as AdminProfileController;
 use App\Http\Controllers\Admin\SponsorController as AdminSponsorController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Admin\ViolationController as AdminViolationController;
 use App\Models\Admin;
 use Illuminate\Support\Facades\Route;
 
@@ -72,6 +73,8 @@ Route::prefix('admin')->group(function (): void {
             Route::put('codes/{plate_code}', [AdminPlateCodeController::class, 'update'])->name('plates.codes.update');
             Route::delete('codes/{plate_code}', [AdminPlateCodeController::class, 'destroy'])->name('plates.codes.destroy');
         });
+
+        Route::post('violations/search', [AdminViolationController::class, 'search'])->name('violations.search');
 
         Route::prefix('bookings')->group(function (): void {
             Route::get('/', [AdminBookingController::class, 'index'])->name('bookings.index');
