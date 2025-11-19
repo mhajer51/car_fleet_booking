@@ -40,18 +40,6 @@ const activeTone = {
     false: { bg: 'rgba(248,113,113,.12)', color: '#b91c1c', label: 'Disabled' },
 };
 
-const emirateOptions = [
-    { value: 'dubai', label: 'Dubai' },
-    { value: 'abu_dhabi', label: 'Abu Dhabi' },
-    { value: 'sharjah', label: 'Sharjah' },
-    { value: 'ajman', label: 'Ajman' },
-    { value: 'umm_al_quwain', label: 'Umm Al Quwain' },
-    { value: 'ras_al_khaimah', label: 'Ras Al Khaimah' },
-    { value: 'fujairah', label: 'Fujairah' },
-];
-
-const getEmirateLabel = (value) => emirateOptions.find((option) => option.value === value)?.label ?? value;
-
 const badge = ({ bg, color, label }) => (
     <Chip
         label={label}
@@ -86,7 +74,6 @@ const UserCarsPage = () => {
         plate_source_id: '',
         plate_category_id: '',
         plate_code_id: '',
-        emirate: 'dubai',
         notes: '',
         is_active: true,
     });
@@ -214,7 +201,6 @@ const UserCarsPage = () => {
             plate_source_id: '',
             plate_category_id: '',
             plate_code_id: '',
-            emirate: 'dubai',
             notes: '',
             is_active: true,
         });
@@ -280,10 +266,6 @@ const UserCarsPage = () => {
 
         if (!formValues.plate_code_id) {
             errors.plate_code_id = ['Select a plate code.'];
-        }
-
-        if (!formValues.emirate) {
-            errors.emirate = ['Select the vehicle emirate.'];
         }
 
         return errors;
@@ -396,7 +378,6 @@ const UserCarsPage = () => {
                                     <TableCell>Model</TableCell>
                                     <TableCell>Color</TableCell>
                                     <TableCell>Number</TableCell>
-                                    <TableCell>Emirate</TableCell>
                                     <TableCell>Notes</TableCell>
                                     <TableCell>Statuses</TableCell>
                                 </TableRow>
@@ -404,7 +385,7 @@ const UserCarsPage = () => {
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={7} align="center">
+                                        <TableCell colSpan={6} align="center">
                                             <Stack alignItems="center" py={3} spacing={1}>
                                                 <CircularProgress size={24} />
                                                 <Typography variant="body2" color="text.secondary">
@@ -422,7 +403,6 @@ const UserCarsPage = () => {
                                             <TableCell>
                                                 <Typography fontWeight={600}>{car.number}</Typography>
                                             </TableCell>
-                                            <TableCell>{getEmirateLabel(car.emirate)}</TableCell>
                                             <TableCell sx={{ maxWidth: 240 }}>
                                                 <Typography variant="body2" color="text.secondary" noWrap>
                                                     {car.notes || '—'}
@@ -436,7 +416,7 @@ const UserCarsPage = () => {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={7} align="center">
+                                        <TableCell colSpan={6} align="center">
                                             <Typography variant="body2" color="text.secondary">
                                                 No vehicles match the current filters.
                                             </Typography>
@@ -565,27 +545,6 @@ const UserCarsPage = () => {
                             {formErrors.plate_code_id && (
                                 <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1 }}>
                                     {formErrors.plate_code_id?.[0] || formErrors.plate_code_id}
-                                </Typography>
-                            )}
-                        </FormControl>
-                        <FormControl fullWidth error={!!formErrors.emirate}>
-                            <InputLabel id="car-emirate-select">Emirate</InputLabel>
-                            <Select
-                                labelId="car-emirate-select"
-                                label="Emirate"
-                                value={formValues.emirate}
-                                onChange={handleFormChange('emirate')}
-                                required
-                            >
-                                {emirateOptions.map((option) => (
-                                    <MenuItem key={option.value} value={option.value}>
-                                        {option.label}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                            {formErrors.emirate && (
-                                <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1 }}>
-                                    {formErrors.emirate?.[0] || formErrors.emirate}
                                 </Typography>
                             )}
                         </FormControl>
