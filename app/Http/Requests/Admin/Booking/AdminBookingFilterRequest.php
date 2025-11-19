@@ -28,6 +28,42 @@ class AdminBookingFilterRequest extends FormRequest
         ];
     }
 
+    protected function prepareForValidation(): void
+    {
+        if (!$this->has('is_approved')) {
+            return;
+        }
+
+        $value = $this->input('is_approved');
+
+        if ($value === null || $value === '') {
+            $this->request->remove('is_approved');
+            return;
+        }
+
+        if (is_bool($value)) {
+            return;
+        }
+
+        if (is_string($value)) {
+            $normalized = strtolower($value);
+
+            if (in_array($normalized, ['approved', 'true', '1', 'yes'], true)) {
+                $this->merge(['is_approved' => true]);
+                return;
+            }
+
+            if (in_array($normalized, ['pending', 'false', '0', 'no'], true)) {
+                $this->merge(['is_approved' => false]);
+                return;
+            }
+        }
+
+        if (is_numeric($value)) {
+            $this->merge(['is_approved' => (bool) (int) $value]);
+        }
+    }
+
 
     protected function failedValidation(Validator $validator)
     {
