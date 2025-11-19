@@ -21,6 +21,13 @@ class UserCarStoreRequest extends FormRequest
             'model' => ['required', 'string', 'max:255'],
             'color' => ['required', 'string', 'max:255'],
             'number' => ['required', 'string', 'max:255', 'unique:cars,number'],
+            'is_company_owned' => ['sometimes', 'boolean'],
+            'sponsor_id' => [
+                Rule::requiredIf(fn () => $this->isSponsored()),
+                'nullable',
+                'integer',
+                'exists:sponsors,id',
+            ],
             'plate_source_id' => ['required', 'integer', 'exists:plate_sources,id'],
             'plate_category_id' => [
                 'required',
@@ -73,5 +80,17 @@ class UserCarStoreRequest extends FormRequest
         throw new HttpResponseException(
             apiResponse('Validation failed', $errors->toArray(), 422)
         );
+    }
+
+    private function isSponsored(): bool
+    {
+        $value = $this->input('is_company_owned', true);
+        $boolean = filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+
+        if (is_null($boolean)) {
+            return false;
+        }
+
+        return $boolean === false;
     }
 }

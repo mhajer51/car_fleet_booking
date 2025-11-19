@@ -23,6 +23,13 @@ class AdminCarUpdateRequest extends FormRequest
             'model' => ['sometimes', 'string', 'max:255'],
             'color' => ['sometimes', 'string', 'max:255'],
             'number' => ['sometimes', 'string', 'max:255', Rule::unique('cars', 'number')->ignore($carId)],
+            'is_company_owned' => ['sometimes', 'boolean'],
+            'sponsor_id' => [
+                Rule::requiredIf(fn () => $this->isSponsored()),
+                'nullable',
+                'integer',
+                'exists:sponsors,id',
+            ],
             'plate_source_id' => ['sometimes', 'integer', 'exists:plate_sources,id'],
             'plate_category_id' => [
                 'sometimes',
@@ -73,5 +80,17 @@ class AdminCarUpdateRequest extends FormRequest
         throw new HttpResponseException(
             apiResponse('Validation failed', $errors->toArray(), 422)
         );
+    }
+
+    private function isSponsored(): bool
+    {
+        $value = $this->input('is_company_owned', $this->route('car')?->is_company_owned ?? true);
+        $boolean = filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+
+        if (is_null($boolean)) {
+            return false;
+        }
+
+        return $boolean === false;
     }
 }

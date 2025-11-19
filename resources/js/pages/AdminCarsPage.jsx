@@ -26,6 +26,7 @@ import {
     TextField,
     Typography,
     Switch, IconButton,
+    Checkbox,
 } from '@mui/material';
 import AdminLayout from '../components/AdminLayout.jsx';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
@@ -34,6 +35,7 @@ import {
     createAdminCar,
     deleteAdminCar,
     fetchAdminCars,
+    fetchAdminSponsors,
     fetchPlateCategories,
     fetchPlateCodes,
     fetchPlateSources,
@@ -51,6 +53,11 @@ const statusTone = {
 const activeTone = {
     true: { bg: 'rgba(16,185,129,.12)', color: '#0f766e', label: 'Enabled' },
     false: { bg: 'rgba(248,113,113,.12)', color: '#b91c1c', label: 'Disabled' },
+};
+
+const ownershipTone = {
+    company: { bg: 'rgba(96,165,250,.18)', color: '#1d4ed8', label: 'In-house vehicle' },
+    sponsor: { bg: 'rgba(196,181,253,.24)', color: '#5b21b6', label: 'Sponsored vehicle' },
 };
 
 const emirateOptions = [
@@ -157,8 +164,11 @@ const AdminCarsPage = () => {
     const [sourceOptions, setSourceOptions] = useState([]);
     const [categoryOptions, setCategoryOptions] = useState([]);
     const [codeOptions, setCodeOptions] = useState([]);
+    const [sponsorOptions, setSponsorOptions] = useState([]);
     const [loadingCategories, setLoadingCategories] = useState(false);
     const [loadingCodes, setLoadingCodes] = useState(false);
+    const [loadingSponsors, setLoadingSponsors] = useState(false);
+    const [sponsorError, setSponsorError] = useState('');
 
     const totalRecords = meta?.total ?? 0;
 
@@ -205,6 +215,20 @@ const AdminCarsPage = () => {
         }
     }, []);
 
+    const loadSponsors = useCallback(async () => {
+        setLoadingSponsors(true);
+        setSponsorError('');
+        try {
+            const payload = await fetchAdminSponsors({ per_page: 100, is_active: true });
+            setSponsorOptions(payload.sponsors ?? []);
+        } catch (err) {
+            console.error(err);
+            setSponsorError(err.message || 'Unable to load sponsors.');
+        } finally {
+            setLoadingSponsors(false);
+        }
+    }, []);
+
     const load = useCallback(async () => {
         setLoading(true);
         setError('');
@@ -237,6 +261,10 @@ const AdminCarsPage = () => {
     useEffect(() => {
         loadPlateSources();
     }, [loadPlateSources]);
+
+    useEffect(() => {
+        loadSponsors();
+    }, [loadSponsors]);
 
     useEffect(() => {
         if (formOpen && formValues.plate_source_id) {
@@ -286,6 +314,8 @@ const AdminCarsPage = () => {
             plate_code_id: '',
             emirate: 'dubai',
             notes: '',
+            is_company_owned: true,
+            sponsor_id: '',
             is_active: true,
         });
         setFormError('');
@@ -303,6 +333,8 @@ const AdminCarsPage = () => {
             plate_category_id: car.plate_category_id || car.plate_category?.id || '',
             plate_code_id: car.plate_code_id || car.plate_code?.id || '',
             notes: car.notes ?? '',
+            is_company_owned: car.is_company_owned ?? true,
+            sponsor_id: car.sponsor_id ?? car.sponsor?.id ?? '',
         });
         setFormError('');
         setFormErrors({});
@@ -317,9 +349,28 @@ const AdminCarsPage = () => {
     };
 
     const handleFormChange = (field) => (event) => {
-        const value = field === 'is_active' ? event.target.checked : event.target.value;
+        let value = event.target.value;
+
+        if (field === 'is_active' || field === 'is_company_owned') {
+            value = event.target.checked;
+        } else if (field === 'sponsor_id') {
+            value = value === '' ? '' : Number(value);
+        }
+
         setFormValues((prev) => ({ ...prev, [field]: value }));
         setFormErrors((prev) => ({ ...prev, [field]: undefined }));
+    };
+
+    const handleSponsorToggle = (event) => {
+        const sponsored = event.target.checked;
+
+        setFormValues((prev) => ({
+            ...prev,
+            is_company_owned: !sponsored,
+            sponsor_id: sponsored ? prev.sponsor_id : '',
+        }));
+
+        setFormErrors((prev) => ({ ...prev, sponsor_id: undefined }));
     };
 
     const handlePlateSourceChange = async (event) => {
@@ -377,6 +428,10 @@ const AdminCarsPage = () => {
             errors.emirate = ['Select the vehicle emirate.'];
         }
 
+        if (!formValues.is_company_owned && !formValues.sponsor_id) {
+            errors.sponsor_id = ['Select a sponsor.'];
+        }
+
         return errors;
     }, [formValues]);
 
@@ -393,10 +448,17 @@ const AdminCarsPage = () => {
         setFormErrors({});
 
         try {
+            const payload = {
+                ...formValues,
+                sponsor_id: formValues.is_company_owned ? null : formValues.sponsor_id,
+            };
+
+            const { id, ...carPayload } = payload;
+
             if (formMode === 'create') {
-                await createAdminCar(formValues);
+                await createAdminCar(carPayload);
             } else {
-                await updateAdminCar(formValues.id, formValues);
+                await updateAdminCar(id, carPayload);
             }
 
             setFormOpen(false);
@@ -576,6 +638,7 @@ const AdminCarsPage = () => {
                                     <TableCell>Number</TableCell>
                                     <TableCell>Emirate</TableCell>
                                     <TableCell>Notes</TableCell>
+                                    <TableCell>Ownership</TableCell>
                                     <TableCell>Statuses</TableCell>
                                     <TableCell align="right">Actions</TableCell>
                                 </TableRow>
@@ -583,7 +646,7 @@ const AdminCarsPage = () => {
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={8} align="center">
+                                        <TableCell colSpan={9} align="center">
                                             <Stack alignItems="center" py={3} spacing={1}>
                                                 <CircularProgress size={24} />
                                                 <Typography variant="body2" color="text.secondary">
@@ -606,6 +669,27 @@ const AdminCarsPage = () => {
                                                 <Typography variant="body2" color="text.secondary" noWrap>
                                                     {car.notes || '—'}
                                                 </Typography>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Chip
+                                                    label={
+                                                        car.is_company_owned
+                                                            ? ownershipTone.company.label
+                                                            : car.sponsor?.title
+                                                                ? `Sponsor: ${car.sponsor.title}`
+                                                                : ownershipTone.sponsor.label
+                                                    }
+                                                    size="small"
+                                                    sx={{
+                                                        backgroundColor: car.is_company_owned
+                                                            ? ownershipTone.company.bg
+                                                            : ownershipTone.sponsor.bg,
+                                                        color: car.is_company_owned
+                                                            ? ownershipTone.company.color
+                                                            : ownershipTone.sponsor.color,
+                                                        fontWeight: 600,
+                                                    }}
+                                                />
                                             </TableCell>
                                             <TableCell>
                                                 {badge(statusTone[car.status] ?? statusTone.available)}
@@ -657,7 +741,7 @@ const AdminCarsPage = () => {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={8} align="center">
+                                        <TableCell colSpan={9} align="center">
                                             <Typography variant="body2" color="text.secondary">
                                                 No vehicles match the current filters.
                                             </Typography>
@@ -820,6 +904,42 @@ const AdminCarsPage = () => {
                             error={!!formErrors.notes}
                             helperText={formErrors.notes?.[0] || formErrors.notes}
                         />
+                        <FormControlLabel
+                            control={<Checkbox checked={!formValues.is_company_owned} onChange={handleSponsorToggle} />}
+                            label="Vehicle belongs to a sponsor"
+                        />
+                        {!formValues.is_company_owned && (
+                            <FormControl fullWidth error={!!formErrors.sponsor_id} disabled={loadingSponsors && !sponsorOptions.length}>
+                                <InputLabel id="car-sponsor-select">Sponsor</InputLabel>
+                                <Select
+                                    labelId="car-sponsor-select"
+                                    label="Sponsor"
+                                    value={formValues.sponsor_id === '' ? '' : formValues.sponsor_id}
+                                    onChange={handleFormChange('sponsor_id')}
+                                    required
+                                    displayEmpty
+                                >
+                                    <MenuItem value="" disabled>
+                                        {loadingSponsors ? 'Loading sponsors…' : 'Select sponsor'}
+                                    </MenuItem>
+                                    {sponsorOptions.map((option) => (
+                                        <MenuItem key={option.id} value={option.id}>
+                                            {option.title}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                                {formErrors.sponsor_id && (
+                                    <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1 }}>
+                                        {formErrors.sponsor_id?.[0] || formErrors.sponsor_id}
+                                    </Typography>
+                                )}
+                                {sponsorError && (
+                                    <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1 }}>
+                                        {sponsorError}
+                                    </Typography>
+                                )}
+                            </FormControl>
+                        )}
                         <FormControlLabel
                             control={<Switch checked={!!formValues.is_active} onChange={handleFormChange('is_active')} />}
                             label="Vehicle is active"
