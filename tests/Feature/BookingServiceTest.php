@@ -6,6 +6,7 @@ use App\Enums\BookingStatus;
 use App\Exceptions\BookingConflictException;
 use App\Models\Booking;
 use App\Models\Car;
+use App\Models\Driver;
 use App\Models\User;
 use App\Services\Bookings\BookingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -21,10 +22,12 @@ class BookingServiceTest extends TestCase
         $service = app(BookingService::class);
         $user = User::factory()->create();
         $car = Car::factory()->create();
+        $driver = Driver::factory()->create();
 
         $booking = $service->create(
             $user,
             $car,
+            $driver,
             Carbon::parse('2024-05-01 09:00:00'),
             Carbon::parse('2024-05-01 11:00:00')
         );
@@ -39,10 +42,12 @@ class BookingServiceTest extends TestCase
         $service = app(BookingService::class);
         $user = User::factory()->create();
         $car = Car::factory()->create();
+        $driver = Driver::factory()->create();
 
         Booking::factory()->create([
             'user_id' => $user->id,
             'car_id' => $car->id,
+            'driver_id' => $driver->id,
             'start_date' => Carbon::parse('2024-05-01 10:00:00'),
             'end_date' => Carbon::parse('2024-05-01 12:00:00'),
         ]);
@@ -52,6 +57,7 @@ class BookingServiceTest extends TestCase
         $service->create(
             $user,
             $car,
+            $driver,
             Carbon::parse('2024-05-01 11:00:00'),
             Carbon::parse('2024-05-01 13:00:00')
         );
