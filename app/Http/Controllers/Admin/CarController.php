@@ -32,7 +32,6 @@ class CarController extends Controller
                     ->orWhere('model', 'like', "%{$search}%")
                     ->orWhere('color', 'like', "%{$search}%")
                     ->orWhere('number', 'like', "%{$search}%")
-                    ->orWhere('emirate', 'like', "%{$search}%")
                     ->orWhere('notes', 'like', "%{$search}%");
             });
         }
@@ -83,7 +82,6 @@ class CarController extends Controller
                 'plate_source_id' => $data['plate_source_id'],
                 'plate_category_id' => $data['plate_category_id'],
                 'plate_code_id' => $data['plate_code_id'],
-                'emirate' => $data['emirate'],
                 'notes' => $data['notes'] ?? null,
                 'is_company_owned' => $data['is_company_owned'],
                 'sponsor_id' => $data['sponsor_id'],
@@ -167,7 +165,6 @@ class CarController extends Controller
             'model' => $car->model,
             'color' => $car->color,
             'number' => $car->number,
-            'emirate' => $car->emirate,
             'plate_source_id' => $car->plate_source_id,
             'plate_category_id' => $car->plate_category_id,
             'plate_code_id' => $car->plate_code_id,

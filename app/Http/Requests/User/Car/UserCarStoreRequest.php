@@ -43,19 +43,6 @@ class UserCarStoreRequest extends FormRequest
                     fn ($query) => $query->where('plate_category_id', $this->input('plate_category_id'))
                 ),
             ],
-            'emirate' => [
-                'required',
-                'string',
-                Rule::in([
-                    'dubai',
-                    'abu_dhabi',
-                    'sharjah',
-                    'ajman',
-                    'umm_al_quwain',
-                    'ras_al_khaimah',
-                    'fujairah',
-                ]),
-            ],
             'notes' => ['nullable', 'string', 'max:1000'],
             'is_active' => ['sometimes', 'boolean'],
         ];
@@ -69,8 +56,6 @@ class UserCarStoreRequest extends FormRequest
             'color.required' => 'Vehicle color is required.',
             'number.required' => 'Plate number is required.',
             'number.unique' => 'This plate number is already registered.',
-            'emirate.required' => 'Select the vehicle emirate.',
-            'emirate.in' => 'Choose a valid emirate.',
         ];
     }
 

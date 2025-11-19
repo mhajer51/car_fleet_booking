@@ -21,7 +21,6 @@ class Car extends Model
         'plate_source_id',
         'plate_category_id',
         'plate_code_id',
-        'emirate',
         'notes',
         'is_company_owned',
         'sponsor_id',

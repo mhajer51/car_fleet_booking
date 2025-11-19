@@ -31,7 +31,7 @@ class BookingController extends Controller
         $perPage = $perPage > 0 ? min($perPage, 50) : 10;
 
         $bookingsQuery = Booking::query()
-            ->with(['user:id,name,username', 'car:id,name,number,emirate', 'driver:id,name,license_number'])
+            ->with(['user:id,name,username', 'car:id,name,number', 'driver:id,name,license_number'])
             ->latest();
 
         if (isset($filters['user_id'])) {
@@ -92,7 +92,7 @@ class BookingController extends Controller
             ], 422);
         }
 
-        $booking = $this->transformBooking($booking->load(['user:id,name,username', 'car:id,name,number,emirate', 'driver:id,name,license_number']));
+        $booking = $this->transformBooking($booking->load(['user:id,name,username', 'car:id,name,number', 'driver:id,name,license_number']));
 
         return apiResponse('Car booked successfully.', compact('booking'));
     }
@@ -126,7 +126,7 @@ class BookingController extends Controller
             ], 422);
         }
 
-        $booking = $this->transformBooking($booking->load(['user:id,name,username', 'car:id,name,number,emirate', 'driver:id,name,license_number']));
+        $booking = $this->transformBooking($booking->load(['user:id,name,username', 'car:id,name,number', 'driver:id,name,license_number']));
 
         return apiResponse('Booking updated successfully.', compact('booking'));
     }
@@ -173,7 +173,6 @@ class BookingController extends Controller
             'id' => $car->id,
             'name' => $car->name,
             'number' => $car->number,
-            'emirate' => $car->emirate,
         ]);
 
         return apiResponse('Available cars fetched successfully.', $this->buildAvailabilityResponse($paginator, 'cars', $cars));
@@ -228,7 +227,6 @@ class BookingController extends Controller
                 'id' => $booking->car->id,
                 'name' => $booking->car->name,
                 'number' => $booking->car->number,
-                'emirate' => $booking->car->emirate,
             ],
             'driver' => [
                 'id' => $booking->driver->id,
