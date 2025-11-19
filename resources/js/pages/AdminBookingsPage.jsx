@@ -636,21 +636,6 @@ const AdminBookingsPage = () => {
                                     />
                                 </Stack>
                             </Grid>
-                            <Grid item xs={4} md={12}>
-                                <Grid item xs={4} md={5}>
-
-                                    <Stack>
-                                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                                            <Button variant="contained" fullWidth onClick={loadBookings} disabled={loading}>
-                                                Apply filters
-                                            </Button>
-                                            <Button variant="text" fullWidth onClick={resetFilters}>
-                                                Reset
-                                            </Button>
-                                        </Stack>
-                                    </Stack>
-                                </Grid>
-                            </Grid>
                         </Grid>
                     </CardContent>
                 </Card>
