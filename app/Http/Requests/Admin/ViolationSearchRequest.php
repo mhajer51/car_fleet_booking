@@ -11,6 +11,17 @@ class ViolationSearchRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'plateNumber' => $this->normalize($this->input('plateNumber')),
+            'plateSource' => $this->normalize($this->input('plateSource')),
+            'plateCategory' => $this->normalize($this->input('plateCategory')),
+            'plateCode' => $this->normalize($this->input('plateCode')),
+            'language' => $this->normalize($this->input('language', 'en')),
+        ]);
+    }
+
     public function rules(): array
     {
         return [
@@ -20,5 +31,22 @@ class ViolationSearchRequest extends FormRequest
             'plateCode' => ['required', 'string', 'max:255'],
             'language' => ['sometimes', 'string', 'in:en,ar'],
         ];
+    }
+
+    protected function normalize($value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        if (is_string($value)) {
+            return trim($value);
+        }
+
+        if (is_numeric($value)) {
+            return (string) $value;
+        }
+
+        return $value;
     }
 }
