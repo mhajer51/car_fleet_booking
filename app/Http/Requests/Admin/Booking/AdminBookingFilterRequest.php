@@ -22,6 +22,7 @@ class AdminBookingFilterRequest extends FormRequest
             'car_id' => ['sometimes', 'integer', 'exists:cars,id'],
             'driver_id' => ['sometimes', 'integer', 'exists:drivers,id'],
             'status' => ['sometimes', 'string', Rule::in(BookingStatus::values())],
+            'is_approved' => ['sometimes', 'boolean'],
             'from_date' => ['sometimes', 'date'],
             'to_date' => ['sometimes', 'date', 'after_or_equal:from_date'],
         ];
