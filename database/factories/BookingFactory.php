@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Car;
+use App\Models\Driver;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Carbon;
@@ -22,8 +23,11 @@ class BookingFactory extends Factory
         return [
             'user_id' => User::factory(),
             'car_id' => Car::factory(),
+            'driver_id' => Driver::factory(),
+            'price' => fake()->randomFloat(2, 80, 500),
             'start_date' => $start,
             'end_date' => $end,
+            'note' => fake()->optional()->sentence(),
             'is_approved' => true,
         ];
     }
