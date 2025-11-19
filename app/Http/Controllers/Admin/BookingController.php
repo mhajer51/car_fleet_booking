@@ -60,6 +60,10 @@ class BookingController extends Controller
             $bookingsQuery->status(BookingStatus::from($filters['status']));
         }
 
+        if (isset($filters['is_approved'])) {
+            $bookingsQuery->where('is_approved', (bool) $filters['is_approved']);
+        }
+
         if (isset($filters['from_date'])) {
             $bookingsQuery->whereDate('start_date', '>=', Carbon::parse($filters['from_date']));
         }

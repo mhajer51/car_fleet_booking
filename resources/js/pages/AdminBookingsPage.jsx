@@ -48,6 +48,12 @@ const STATUS_OPTIONS = [
     { label: 'Completed', value: 'completed' },
 ];
 
+const APPROVAL_OPTIONS = [
+    { label: 'All approvals', value: 'all' },
+    { label: 'Approved', value: 'approved' },
+    { label: 'Pending review', value: 'pending' },
+];
+
 const statusTone = {
     upcoming: { label: 'Scheduled', color: '#f97316', bg: 'rgba(249,115,22,.12)' },
     active: { label: 'Active', color: '#0f766e', bg: 'rgba(16,185,129,.12)' },
@@ -146,6 +152,7 @@ const AdminBookingsPage = () => {
     const [message, setMessage] = useState('');
     const [filters, setFilters] = useState({
         status: 'all',
+        approval: 'all',
         from_date: '',
         to_date: '',
         user_id: '',
@@ -178,6 +185,12 @@ const AdminBookingsPage = () => {
                 page: pagination.page + 1,
                 per_page: pagination.pageSize,
                 status: filters.status !== 'all' ? filters.status : undefined,
+                is_approved:
+                    filters.approval === 'all'
+                        ? undefined
+                        : filters.approval === 'approved'
+                            ? true
+                            : false,
                 from_date: filters.from_date || undefined,
                 to_date: filters.to_date || undefined,
                 user_id: filters.user_id || undefined,
@@ -221,7 +234,15 @@ const AdminBookingsPage = () => {
 
     useEffect(() => {
         setPagination((prev) => ({ ...prev, page: 0 }));
-    }, [filters.status, filters.from_date, filters.to_date, filters.user_id, filters.car_id, filters.driver_id]);
+    }, [
+        filters.status,
+        filters.approval,
+        filters.from_date,
+        filters.to_date,
+        filters.user_id,
+        filters.car_id,
+        filters.driver_id,
+    ]);
 
     const visibleRange = useMemo(() => {
         const from = totalRecords === 0 ? 0 : pagination.page * pagination.pageSize + 1;
@@ -266,7 +287,15 @@ const AdminBookingsPage = () => {
     };
 
     const resetFilters = () => {
-        setFilters({ status: 'all', from_date: '', to_date: '', user_id: '', car_id: '', driver_id: '' });
+        setFilters({
+            status: 'all',
+            approval: 'all',
+            from_date: '',
+            to_date: '',
+            user_id: '',
+            car_id: '',
+            driver_id: '',
+        });
     };
 
     const openDialog = () => {
@@ -556,6 +585,22 @@ const AdminBookingsPage = () => {
                                         onChange={(event) => updateFilter('status', event.target.value)}
                                     >
                                         {STATUS_OPTIONS.map((option) => (
+                                            <MenuItem key={option.value} value={option.value}>
+                                                {option.label}
+                                            </MenuItem>
+                                        ))}
+                                    </TextField>
+                                </Stack>
+                            </Grid>
+                            <Grid item xs={4} md={3}>
+                                <Stack>
+                                    <TextField
+                                        select
+                                        label="Approval status"
+                                        value={filters.approval}
+                                        onChange={(event) => updateFilter('approval', event.target.value)}
+                                    >
+                                        {APPROVAL_OPTIONS.map((option) => (
                                             <MenuItem key={option.value} value={option.value}>
                                                 {option.label}
                                             </MenuItem>
