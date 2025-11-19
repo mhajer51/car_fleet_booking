@@ -30,13 +30,13 @@ class BookingService
             throw new InvalidArgumentException('Inactive users cannot create bookings.');
         }
 
-        if (!$car->is_active) {
-            throw new InvalidArgumentException('Inactive cars cannot be booked.');
-        }
-
-        if (!$driver->is_active) {
-            throw new InvalidArgumentException('Inactive drivers cannot be assigned to bookings.');
-        }
+//        if (!$car->is_active) {
+//            throw new InvalidArgumentException('Inactive cars cannot be booked.');
+//        }
+//
+//        if (!$driver->is_active) {
+//            throw new InvalidArgumentException('Inactive drivers cannot be assigned to bookings.');
+//        }
 
         if ($endDate !== null && $endDate->lt($startDate)) {
             throw new InvalidArgumentException('End date must be greater than or equal to the start date.');
@@ -79,13 +79,13 @@ class BookingService
             throw new InvalidArgumentException('Inactive users cannot create bookings.');
         }
 
-        if (!$car->is_active) {
-            throw new InvalidArgumentException('Inactive cars cannot be booked.');
-        }
-
-        if (!$driver->is_active) {
-            throw new InvalidArgumentException('Inactive drivers cannot be assigned to bookings.');
-        }
+//        if (!$car->is_active) {
+//            throw new InvalidArgumentException('Inactive cars cannot be booked.');
+//        }
+//
+//        if (!$driver->is_active) {
+//            throw new InvalidArgumentException('Inactive drivers cannot be assigned to bookings.');
+//        }
 
         if ($endDate !== null && $endDate->lt($startDate)) {
             throw new InvalidArgumentException('End date must be greater than or equal to the start date.');

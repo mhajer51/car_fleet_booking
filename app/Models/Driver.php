@@ -40,7 +40,7 @@ class Driver extends Model
 
     public function scopeAvailableForPeriod(Builder $query, Carbon $startDate, ?Carbon $endDate, ?int $excludingBookingId = null): Builder
     {
-        return $query->active()->whereDoesntHave('bookings', function ($builder) use ($startDate, $endDate, $excludingBookingId) {
+        return $query->whereDoesntHave('bookings', function ($builder) use ($startDate, $endDate, $excludingBookingId) {
             $builder->when($excludingBookingId, fn ($inner) => $inner->where('bookings.id', '!=', $excludingBookingId))
                 ->overlapping($startDate, $endDate);
         });
