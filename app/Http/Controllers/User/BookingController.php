@@ -18,7 +18,10 @@ use App\Models\User;
 use App\Services\Bookings\AdminBookingNotifier;
 use App\Services\Bookings\BookingService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Mail\Mailable;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Mail;
+use Throwable;
 
 class BookingController extends Controller
 {
@@ -103,6 +106,33 @@ class BookingController extends Controller
         $booking = $this->transformBooking($booking);
 
         return apiResponse('Car booked successfully.', compact('booking'));
+    }
+
+    private function notifyAdminsAboutBooking(Mailable $notification): void
+    {
+        $recipients = Admin::query()
+            ->where('is_active', true)
+            ->whereNotNull('email')
+            ->pluck('email')
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $fallbackRecipient = config('mail.from.address');
+        if (empty($recipients) && $fallbackRecipient) {
+            $recipients = [$fallbackRecipient];
+        }
+
+        if (empty($recipients)) {
+            return;
+        }
+
+        try {
+            Mail::to($recipients)->send($notification);
+        } catch (Throwable $exception) {
+            report($exception);
+        }
     }
 
     public function update(UpdateBookingRequest $request, Booking $booking): JsonResponse
