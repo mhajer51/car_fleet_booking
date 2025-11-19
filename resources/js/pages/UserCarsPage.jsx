@@ -5,6 +5,7 @@ import {
     Button,
     Card,
     CardContent,
+    Checkbox,
     Chip,
     CircularProgress,
     Dialog,
@@ -12,6 +13,7 @@ import {
     DialogContent,
     DialogTitle,
     FormControl,
+    FormControlLabel,
     InputLabel,
     MenuItem,
     Select,
@@ -26,7 +28,14 @@ import {
     Typography,
 } from '@mui/material';
 import UserLayout from '../components/UserLayout.jsx';
-import { createUserCar, fetchPlateCategories, fetchPlateCodes, fetchPlateSources, fetchUserCars } from '../services/user.js';
+import {
+    createUserCar,
+    fetchPlateCategories,
+    fetchPlateCodes,
+    fetchPlateSources,
+    fetchUserCars,
+    fetchUserSponsors,
+} from '../services/user.js';
 
 const statusTone = {
     available: { bg: 'rgba(59,130,246,.12)', color: '#1d4ed8', label: 'Available' },
@@ -36,6 +45,11 @@ const statusTone = {
 const activeTone = {
     true: { bg: 'rgba(16,185,129,.12)', color: '#0f766e', label: 'Enabled' },
     false: { bg: 'rgba(248,113,113,.12)', color: '#b91c1c', label: 'Disabled' },
+};
+
+const ownershipTone = {
+    company: { bg: 'rgba(96,165,250,.18)', color: '#1d4ed8', label: 'In-house vehicle' },
+    sponsor: { bg: 'rgba(196,181,253,.24)', color: '#5b21b6', label: 'Sponsored vehicle' },
 };
 
 const badge = ({ bg, color, label }) => (
@@ -73,8 +87,13 @@ const UserCarsPage = () => {
         plate_category_id: '',
         plate_code_id: '',
         notes: '',
+        is_company_owned: true,
+        sponsor_id: '',
     });
     const [saving, setSaving] = useState(false);
+    const [sponsorOptions, setSponsorOptions] = useState([]);
+    const [loadingSponsors, setLoadingSponsors] = useState(false);
+    const [sponsorError, setSponsorError] = useState('');
 
     const totalRecords = meta?.total ?? 0;
 
@@ -121,6 +140,19 @@ const UserCarsPage = () => {
         }
     }, []);
 
+    const loadSponsors = useCallback(async () => {
+        setLoadingSponsors(true);
+        setSponsorError('');
+        try {
+            const payload = await fetchUserSponsors();
+            setSponsorOptions(payload.sponsors ?? []);
+        } catch (err) {
+            setSponsorError(err.message || 'Unable to load sponsors right now.');
+        } finally {
+            setLoadingSponsors(false);
+        }
+    }, []);
+
     const load = useCallback(async () => {
         setLoading(true);
         setError('');
@@ -153,6 +185,10 @@ const UserCarsPage = () => {
     useEffect(() => {
         loadPlateSources();
     }, [loadPlateSources]);
+
+    useEffect(() => {
+        loadSponsors();
+    }, [loadSponsors]);
 
     useEffect(() => {
         if (formOpen && formValues.plate_source_id) {
@@ -199,6 +235,8 @@ const UserCarsPage = () => {
             plate_category_id: '',
             plate_code_id: '',
             notes: '',
+            is_company_owned: true,
+            sponsor_id: '',
         });
         setFormError('');
         setFormErrors({});
@@ -211,6 +249,18 @@ const UserCarsPage = () => {
         const value = event.target.value;
         setFormValues((prev) => ({ ...prev, [field]: value }));
         setFormErrors((prev) => ({ ...prev, [field]: undefined }));
+    };
+
+    const handleSponsorToggle = (event) => {
+        const sponsored = event.target.checked;
+
+        setFormValues((prev) => ({
+            ...prev,
+            is_company_owned: !sponsored,
+            sponsor_id: sponsored ? prev.sponsor_id : '',
+        }));
+
+        setFormErrors((prev) => ({ ...prev, sponsor_id: undefined }));
     };
 
     const handlePlateSourceChange = async (event) => {
@@ -264,6 +314,10 @@ const UserCarsPage = () => {
             errors.plate_code_id = ['Select a plate code.'];
         }
 
+        if (!formValues.is_company_owned && !formValues.sponsor_id) {
+            errors.sponsor_id = ['Select a sponsor.'];
+        }
+
         return errors;
     }, [formValues]);
 
@@ -280,7 +334,12 @@ const UserCarsPage = () => {
         setFormErrors({});
 
         try {
-            await createUserCar(formValues);
+            const payload = {
+                ...formValues,
+                sponsor_id: formValues.is_company_owned ? null : formValues.sponsor_id,
+            };
+
+            await createUserCar(payload);
             setFormOpen(false);
             await load();
         } catch (err) {
@@ -375,13 +434,14 @@ const UserCarsPage = () => {
                                     <TableCell>Color</TableCell>
                                     <TableCell>Number</TableCell>
                                     <TableCell>Notes</TableCell>
+                                    <TableCell>Ownership</TableCell>
                                     <TableCell>Statuses</TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={6} align="center">
+                                        <TableCell colSpan={7} align="center">
                                             <Stack alignItems="center" py={3} spacing={1}>
                                                 <CircularProgress size={24} />
                                                 <Typography variant="body2" color="text.secondary">
@@ -405,6 +465,27 @@ const UserCarsPage = () => {
                                                 </Typography>
                                             </TableCell>
                                             <TableCell>
+                                                <Chip
+                                                    label={
+                                                        car.is_company_owned
+                                                            ? ownershipTone.company.label
+                                                            : car.sponsor?.title
+                                                                ? `Sponsor: ${car.sponsor.title}`
+                                                                : ownershipTone.sponsor.label
+                                                    }
+                                                    size="small"
+                                                    sx={{
+                                                        backgroundColor: car.is_company_owned
+                                                            ? ownershipTone.company.bg
+                                                            : ownershipTone.sponsor.bg,
+                                                        color: car.is_company_owned
+                                                            ? ownershipTone.company.color
+                                                            : ownershipTone.sponsor.color,
+                                                        fontWeight: 600,
+                                                    }}
+                                                />
+                                            </TableCell>
+                                            <TableCell>
                                                 {badge(statusTone[car.status] ?? statusTone.available)}
                                                 {badge(activeTone[car.is_active] ?? activeTone.true)}
                                             </TableCell>
@@ -412,7 +493,7 @@ const UserCarsPage = () => {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={6} align="center">
+                                        <TableCell colSpan={7} align="center">
                                             <Typography variant="body2" color="text.secondary">
                                                 No vehicles match the current filters.
                                             </Typography>
@@ -557,6 +638,55 @@ const UserCarsPage = () => {
                             error={!!formErrors.notes}
                             helperText={formErrors.notes?.[0] || formErrors.notes}
                         />
+                        <FormControlLabel
+                            control={<Checkbox checked={!formValues.is_company_owned} onChange={handleSponsorToggle} />}
+                            label="Vehicle belongs to a sponsor"
+                        />
+                        {!formValues.is_company_owned && (
+                            <FormControl fullWidth error={!!formErrors.sponsor_id} disabled={loadingSponsors && !sponsorOptions.length}>
+                                <InputLabel id="user-car-sponsor-select" shrink>Sponsor</InputLabel>
+                                <Select
+                                    labelId="user-car-sponsor-select"
+                                    label="Sponsor"
+                                    value={formValues.sponsor_id === '' ? '' : formValues.sponsor_id}
+                                    onChange={handleFormChange('sponsor_id')}
+                                    required
+                                    displayEmpty
+                                    renderValue={(selected) => {
+                                        if (selected === '' || selected === null || selected === undefined) {
+                                            return (
+                                                <Typography color="text.secondary">
+                                                    {loadingSponsors ? 'Loading sponsors…' : 'Select sponsor'}
+                                                </Typography>
+                                            );
+                                        }
+
+                                        const sponsor = sponsorOptions.find((option) => String(option.id) === String(selected));
+
+                                        return sponsor?.title ?? selected;
+                                    }}
+                                >
+                                    <MenuItem value="" disabled>
+                                        {loadingSponsors ? 'Loading sponsors…' : 'Select sponsor'}
+                                    </MenuItem>
+                                    {sponsorOptions.map((option) => (
+                                        <MenuItem key={option.id} value={option.id}>
+                                            {option.title}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                                {formErrors.sponsor_id && (
+                                    <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1 }}>
+                                        {formErrors.sponsor_id?.[0] || formErrors.sponsor_id}
+                                    </Typography>
+                                )}
+                                {sponsorError && (
+                                    <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1 }}>
+                                        {sponsorError}
+                                    </Typography>
+                                )}
+                            </FormControl>
+                        )}
                     </Stack>
                 </DialogContent>
                 <DialogActions dividers>

@@ -8,6 +8,7 @@ use App\Http\Controllers\User\CarController;
 use App\Http\Controllers\User\PlateController;
 use App\Http\Controllers\User\DriverController;
 use App\Http\Controllers\User\ProfileController;
+use App\Http\Controllers\User\SponsorController as UserSponsorController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
@@ -46,6 +47,8 @@ Route::prefix('user')->group(function (): void {
 
         Route::get('drivers', [DriverController::class, 'index']);
         Route::post('drivers', [DriverController::class, 'store']);
+
+        Route::get('sponsors', [UserSponsorController::class, 'index']);
 
         Route::put('profile', [ProfileController::class, 'update']);
         Route::put('profile/password', [ProfileController::class, 'updatePassword']);
