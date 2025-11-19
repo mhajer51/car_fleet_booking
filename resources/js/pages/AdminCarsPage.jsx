@@ -910,7 +910,7 @@ const AdminCarsPage = () => {
                         />
                         {!formValues.is_company_owned && (
                             <FormControl fullWidth error={!!formErrors.sponsor_id} disabled={loadingSponsors && !sponsorOptions.length}>
-                                <InputLabel id="car-sponsor-select">Sponsor</InputLabel>
+                                <InputLabel id="car-sponsor-select" shrink>Sponsor</InputLabel>
                                 <Select
                                     labelId="car-sponsor-select"
                                     label="Sponsor"
@@ -918,6 +918,21 @@ const AdminCarsPage = () => {
                                     onChange={handleFormChange('sponsor_id')}
                                     required
                                     displayEmpty
+                                    renderValue={(selected) => {
+                                        if (selected === '' || selected === null || selected === undefined) {
+                                            return (
+                                                <Typography color="text.secondary">
+                                                    {loadingSponsors ? 'Loading sponsors…' : 'Select sponsor'}
+                                                </Typography>
+                                            );
+                                        }
+
+                                        const sponsor = sponsorOptions.find(
+                                            (option) => String(option.id) === String(selected),
+                                        );
+
+                                        return sponsor?.title ?? selected;
+                                    }}
                                 >
                                     <MenuItem value="" disabled>
                                         {loadingSponsors ? 'Loading sponsors…' : 'Select sponsor'}
