@@ -9,13 +9,19 @@ use App\Http\Requests\Admin\Booking\AdminBookingAvailabilityRequest;
 use App\Http\Requests\Admin\Booking\AdminBookingFilterRequest;
 use App\Http\Requests\User\StoreBookingRequest;
 use App\Http\Requests\User\UpdateBookingRequest;
+use App\Mail\BookingRequestSubmitted;
+use App\Mail\BookingRequestUpdated;
+use App\Models\Admin;
 use App\Models\Booking;
 use App\Models\Car;
 use App\Models\Driver;
 use App\Models\User;
 use App\Services\Bookings\BookingService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Mail\Mailable;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Mail;
+use Throwable;
 
 class BookingController extends Controller
 {
@@ -92,9 +98,39 @@ class BookingController extends Controller
             ], 422);
         }
 
-        $booking = $this->transformBooking($booking->load(['user:id,name,username', 'car:id,name,number', 'driver:id,name,license_number']));
+        $booking->load(['user:id,name,email,username', 'car:id,name,number', 'driver:id,name,license_number']);
+        $this->notifyAdminsAboutBooking(new BookingRequestSubmitted($booking));
+
+        $booking = $this->transformBooking($booking);
 
         return apiResponse('Car booked successfully.', compact('booking'));
+    }
+
+    private function notifyAdminsAboutBooking(Mailable $notification): void
+    {
+        $recipients = Admin::query()
+            ->where('is_active', true)
+            ->whereNotNull('email')
+            ->pluck('email')
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $fallbackRecipient = config('mail.from.address');
+        if (empty($recipients) && $fallbackRecipient) {
+            $recipients = [$fallbackRecipient];
+        }
+
+        if (empty($recipients)) {
+            return;
+        }
+
+        try {
+            Mail::to($recipients)->send($notification);
+        } catch (Throwable $exception) {
+            report($exception);
+        }
     }
 
     public function update(UpdateBookingRequest $request, Booking $booking): JsonResponse
@@ -126,7 +162,10 @@ class BookingController extends Controller
             ], 422);
         }
 
-        $booking = $this->transformBooking($booking->load(['user:id,name,username', 'car:id,name,number', 'driver:id,name,license_number']));
+        $booking->load(['user:id,name,email,username', 'car:id,name,number', 'driver:id,name,license_number']);
+        $this->notifyAdminsAboutBooking(new BookingRequestUpdated($booking));
+
+        $booking = $this->transformBooking($booking);
 
         return apiResponse('Booking updated successfully.', compact('booking'));
     }
