@@ -458,6 +458,15 @@ const UserCarsPage = () => {
                                             <TableCell>{car.color}</TableCell>
                                             <TableCell>
                                                 <Typography fontWeight={600}>{car.number}</Typography>
+                                                <Typography variant="caption" color="text.secondary" display="block">
+                                                    Plate source: {car.plate_source?.title || '—'}
+                                                </Typography>
+                                                <Typography variant="caption" color="text.secondary" display="block">
+                                                    Plate category: {car.plate_category?.title || '—'}
+                                                </Typography>
+                                                <Typography variant="caption" color="text.secondary" display="block">
+                                                    Plate code: {car.plate_code?.title || '—'}
+                                                </Typography>
                                             </TableCell>
                                             <TableCell sx={{ maxWidth: 240 }}>
                                                 <Typography variant="body2" color="text.secondary" noWrap>
