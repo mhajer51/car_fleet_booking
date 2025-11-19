@@ -38,6 +38,7 @@ import {
     fetchAdminDrivers,
     fetchAdminUsers,
     updateAdminBooking,
+    updateAdminBookingApproval,
 } from '../services/admin.js';
 
 const STATUS_OPTIONS = [
@@ -51,6 +52,11 @@ const statusTone = {
     upcoming: { label: 'Scheduled', color: '#f97316', bg: 'rgba(249,115,22,.12)' },
     active: { label: 'Active', color: '#0f766e', bg: 'rgba(16,185,129,.12)' },
     completed: { label: 'Completed', color: '#1d4ed8', bg: 'rgba(59,130,246,.12)' },
+};
+
+const approvalTone = {
+    true: { label: 'Approved', color: '#0f766e', bg: 'rgba(16,185,129,.12)' },
+    false: { label: 'Pending review', color: '#b45309', bg: 'rgba(251,191,36,.18)' },
 };
 
 const defaultStartDate = () => {
@@ -159,6 +165,7 @@ const AdminBookingsPage = () => {
     const [drivers, setDrivers] = useState([]);
     const [availability, setAvailability] = useState({ users: [], cars: [], drivers: [] });
     const [availabilityLoading, setAvailabilityLoading] = useState({ users: false, cars: false, drivers: false });
+    const [approvalUpdating, setApprovalUpdating] = useState(null);
 
     const totalRecords = meta?.total ?? bookings.length ?? 0;
     const isEditing = Boolean(editingBooking);
@@ -485,6 +492,27 @@ const AdminBookingsPage = () => {
         }
     };
 
+    const toggleApproval = async (booking, isApproved) => {
+        if (!booking) {
+            return;
+        }
+
+        setApprovalUpdating(booking.id);
+        setMessage('');
+        setError('');
+
+        try {
+            const payload = await updateAdminBookingApproval(booking.id, { is_approved: isApproved });
+            const updated = payload.booking ?? booking;
+            setBookings((prev) => prev.map((item) => (item.id === booking.id ? updated : item)));
+            setMessage(isApproved ? 'Booking approved successfully.' : 'Booking marked as pending.');
+        } catch (err) {
+            setError(err.message ?? 'Unable to update booking approval.');
+        } finally {
+            setApprovalUpdating(null);
+        }
+    };
+
     const actions = (
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <Button variant="contained" onClick={openDialog}>
@@ -652,14 +680,15 @@ const AdminBookingsPage = () => {
                                     <TableCell>Start</TableCell>
                                     <TableCell>End</TableCell>
                                     <TableCell>Notes</TableCell>
-                                    <TableCell>Status</TableCell>
-                                    <TableCell>Actions</TableCell>
+                                        <TableCell>Status</TableCell>
+                                        <TableCell>Approval</TableCell>
+                                        <TableCell>Actions</TableCell>
                                 </TableRow>
                             </TableHead>
                                 <TableBody>
                                     {loading ? (
                                         <TableRow>
-                                            <TableCell colSpan={10} align="center">
+                                            <TableCell colSpan={11} align="center">
                                                 <Stack alignItems="center" py={4} spacing={1}>
                                                     <CircularProgress size={24} />
                                                     <Typography variant="body2" color="text.secondary">
@@ -670,7 +699,7 @@ const AdminBookingsPage = () => {
                                         </TableRow>
                                     ) : bookings.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={10} align="center">
+                                            <TableCell colSpan={11} align="center">
                                                 <Typography color="text.secondary" py={3}>
                                                     No bookings match your filters.
                                                 </Typography>
@@ -683,6 +712,8 @@ const AdminBookingsPage = () => {
                                                 color: '#334155',
                                                 bg: 'rgba(148,163,184,.24)',
                                             };
+                                            const approvalBadge = approvalTone[booking.is_approved] ?? approvalTone.false;
+
                                             return (
                                                 <TableRow key={booking.id}>
                                                     <TableCell>#{booking.id}</TableCell>
@@ -730,9 +761,31 @@ const AdminBookingsPage = () => {
                                                     />
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Button size="small" variant="outlined" onClick={() => openEditDialog(booking)}>
-                                                        Edit
-                                                    </Button>
+                                                    <Chip
+                                                        label={approvalBadge.label}
+                                                        size="small"
+                                                        sx={{
+                                                            color: approvalBadge.color,
+                                                            backgroundColor: approvalBadge.bg,
+                                                            fontWeight: 700,
+                                                        }}
+                                                    />
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                                                        <Button size="small" variant="outlined" onClick={() => openEditDialog(booking)}>
+                                                            Edit
+                                                        </Button>
+                                                        <Button
+                                                            size="small"
+                                                            variant={booking.is_approved ? 'text' : 'contained'}
+                                                            color={booking.is_approved ? 'warning' : 'success'}
+                                                            onClick={() => toggleApproval(booking, !booking.is_approved)}
+                                                            disabled={approvalUpdating === booking.id}
+                                                        >
+                                                            {booking.is_approved ? 'Mark pending' : 'Approve'}
+                                                        </Button>
+                                                    </Stack>
                                                 </TableCell>
                                             </TableRow>
                                         );

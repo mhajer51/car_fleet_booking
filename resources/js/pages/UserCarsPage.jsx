@@ -12,7 +12,6 @@ import {
     DialogContent,
     DialogTitle,
     FormControl,
-    FormControlLabel,
     InputLabel,
     MenuItem,
     Select,
@@ -25,7 +24,6 @@ import {
     TableRow,
     TextField,
     Typography,
-    Switch,
 } from '@mui/material';
 import UserLayout from '../components/UserLayout.jsx';
 import { createUserCar, fetchPlateCategories, fetchPlateCodes, fetchPlateSources, fetchUserCars } from '../services/user.js';
@@ -75,7 +73,6 @@ const UserCarsPage = () => {
         plate_category_id: '',
         plate_code_id: '',
         notes: '',
-        is_active: true,
     });
     const [saving, setSaving] = useState(false);
 
@@ -202,7 +199,6 @@ const UserCarsPage = () => {
             plate_category_id: '',
             plate_code_id: '',
             notes: '',
-            is_active: true,
         });
         setFormError('');
         setFormErrors({});
@@ -212,7 +208,7 @@ const UserCarsPage = () => {
     };
 
     const handleFormChange = (field) => (event) => {
-        const value = field === 'is_active' ? event.target.checked : event.target.value;
+        const value = event.target.value;
         setFormValues((prev) => ({ ...prev, [field]: value }));
         setFormErrors((prev) => ({ ...prev, [field]: undefined }));
     };
@@ -449,6 +445,9 @@ const UserCarsPage = () => {
                         </Alert>
                     )}
                     <Stack spacing={2} mt={1}>
+                        <Alert severity="info" sx={{ borderRadius: 2 }}>
+                            Newly submitted vehicles remain disabled until an administrator reviews and activates them.
+                        </Alert>
                         <TextField
                             label="Name"
                             value={formValues.name}
@@ -557,10 +556,6 @@ const UserCarsPage = () => {
                             minRows={2}
                             error={!!formErrors.notes}
                             helperText={formErrors.notes?.[0] || formErrors.notes}
-                        />
-                        <FormControlLabel
-                            control={<Switch checked={!!formValues.is_active} onChange={handleFormChange('is_active')} />}
-                            label="Vehicle is active"
                         />
                     </Stack>
                 </DialogContent>

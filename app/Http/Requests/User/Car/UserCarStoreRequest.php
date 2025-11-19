@@ -44,7 +44,6 @@ class UserCarStoreRequest extends FormRequest
                 ),
             ],
             'notes' => ['nullable', 'string', 'max:1000'],
-            'is_active' => ['sometimes', 'boolean'],
         ];
     }
 

@@ -62,7 +62,7 @@ class DriverController extends Controller
                 'name' => $data['name'],
                 'license_number' => $data['license_number'],
                 'phone_number' => $data['phone_number'],
-                'is_active' => $data['is_active'] ?? true,
+                'is_active' => false,
             ]);
         } catch (QueryException $exception) {
             if ($this->isUniqueViolation($exception)) {

@@ -14,7 +14,17 @@ use InvalidArgumentException;
 
 class BookingService
 {
-    public function create(?User $user, Car $car, Driver $driver, Carbon $startDate, ?Carbon $endDate = null, ?string $guestName = null, ?string $note = null, ?float $price = null): Booking
+    public function create(
+        ?User $user,
+        Car $car,
+        Driver $driver,
+        Carbon $startDate,
+        ?Carbon $endDate = null,
+        ?string $guestName = null,
+        ?string $note = null,
+        ?float $price = null,
+        bool $isApproved = true
+    ): Booking
     {
         if ($user && !$user->is_active) {
             throw new InvalidArgumentException('Inactive users cannot create bookings.');
@@ -48,7 +58,7 @@ class BookingService
             throw new BookingConflictException('Driver is already assigned to another booking during this time.');
         }
 
-        return DB::transaction(function () use ($user, $car, $driver, $startDate, $endDate, $guestName, $note, $price) {
+        return DB::transaction(function () use ($user, $car, $driver, $startDate, $endDate, $guestName, $note, $price, $isApproved) {
             return Booking::create([
                 'user_id' => $user?->id,
                 'guest_name' => $guestName,
@@ -58,6 +68,7 @@ class BookingService
                 'start_date' => $startDate,
                 'end_date' => $endDate,
                 'note' => $note,
+                'is_approved' => $isApproved,
             ]);
         });
     }
@@ -116,7 +127,7 @@ class BookingService
 
     public function close(Booking $booking): Booking
     {
-        if ($booking->status !== BookingStatus::ACTIVE) {
+        if (!$booking->is_approved || $booking->status !== BookingStatus::ACTIVE) {
             return $booking;
         }
 

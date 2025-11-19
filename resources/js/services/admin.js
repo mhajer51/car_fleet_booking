@@ -173,6 +173,11 @@ export const updateAdminBooking = (bookingId, payload) =>
         .put(`/admin/bookings/${bookingId}`, payload)
         .then((response) => response.data?.data ?? response.data);
 
+export const updateAdminBookingApproval = (bookingId, payload) =>
+    http
+        .patch(`/admin/bookings/${bookingId}/approval`, payload)
+        .then((response) => response.data?.data ?? response.data);
+
 export const fetchAvailableBookingUsers = (params = {}) =>
     http
         .get('/admin/bookings/available/users', { params })

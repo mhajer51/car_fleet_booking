@@ -19,7 +19,6 @@ class UserDriverStoreRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'license_number' => ['required', 'string', 'max:255', 'unique:drivers,license_number'],
             'phone_number' => ['required', 'string', 'max:255', 'unique:drivers,phone_number'],
-            'is_active' => ['sometimes', 'boolean'],
         ];
     }
 

@@ -24,7 +24,13 @@ class BookingFactory extends Factory
             'car_id' => Car::factory(),
             'start_date' => $start,
             'end_date' => $end,
+            'is_approved' => true,
         ];
+    }
+
+    public function pending(): static
+    {
+        return $this->state(fn () => ['is_approved' => false]);
     }
 
     public function open(): static

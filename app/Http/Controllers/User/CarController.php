@@ -83,7 +83,7 @@ class CarController extends Controller
                 'notes' => $data['notes'] ?? null,
                 'is_company_owned' => $data['is_company_owned'],
                 'sponsor_id' => $data['sponsor_id'],
-                'is_active' => $data['is_active'] ?? true,
+                'is_active' => false,
             ]);
         } catch (QueryException $exception) {
             if ($this->isUniqueViolation($exception)) {
