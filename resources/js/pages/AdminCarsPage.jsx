@@ -30,7 +30,6 @@ import {
 } from '@mui/material';
 import AdminLayout from '../components/AdminLayout.jsx';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
-import { searchViolationsByPlate } from '../services/violations.js';
 import {
     createAdminCar,
     deleteAdminCar,
@@ -60,6 +59,8 @@ const ownershipTone = {
     sponsor: { bg: 'rgba(196,181,253,.24)', color: '#5b21b6', label: 'Sponsored vehicle' },
 };
 
+const RTA_VIOLATIONS_URL = 'https://ums.rta.ae/violations/public-fines/fines-search';
+
 const badge = ({ bg, color, label }) => (
     <Chip
         label={label}
@@ -67,52 +68,6 @@ const badge = ({ bg, color, label }) => (
         sx={{ backgroundColor: bg, color, fontWeight: 600, mr: 1 }}
     />
 );
-
-const buildViolationSearchUrl = (car) => {
-    const query = new URLSearchParams({
-        plateNumber: car.number ?? '',
-        plateSource: car.plate_source?.title ?? '',
-        plateCategory: car.plate_category?.title ?? '',
-        plateCode: car.plate_code?.title ?? '',
-    });
-
-    return `https://ums.rta.ae/violations/public-fines/fines-search?${query.toString()}`;
-};
-
-const normalizePlateValue = (value) => {
-    if (typeof value === 'number') return String(value);
-    if (typeof value === 'string') return value.trim();
-    return value ?? '';
-};
-
-const extractViolations = (payload) => {
-    const data = payload?.data ?? payload ?? {};
-
-    if (Array.isArray(data)) return data;
-
-    const candidates = [
-        data.violations,
-        data.fines,
-        data.results,
-        data.items,
-        data.data,
-    ];
-
-    for (const candidate of candidates) {
-        if (Array.isArray(candidate)) return candidate;
-        if (candidate?.items && Array.isArray(candidate.items)) return candidate.items;
-    }
-
-    return [];
-};
-
-const resolveField = (violation, keys, fallback = '—') => {
-    for (const key of keys) {
-        if (violation?.[key]) return violation[key];
-    }
-
-    return fallback;
-};
 
 const AdminCarsPage = () => {
     const [cars, setCars] = useState([]);
@@ -144,15 +99,6 @@ const AdminCarsPage = () => {
     const [statusUpdatingId, setStatusUpdatingId] = useState(null);
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [deleting, setDeleting] = useState(false);
-
-    const [violationsState, setViolationsState] = useState({
-        open: false,
-        loading: false,
-        error: '',
-        car: null,
-        results: [],
-        raw: null,
-    });
 
     const [sourceOptions, setSourceOptions] = useState([]);
     const [categoryOptions, setCategoryOptions] = useState([]);
@@ -479,72 +425,6 @@ const AdminCarsPage = () => {
         setDeleting(false);
     };
 
-    const handleCheckViolations = async (car) => {
-        if (!car) return;
-
-        const requiredFields = [
-            { key: 'plateNumber', label: 'Plate number', value: normalizePlateValue(car.number) },
-            { key: 'plateSource', label: 'Plate source', value: normalizePlateValue(car.plate_source?.title) },
-            { key: 'plateCategory', label: 'Plate category', value: normalizePlateValue(car.plate_category?.title) },
-            { key: 'plateCode', label: 'Plate code', value: normalizePlateValue(car.plate_code?.title) },
-        ];
-
-        const missingFields = requiredFields.filter((field) => !field.value);
-
-        setViolationsState({
-            open: true,
-            loading: missingFields.length === 0,
-            error:
-                missingFields.length > 0
-                    ? `Missing required plate details: ${missingFields.map((field) => field.label).join(', ')}`
-                    : '',
-            car,
-            results: [],
-            raw: null,
-        });
-
-        if (missingFields.length > 0) {
-            return;
-        }
-
-        try {
-            const payload = requiredFields.reduce(
-                (acc, field) => ({
-                    ...acc,
-                    [field.key]: field.value,
-                }),
-                { language: 'en' },
-            );
-
-            const response = await searchViolationsByPlate(payload);
-            const normalized = extractViolations(response);
-
-            setViolationsState((prev) => ({
-                ...prev,
-                loading: false,
-                results: normalized,
-                raw: response,
-            }));
-        } catch (err) {
-            setViolationsState((prev) => ({
-                ...prev,
-                loading: false,
-                error: err.message || 'Unable to fetch violations right now.',
-            }));
-        }
-    };
-
-    const closeViolationsDialog = () => {
-        setViolationsState({
-            open: false,
-            loading: false,
-            error: '',
-            car: null,
-            results: [],
-            raw: null,
-        });
-    };
-
     const handleDelete = async () => {
         if (!deleteTarget) return;
 
@@ -569,6 +449,15 @@ const AdminCarsPage = () => {
                 <Stack direction="row" spacing={1}>
                     <Button variant="contained" onClick={openCreateForm}>
                         Add vehicle
+                    </Button>
+                    <Button
+                        variant="outlined"
+                        component="a"
+                        href={RTA_VIOLATIONS_URL}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                    >
+                        Open RTA site
                     </Button>
                 </Stack>
             }
@@ -713,14 +602,6 @@ const AdminCarsPage = () => {
                                             </TableCell>
                                             <TableCell align="right">
                                                 <Stack direction="row" spacing={1} justifyContent="flex-end" alignItems="center">
-                                                    <Button
-                                                        size="small"
-                                                        variant="outlined"
-                                                        onClick={() => handleCheckViolations(car)}
-                                                        aria-label={`Check violations for ${car.name}`}
-                                                    >
-                                                        Violations
-                                                    </Button>
                                                     <IconButton
                                                         color="primary"
                                                         size="small"
@@ -950,115 +831,6 @@ const AdminCarsPage = () => {
                     <Button variant="contained" onClick={handleFormSubmit} disabled={saving}>
                         {formMode === 'create' ? 'Add vehicle' : 'Save changes'}
                     </Button>
-                </DialogActions>
-            </Dialog>
-
-            <Dialog
-                open={violationsState.open}
-                onClose={closeViolationsDialog}
-                fullWidth
-                maxWidth="md"
-            >
-                <DialogTitle>
-                    {violationsState.car
-                        ? `Violations for ${violationsState.car.name || violationsState.car.number}`
-                        : 'Violations'}
-                </DialogTitle>
-                <DialogContent dividers>
-                    <Stack spacing={2}>
-                        {violationsState.error && <Alert severity="error">{violationsState.error}</Alert>}
-
-                        {violationsState.loading ? (
-                            <Stack alignItems="center" py={4} spacing={1}>
-                                <CircularProgress size={28} />
-                                <Typography variant="body2" color="text.secondary">
-                                    Fetching violations…
-                                </Typography>
-                            </Stack>
-                        ) : violationsState.results.length ? (
-                            <Table size="small">
-                                <TableHead>
-                                    <TableRow>
-                                        <TableCell>Reference</TableCell>
-                                        <TableCell>Date</TableCell>
-                                        <TableCell>Description</TableCell>
-                                        <TableCell>Amount</TableCell>
-                                        <TableCell>Status</TableCell>
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    {violationsState.results.map((violation, index) => {
-                                        const reference = resolveField(violation, [
-                                            'ticketNumber',
-                                            'fineNumber',
-                                            'referenceNumber',
-                                            'violationNumber',
-                                            'trafficNo',
-                                            'id',
-                                        ]);
-                                        const date = resolveField(violation, [
-                                            'violationDate',
-                                            'issueDate',
-                                            'offenceDate',
-                                            'date',
-                                            'createdAt',
-                                        ]);
-                                        const description = resolveField(violation, [
-                                            'description',
-                                            'offence',
-                                            'offenceDescription',
-                                            'remarks',
-                                            'fineName',
-                                        ]);
-                                        const amount = resolveField(violation, [
-                                            'amount',
-                                            'fineAmount',
-                                            'totalAmount',
-                                            'dueAmount',
-                                            'value',
-                                        ]);
-                                        const status = resolveField(violation, [
-                                            'status',
-                                            'state',
-                                            'violationStatus',
-                                            'paymentStatus',
-                                        ]);
-
-                                        return (
-                                            <TableRow key={reference || `violation-${index}`}>
-                                                <TableCell>{reference}</TableCell>
-                                                <TableCell>{date}</TableCell>
-                                                <TableCell>
-                                                    <Typography variant="body2" color="text.primary">
-                                                        {description}
-                                                    </Typography>
-                                                </TableCell>
-                                                <TableCell>{amount}</TableCell>
-                                                <TableCell>{status}</TableCell>
-                                            </TableRow>
-                                        );
-                                    })}
-                                </TableBody>
-                            </Table>
-                        ) : (
-                            <Typography variant="body2" color="text.secondary">
-                                No violations were found for this plate.
-                            </Typography>
-                        )}
-                    </Stack>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={closeViolationsDialog}>Close</Button>
-                    {violationsState.car && (
-                        <Button
-                            component="a"
-                            href={buildViolationSearchUrl(violationsState.car)}
-                            target="_blank"
-                            rel="noreferrer noopener"
-                        >
-                            Open RTA site
-                        </Button>
-                    )}
                 </DialogActions>
             </Dialog>
 
