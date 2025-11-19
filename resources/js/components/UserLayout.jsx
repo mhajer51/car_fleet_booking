@@ -54,11 +54,8 @@ const UserLayout = ({ title, description, actions, children }) => {
             }}
         >
             <Stack spacing={0.5}>
-                <Typography variant="overline" sx={{ color: 'rgba(255,255,255,0.7)', letterSpacing: 2 }}>
-                    Fleet portal
-                </Typography>
                 <Typography variant="h5" fontWeight={700}>
-                    Intelligent mobility
+                    Fleet portal
                 </Typography>
                 <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
                     Navigate your trips, assets, and drivers with confidence.
@@ -66,11 +63,9 @@ const UserLayout = ({ title, description, actions, children }) => {
             </Stack>
 
             <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)' }} />
-
             <Stack direction="row" spacing={2} alignItems="center">
-                <Avatar sx={{ width: 52, height: 52, bgcolor: 'rgba(255,255,255,0.15)' }}>{initials || 'US'}</Avatar>
                 <Stack spacing={0.3}>
-                    <Typography fontWeight={600}>{session?.user?.name ?? 'Guest'}</Typography>
+                    <Typography  variant="body2" fontWeight={600}>{session?.user?.name ?? 'Guest'}</Typography>
                     <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
                         {session?.user?.email ?? session?.user?.username ?? 'No email on file'}
                     </Typography>

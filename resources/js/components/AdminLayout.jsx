@@ -60,11 +60,8 @@ const AdminLayout = ({ title, description, actions, children }) => {
             }}
         >
             <Stack spacing={0.5}>
-                <Typography variant="overline" sx={{ color: 'rgba(255,255,255,0.7)', letterSpacing: 2 }}>
-                    Admin control
-                </Typography>
                 <Typography variant="h5" fontWeight={700}>
-                    Fleet intelligence
+                    Admin control
                 </Typography>
                 <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
                     Manage users, assets, and operations with precision.
@@ -74,7 +71,6 @@ const AdminLayout = ({ title, description, actions, children }) => {
             <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)' }} />
 
             <Stack direction="row" spacing={2} alignItems="center">
-                <Avatar sx={{ width: 52, height: 52, bgcolor: 'rgba(255,255,255,0.15)' }}>{initials || 'AD'}</Avatar>
                 <Stack spacing={0.3}>
                     <Typography fontWeight={600}>{session?.admin?.name ?? 'Administrator'}</Typography>
                     <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
