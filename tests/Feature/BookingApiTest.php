@@ -56,6 +56,36 @@ class BookingApiTest extends TestCase
         });
     }
 
+    public function test_admin_creates_booking_and_notifies_admins(): void
+    {
+        Mail::fake();
+        $this->withoutMiddleware(JwtAuthenticate::class);
+
+        $admin = Admin::factory()->create(['is_active' => true]);
+        $user = User::factory()->create();
+        $car = Car::factory()->create();
+        $driver = Driver::factory()->create();
+
+        $payload = [
+            'user_id' => $user->id,
+            'car_id' => $car->id,
+            'driver_id' => $driver->id,
+            'price' => '315.00',
+            'start_date' => '2024-07-01 08:00:00',
+            'end_date' => '2024-07-01 11:00:00',
+            'note' => 'Created from admin portal.',
+        ];
+
+        $response = $this->postJson('/api/admin/bookings', $payload);
+
+        $response->assertOk()
+            ->assertJsonFragment(['message' => 'Booking created successfully.']);
+
+        Mail::assertSent(BookingRequestSubmitted::class, function (BookingRequestSubmitted $mail) use ($admin, $user) {
+            return $mail->hasTo($admin->email) && $mail->booking->user?->id === $user->id;
+        });
+    }
+
     public function test_user_updates_booking_via_api_and_notifies_admins(): void
     {
         Mail::fake();
@@ -77,6 +107,36 @@ class BookingApiTest extends TestCase
         ];
 
         $response = $this->putJson("/api/user/bookings/{$booking->id}", $payload);
+
+        $response->assertOk()
+            ->assertJsonFragment(['message' => 'Booking updated successfully.']);
+
+        Mail::assertSent(BookingRequestUpdated::class, function (BookingRequestUpdated $mail) use ($admin, $booking) {
+            return $mail->hasTo($admin->email) && $mail->booking->id === $booking->id;
+        });
+    }
+
+    public function test_admin_updates_booking_and_notifies_admins(): void
+    {
+        Mail::fake();
+        $this->withoutMiddleware(JwtAuthenticate::class);
+
+        $admin = Admin::factory()->create(['is_active' => true]);
+        $booking = Booking::factory()->pending()->create();
+        $car = Car::factory()->create();
+        $driver = Driver::factory()->create();
+
+        $payload = [
+            'user_id' => $booking->user_id,
+            'car_id' => $car->id,
+            'driver_id' => $driver->id,
+            'price' => '410.90',
+            'start_date' => '2024-08-10 07:30:00',
+            'end_date' => '2024-08-10 12:30:00',
+            'note' => 'Admin updated booking.',
+        ];
+
+        $response = $this->putJson("/api/admin/bookings/{$booking->id}", $payload);
 
         $response->assertOk()
             ->assertJsonFragment(['message' => 'Booking updated successfully.']);

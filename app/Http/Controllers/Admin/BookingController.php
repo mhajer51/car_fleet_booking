@@ -10,18 +10,23 @@ use App\Http\Requests\Admin\Booking\AdminBookingFilterRequest;
 use App\Http\Requests\Admin\Booking\AdminStoreBookingRequest;
 use App\Http\Requests\Admin\Booking\AdminToggleBookingApprovalRequest;
 use App\Http\Requests\Admin\Booking\AdminUpdateBookingRequest;
+use App\Mail\BookingRequestSubmitted;
+use App\Mail\BookingRequestUpdated;
 use App\Models\Booking;
 use App\Models\Car;
 use App\Models\Driver;
 use App\Models\User;
 use App\Services\Bookings\BookingService;
+use App\Services\Bookings\AdminBookingNotifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
 
 class BookingController extends Controller
 {
-    public function __construct(private readonly BookingService $bookingService)
-    {
+    public function __construct(
+        private readonly BookingService $bookingService,
+        private readonly AdminBookingNotifier $adminBookingNotifier,
+    ) {
     }
 
     public function index(AdminBookingFilterRequest $request): JsonResponse
@@ -103,7 +108,10 @@ class BookingController extends Controller
             ], 422);
         }
 
-        $booking = $this->transformBooking($booking->load(['user:id,name,username', 'car:id,name,number', 'driver:id,name,license_number']));
+        $booking->load(['user:id,name,email,username', 'car:id,name,number', 'driver:id,name,license_number']);
+        $this->adminBookingNotifier->notify(new BookingRequestSubmitted($booking));
+
+        $booking = $this->transformBooking($booking);
 
         return apiResponse('Booking created successfully.', compact('booking'));
     }
@@ -133,7 +141,10 @@ class BookingController extends Controller
             ], 422);
         }
 
-        $booking = $this->transformBooking($booking->load(['user:id,name,username', 'car:id,name,number', 'driver:id,name,license_number']));
+        $booking->load(['user:id,name,email,username', 'car:id,name,number', 'driver:id,name,license_number']);
+        $this->adminBookingNotifier->notify(new BookingRequestUpdated($booking));
+
+        $booking = $this->transformBooking($booking);
 
         return apiResponse('Booking updated successfully.', compact('booking'));
     }

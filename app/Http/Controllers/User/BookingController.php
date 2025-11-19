@@ -11,11 +11,11 @@ use App\Http\Requests\User\StoreBookingRequest;
 use App\Http\Requests\User\UpdateBookingRequest;
 use App\Mail\BookingRequestSubmitted;
 use App\Mail\BookingRequestUpdated;
-use App\Models\Admin;
 use App\Models\Booking;
 use App\Models\Car;
 use App\Models\Driver;
 use App\Models\User;
+use App\Services\Bookings\AdminBookingNotifier;
 use App\Services\Bookings\BookingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Mail\Mailable;
@@ -25,8 +25,10 @@ use Throwable;
 
 class BookingController extends Controller
 {
-    public function __construct(private readonly BookingService $bookingService)
-    {
+    public function __construct(
+        private readonly BookingService $bookingService,
+        private readonly AdminBookingNotifier $adminBookingNotifier,
+    ) {
     }
 
     public function index(AdminBookingFilterRequest $request): JsonResponse
@@ -99,7 +101,7 @@ class BookingController extends Controller
         }
 
         $booking->load(['user:id,name,email,username', 'car:id,name,number', 'driver:id,name,license_number']);
-        $this->notifyAdminsAboutBooking(new BookingRequestSubmitted($booking));
+        $this->adminBookingNotifier->notify(new BookingRequestSubmitted($booking));
 
         $booking = $this->transformBooking($booking);
 
@@ -163,7 +165,7 @@ class BookingController extends Controller
         }
 
         $booking->load(['user:id,name,email,username', 'car:id,name,number', 'driver:id,name,license_number']);
-        $this->notifyAdminsAboutBooking(new BookingRequestUpdated($booking));
+        $this->adminBookingNotifier->notify(new BookingRequestUpdated($booking));
 
         $booking = $this->transformBooking($booking);
 
