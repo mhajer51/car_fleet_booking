@@ -155,7 +155,35 @@ class BookingController extends Controller
 
     public function updateApproval(AdminToggleBookingApprovalRequest $request, Booking $booking): JsonResponse
     {
-        $booking->update($request->validated());
+        $data = $request->validated();
+
+        if ($data['is_approved']) {
+            $carConflict = Booking::query()
+                ->where('car_id', $booking->car_id)
+                ->where('id', '!=', $booking->id)
+                ->overlapping($booking->start_date, $booking->end_date)
+                ->exists();
+
+            if ($carConflict) {
+                return response()->json([
+                    'message' => 'Car is already booked during this time.',
+                ], 422);
+            }
+
+            $driverConflict = Booking::query()
+                ->where('driver_id', $booking->driver_id)
+                ->where('id', '!=', $booking->id)
+                ->overlapping($booking->start_date, $booking->end_date)
+                ->exists();
+
+            if ($driverConflict) {
+                return response()->json([
+                    'message' => 'Driver is already assigned to another booking during this time.',
+                ], 422);
+            }
+        }
+
+        $booking->update($data);
 
         $booking = $this->transformBooking($booking->load(['user:id,name,username', 'car:id,name,number', 'driver:id,name,license_number']));
 
