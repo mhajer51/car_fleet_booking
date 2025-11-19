@@ -163,4 +163,68 @@ class BookingApiTest extends TestCase
 
         Carbon::setTestNow();
     }
+
+    public function test_admin_cannot_approve_booking_when_car_is_unavailable(): void
+    {
+        $this->withoutMiddleware(JwtAuthenticate::class);
+
+        $car = Car::factory()->create();
+        $driver = Driver::factory()->create();
+
+        Booking::factory()->create([
+            'car_id' => $car->id,
+            'driver_id' => Driver::factory()->create()->id,
+            'start_date' => '2024-06-01 10:00:00',
+            'end_date' => '2024-06-01 12:00:00',
+            'is_approved' => true,
+        ]);
+
+        $pendingBooking = Booking::factory()->pending()->create([
+            'car_id' => $car->id,
+            'driver_id' => $driver->id,
+            'start_date' => '2024-06-01 11:00:00',
+            'end_date' => '2024-06-01 13:00:00',
+        ]);
+
+        $response = $this->patchJson("/api/admin/bookings/{$pendingBooking->id}/approval", [
+            'is_approved' => true,
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonFragment(['message' => 'Car is already booked during this time.']);
+
+        $this->assertFalse($pendingBooking->fresh()->is_approved);
+    }
+
+    public function test_admin_cannot_approve_booking_when_driver_is_unavailable(): void
+    {
+        $this->withoutMiddleware(JwtAuthenticate::class);
+
+        $car = Car::factory()->create();
+        $driver = Driver::factory()->create();
+
+        Booking::factory()->create([
+            'car_id' => Car::factory()->create()->id,
+            'driver_id' => $driver->id,
+            'start_date' => '2024-06-02 09:00:00',
+            'end_date' => '2024-06-02 11:00:00',
+            'is_approved' => true,
+        ]);
+
+        $pendingBooking = Booking::factory()->pending()->create([
+            'car_id' => $car->id,
+            'driver_id' => $driver->id,
+            'start_date' => '2024-06-02 10:00:00',
+            'end_date' => '2024-06-02 12:00:00',
+        ]);
+
+        $response = $this->patchJson("/api/admin/bookings/{$pendingBooking->id}/approval", [
+            'is_approved' => true,
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonFragment(['message' => 'Driver is already assigned to another booking during this time.']);
+
+        $this->assertFalse($pendingBooking->fresh()->is_approved);
+    }
 }

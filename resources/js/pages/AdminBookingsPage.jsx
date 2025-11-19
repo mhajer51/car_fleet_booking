@@ -13,7 +13,8 @@ import {
     DialogActions,
     DialogContent,
     DialogTitle,
-    FormControlLabel, Grid,
+    FormControlLabel,
+    Grid,
     MenuItem,
     Radio,
     RadioGroup,
@@ -28,6 +29,7 @@ import {
     Typography,
 } from '@mui/material';
 import AdminLayout from '../components/AdminLayout.jsx';
+import NotificationSnackbar from '../components/NotificationSnackbar.jsx';
 import {
     createAdminBooking,
     fetchAvailableBookingCars,
@@ -148,8 +150,8 @@ const AdminBookingsPage = () => {
     const [bookings, setBookings] = useState([]);
     const [meta, setMeta] = useState({ total: 0 });
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
-    const [message, setMessage] = useState('');
+    const [pageError, setPageError] = useState('');
+    const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
     const [filters, setFilters] = useState({
         status: 'all',
         approval: 'all',
@@ -179,7 +181,7 @@ const AdminBookingsPage = () => {
 
     const loadBookings = useCallback(async () => {
         setLoading(true);
-        setError('');
+        setPageError('');
         try {
             const payload = await fetchAdminBookings({
                 page: pagination.page + 1,
@@ -200,7 +202,7 @@ const AdminBookingsPage = () => {
             setBookings(payload.bookings ?? []);
             setMeta(payload.meta ?? {});
         } catch (err) {
-            setError(err.message);
+            setPageError(err.message);
         } finally {
             setLoading(false);
         }
@@ -218,10 +220,21 @@ const AdminBookingsPage = () => {
             setCars(carsPayload.cars ?? []);
             setDrivers(driversPayload.drivers ?? []);
         } catch (err) {
-            setError(err.message);
+            setPageError(err.message);
         } finally {
             setLookupsLoading(false);
         }
+    }, []);
+
+    const showNotification = useCallback((text, severity = 'success') => {
+        setNotification({ open: true, message: text, severity });
+    }, []);
+
+    const hideNotification = useCallback((_event, reason) => {
+        if (reason === 'clickaway') {
+            return;
+        }
+        setNotification((prev) => ({ ...prev, open: false }));
     }, []);
 
     useEffect(() => {
@@ -303,7 +316,6 @@ const AdminBookingsPage = () => {
         setForm({ ...initialForm, startDate: defaultStartDate() });
         setFormError('');
         setFormErrors({});
-        setMessage('');
         setEditingBooking(null);
     };
 
@@ -359,7 +371,6 @@ const AdminBookingsPage = () => {
         addToAvailability('drivers', booking.driver);
         setFormError('');
         setFormErrors({});
-        setMessage('');
         setDialogOpen(true);
     };
 
@@ -471,7 +482,6 @@ const AdminBookingsPage = () => {
     const submitBooking = async (event) => {
         event.preventDefault();
         setFormError('');
-        setMessage('');
 
         const errors = validateForm();
 
@@ -504,10 +514,10 @@ const AdminBookingsPage = () => {
         try {
             if (isEditing) {
                 await updateAdminBooking(editingBooking.id, payload);
-                setMessage('Booking updated successfully.');
+                showNotification('Booking updated successfully.', 'success');
             } else {
                 await createAdminBooking(payload);
-                setMessage('Booking created successfully.');
+                showNotification('Booking created successfully.', 'success');
             }
             closeDialog();
             loadBookings();
@@ -527,16 +537,17 @@ const AdminBookingsPage = () => {
         }
 
         setApprovalUpdating(booking.id);
-        setMessage('');
-        setError('');
 
         try {
             const payload = await updateAdminBookingApproval(booking.id, { is_approved: isApproved });
             const updated = payload.booking ?? booking;
             setBookings((prev) => prev.map((item) => (item.id === booking.id ? updated : item)));
-            setMessage(isApproved ? 'Booking approved successfully.' : 'Booking marked as pending.');
+            showNotification(
+                isApproved ? 'Booking approved successfully.' : 'Booking marked as pending.',
+                'success',
+            );
         } catch (err) {
-            setError(err.message ?? 'Unable to update booking approval.');
+            showNotification(err.message ?? 'Unable to update booking approval.', 'error');
         } finally {
             setApprovalUpdating(null);
         }
@@ -556,14 +567,9 @@ const AdminBookingsPage = () => {
             description="Review reservation history, filter quickly, and confirm new trips."
             actions={actions}
         >
-            {error && (
+            {pageError && (
                 <Alert severity="error" sx={{ mb: 3 }}>
-                    {error}
-                </Alert>
-            )}
-            {message && (
-                <Alert severity="success" sx={{ mb: 3 }}>
-                    {message}
+                    {pageError}
                 </Alert>
             )}
 
@@ -993,8 +999,8 @@ const AdminBookingsPage = () => {
                         </Stack>
 
                         {formError && (
-                            <Alert severity="error">{formError}</Alert>
-                        )}
+                        <Alert severity="error">{formError}</Alert>
+                    )}
                     </Stack>
                 </DialogContent>
                 <DialogActions>
@@ -1004,6 +1010,12 @@ const AdminBookingsPage = () => {
                     </Button>
                 </DialogActions>
             </Dialog>
+            <NotificationSnackbar
+                open={notification.open}
+                onClose={hideNotification}
+                severity={notification.severity}
+                message={notification.message}
+            />
         </AdminLayout>
     );
 };
