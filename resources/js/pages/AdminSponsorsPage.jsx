@@ -108,6 +108,11 @@ const AdminSponsorsPage = () => {
     }, [load]);
 
     useEffect(() => {
+        const handler = setTimeout(() => setSearch(searchInput.trim()), 400);
+        return () => clearTimeout(handler);
+    }, [searchInput]);
+
+    useEffect(() => {
         setPagination((prev) => ({ ...prev, page: 0 }));
     }, [search, activeFilter]);
 
@@ -226,126 +231,144 @@ const AdminSponsorsPage = () => {
     };
 
     return (
-        <AdminLayout>
-            <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
-                <Box>
-                    <Typography variant="h5" fontWeight={700} gutterBottom>
-                        Sponsors
-                    </Typography>
-                    <Typography color="text.secondary">Manage sponsor records and availability.</Typography>
-                </Box>
-                <Button variant="contained" onClick={openCreateForm} sx={{ borderRadius: 2 }}>
-                    Add Sponsor
-                </Button>
-            </Box>
+        <AdminLayout
+            title="Sponsor management"
+            description="Manage sponsor records and activity."
+            actions={
+                <Stack direction="row" spacing={1}>
+                    <Button variant="contained" onClick={openCreateForm}>
+                        Add sponsor
+                    </Button>
+                </Stack>
+            }
+        >
+            {error && (
+                <Alert severity="error" sx={{ mb: 3 }}>
+                    {error}
+                </Alert>
+            )}
 
             <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #e2e8f0' }}>
                 <CardContent>
-                    <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ md: 'center' }} justifyContent="space-between" mb={3}>
-                        <Stack direction="row" spacing={1} alignItems="center" flex={1}>
+                    <Stack
+                        direction={{ xs: 'column', md: 'row' }}
+                        spacing={2}
+                        mb={3}
+                        justifyContent="space-between"
+                        alignItems={{ xs: 'flex-start', md: 'center' }}
+                    >
+                        <Box>
+                            <Typography variant="h6" fontWeight={600}>
+                                Sponsor roster
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                                {totalRecords} sponsors · Showing {visibleRange.from} - {visibleRange.to}
+                            </Typography>
+                        </Box>
+
+                        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} width={{ xs: '100%', md: 'auto' }}>
                             <TextField
-                                size="small"
-                                placeholder="Search sponsors"
                                 value={searchInput}
                                 onChange={(event) => setSearchInput(event.target.value)}
-                                onKeyDown={(event) => event.key === 'Enter' && setSearch(searchInput)}
-                                sx={{ minWidth: 280 }}
+                                placeholder="Search sponsor or traffic file"
+                                size="small"
+                                sx={{ minWidth: { xs: '100%', md: 260 } }}
                             />
-                            <Button variant="outlined" onClick={() => setSearch(searchInput)} sx={{ borderRadius: 2 }}>
-                                Search
-                            </Button>
+                            <FormControl size="small" sx={{ minWidth: { xs: '100%', md: 180 } }}>
+                                <InputLabel id="sponsor-status-filter">Status</InputLabel>
+                                <Select
+                                    labelId="sponsor-status-filter"
+                                    label="Status"
+                                    value={activeFilter}
+                                    onChange={(event) => setActiveFilter(event.target.value)}
+                                >
+                                    <MenuItem value="all">Active + disabled</MenuItem>
+                                    <MenuItem value="enabled">Enabled only</MenuItem>
+                                    <MenuItem value="disabled">Disabled only</MenuItem>
+                                </Select>
+                            </FormControl>
                         </Stack>
-                        <FormControl size="small" sx={{ minWidth: 180 }}>
-                            <InputLabel>Availability</InputLabel>
-                            <Select
-                                label="Availability"
-                                value={activeFilter}
-                                onChange={(event) => setActiveFilter(event.target.value)}
-                            >
-                                <MenuItem value="all">All</MenuItem>
-                                <MenuItem value="enabled">Enabled</MenuItem>
-                                <MenuItem value="disabled">Disabled</MenuItem>
-                            </Select>
-                        </FormControl>
                     </Stack>
 
-                    {error && (
-                        <Alert severity="error" sx={{ mb: 2 }}>
-                            {error}
-                        </Alert>
-                    )}
-
-                    <Box position="relative" minHeight={loading ? 200 : undefined}>
-                        {loading ? (
-                            <Box display="flex" justifyContent="center" py={6}>
-                                <CircularProgress />
-                            </Box>
-                        ) : (
-                            <>
-                                <Table>
-                                    <TableHead>
-                                        <TableRow>
-                                            <TableCell>Title</TableCell>
-                                            <TableCell>Traffic File Number</TableCell>
-                                            <TableCell>Status</TableCell>
-                                            <TableCell align="right">Actions</TableCell>
-                                        </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                        {sponsors.length === 0 ? (
-                                            <TableRow>
-                                                <TableCell colSpan={4} align="center" sx={{ py: 4 }}>
-                                                    No sponsors found.
-                                                </TableCell>
-                                            </TableRow>
-                                        ) : (
-                                            sponsors.map((sponsor) => (
-                                                <TableRow key={sponsor.id}>
-                                                    <TableCell>
-                                                        <Typography fontWeight={600}>{sponsor.title}</Typography>
-                                                    </TableCell>
-                                                    <TableCell>{sponsor.traffic_file_number}</TableCell>
-                                                    <TableCell>
-                                                        {badge(activeTone[String(sponsor.is_active)])}
-                                                        <FormControlLabel
-                                                            control={
-                                                                <Switch
-                                                                    checked={sponsor.is_active}
-                                                                    onChange={() => handleStatusToggle(sponsor)}
-                                                                    color="success"
-                                                                />
-                                                            }
-                                                            label={statusUpdatingId === sponsor.id ? 'Updating...' : 'Toggle'}
+                    <Box sx={{ borderRadius: 2, border: '1px solid #e2e8f0', overflowX: 'auto' }}>
+                        <Table sx={{ minWidth: 650 }}>
+                            <TableHead>
+                                <TableRow>
+                                    <TableCell>Title</TableCell>
+                                    <TableCell>Traffic file number</TableCell>
+                                    <TableCell>Status</TableCell>
+                                    <TableCell align="right">Actions</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {loading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={4} align="center">
+                                            <Stack alignItems="center" py={3} spacing={1}>
+                                                <CircularProgress size={24} />
+                                                <Typography variant="body2" color="text.secondary">
+                                                    Loading sponsors…
+                                                </Typography>
+                                            </Stack>
+                                        </TableCell>
+                                    </TableRow>
+                                ) : sponsors.length ? (
+                                    sponsors.map((sponsor) => (
+                                        <TableRow key={sponsor.id} hover>
+                                            <TableCell>
+                                                <Typography fontWeight={600}>{sponsor.title}</Typography>
+                                            </TableCell>
+                                            <TableCell>{sponsor.traffic_file_number}</TableCell>
+                                            <TableCell>
+                                                {badge(activeTone[String(sponsor.is_active)])}
+                                                <FormControlLabel
+                                                    control={(
+                                                        <Switch
+                                                            color="primary"
+                                                            checked={!!sponsor.is_active}
+                                                            onChange={() => handleStatusToggle(sponsor)}
+                                                            size="small"
+                                                            disabled={statusUpdatingId === sponsor.id}
                                                         />
-                                                    </TableCell>
-                                                    <TableCell align="right">
-                                                        <Stack direction="row" spacing={1} justifyContent="flex-end">
-                                                            <IconButton color="primary" onClick={() => openEditForm(sponsor)}>
-                                                                <EditOutlinedIcon fontSize="small" />
-                                                            </IconButton>
-                                                            <IconButton color="error" onClick={() => confirmDelete(sponsor)}>
-                                                                <DeleteOutlineIcon fontSize="small" />
-                                                            </IconButton>
-                                                        </Stack>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))
-                                        )}
-                                    </TableBody>
-                                </Table>
-
-                                <TablePagination
-                                    component="div"
-                                    count={totalRecords}
-                                    page={pagination.page}
-                                    onPageChange={handlePageChange}
-                                    rowsPerPage={pagination.pageSize}
-                                    onRowsPerPageChange={handleRowsPerPageChange}
-                                    labelDisplayedRows={() => `${visibleRange.from}-${visibleRange.to} of ${totalRecords}`}
-                                    rowsPerPageOptions={[5, 10, 25, 50]}
-                                />
-                            </>
-                        )}
+                                                    )}
+                                                    label={sponsor.is_active ? 'Disable' : 'Enable'}
+                                                    sx={{ ml: 1 }}
+                                                />
+                                            </TableCell>
+                                            <TableCell align="right">
+                                                <Stack direction="row" spacing={1} justifyContent="flex-end" alignItems="center">
+                                                    <IconButton color="primary" size="small" onClick={() => openEditForm(sponsor)}>
+                                                        <EditOutlinedIcon fontSize="small" />
+                                                    </IconButton>
+                                                    <IconButton color="error" size="small" onClick={() => confirmDelete(sponsor)}>
+                                                        <DeleteOutlineIcon fontSize="small" />
+                                                    </IconButton>
+                                                </Stack>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={4} align="center">
+                                            <Typography variant="body2" color="text.secondary">
+                                                No sponsors match the current filters.
+                                            </Typography>
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                        <TablePagination
+                            component="div"
+                            count={totalRecords}
+                            page={pagination.page}
+                            onPageChange={handlePageChange}
+                            rowsPerPage={pagination.pageSize}
+                            onRowsPerPageChange={handleRowsPerPageChange}
+                            rowsPerPageOptions={[10, 20, 50]}
+                            showFirstButton
+                            showLastButton
+                        />
                     </Box>
                 </CardContent>
             </Card>
