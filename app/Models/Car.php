@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
@@ -22,11 +23,14 @@ class Car extends Model
         'plate_code_id',
         'emirate',
         'notes',
+        'is_company_owned',
+        'sponsor_id',
         'is_active',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'is_company_owned' => 'boolean',
     ];
 
     public function bookings(): HasMany
@@ -47,6 +51,11 @@ class Car extends Model
     public function plateCode()
     {
         return $this->belongsTo(PlateCode::class);
+    }
+
+    public function sponsor(): BelongsTo
+    {
+        return $this->belongsTo(Sponsor::class);
     }
 
     public function activeBookings(): HasMany
