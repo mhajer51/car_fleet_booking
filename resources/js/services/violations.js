@@ -1,21 +1,4 @@
-import axios from 'axios';
-
-const defaultBaseUrl =
-    typeof import.meta !== 'undefined' && import.meta.env?.VITE_VIOLATIONS_BASE_URL
-        ? import.meta.env.VITE_VIOLATIONS_BASE_URL
-        : 'https://ums.rta.ae/violations/public-fines';
-
-const defaultSearchPath =
-    typeof import.meta !== 'undefined' && import.meta.env?.VITE_VIOLATIONS_SEARCH_PATH
-        ? import.meta.env.VITE_VIOLATIONS_SEARCH_PATH
-        : '/api/v1/violations/search';
-
-const client = axios.create({
-    baseURL: defaultBaseUrl,
-    headers: {
-        'Content-Type': 'application/json',
-    },
-});
+import http from '../api/http.js';
 
 export const searchViolationsByPlate = async ({
     plateNumber,
@@ -33,9 +16,9 @@ export const searchViolationsByPlate = async ({
         language,
     };
 
-    const { data } = await client.post(defaultSearchPath, payload);
+    const { data } = await http.post('/admin/violations/search', payload);
 
     return data?.data ?? data;
 };
 
-export default client;
+export default http;
