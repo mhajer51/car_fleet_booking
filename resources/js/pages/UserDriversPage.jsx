@@ -25,8 +25,6 @@ import {
     TableRow,
     TextField,
     Typography,
-    Switch,
-    FormControlLabel,
 } from '@mui/material';
 import UserLayout from '../components/UserLayout.jsx';
 import { createUserDriver, fetchUserDrivers } from '../services/user.js';
@@ -61,7 +59,6 @@ const UserDriversPage = () => {
         name: '',
         license_number: '',
         phone_number: '',
-        is_active: true,
     });
     const [submitting, setSubmitting] = useState(false);
 
@@ -119,14 +116,14 @@ const UserDriversPage = () => {
     };
 
     const openDialog = () => {
-        setForm({ name: '', license_number: '', phone_number: '', is_active: true });
+        setForm({ name: '', license_number: '', phone_number: '' });
         setFormErrors({});
         setFormError('');
         setDialogOpen(true);
     };
 
     const handleFormChange = (field) => (event) => {
-        const value = field === 'is_active' ? event.target.checked : event.target.value;
+        const value = event.target.value;
         setForm((prev) => ({ ...prev, [field]: value }));
         setFormErrors((prev) => ({ ...prev, [field]: undefined }));
     };
@@ -320,6 +317,9 @@ const UserDriversPage = () => {
                         </Alert>
                     )}
                     <Stack spacing={2} mt={1}>
+                        <Alert severity="info" sx={{ borderRadius: 2 }}>
+                            New drivers are disabled until an administrator reviews and activates them.
+                        </Alert>
                         <TextField
                             label="Name"
                             value={form.name}
@@ -346,10 +346,6 @@ const UserDriversPage = () => {
                             required
                             error={!!formErrors.phone_number}
                             helperText={formErrors.phone_number?.[0] || formErrors.phone_number}
-                        />
-                        <FormControlLabel
-                            control={<Switch checked={!!form.is_active} onChange={handleFormChange('is_active')} />}
-                            label="Driver is active"
                         />
                     </Stack>
                 </DialogContent>

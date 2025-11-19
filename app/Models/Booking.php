@@ -22,15 +22,22 @@ class Booking extends Model
         'start_date',
         'end_date',
         'note',
+        'is_approved',
     ];
 
     protected $casts = [
         'price' => 'decimal:2',
         'start_date' => 'datetime',
         'end_date' => 'datetime',
+        'is_approved' => 'boolean',
     ];
 
     protected $appends = ['status'];
+
+    public function scopeApproved(Builder $query): Builder
+    {
+        return $query->where('is_approved', true);
+    }
 
     public function user(): BelongsTo
     {
@@ -49,7 +56,7 @@ class Booking extends Model
 
     public function scopeActive(Builder $query)
     {
-        return $query->status(BookingStatus::ACTIVE);
+        return $query->approved()->status(BookingStatus::ACTIVE);
     }
 
     public function scopeStatus(Builder $query, BookingStatus $status, ?Carbon $reference = null)
@@ -74,7 +81,7 @@ class Booking extends Model
     {
         $requestedEnd = $endDate ?? Carbon::create(9999, 12, 31, 23, 59, 59);
 
-        return $query->where('start_date', '<=', $requestedEnd)
+        return $query->approved()->where('start_date', '<=', $requestedEnd)
             ->where(function ($query) use ($startDate) {
                 $query->whereNull('end_date')
                     ->orWhere('end_date', '>=', $startDate);

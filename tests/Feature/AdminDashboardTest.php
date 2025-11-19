@@ -27,7 +27,7 @@ class AdminDashboardTest extends TestCase
         $response->assertOk();
         $response->assertSee((string) User::count());
         $response->assertSee((string) Car::count());
-        $activeCount = Booking::query()->status(BookingStatus::ACTIVE)->count();
+        $activeCount = Booking::query()->approved()->status(BookingStatus::ACTIVE)->count();
         $response->assertSee((string) $activeCount);
     }
 

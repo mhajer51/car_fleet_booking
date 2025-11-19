@@ -85,7 +85,7 @@ class BookingController extends Controller
         $price = (float) $data['price'];
 
         try {
-            $booking = $this->bookingService->create($user, $car, $driver, $startDate, $endDate, null, $note, $price);
+            $booking = $this->bookingService->create($user, $car, $driver, $startDate, $endDate, null, $note, $price, false);
         } catch (BookingConflictException $exception) {
             return response()->json([
                 'message' => $exception->getMessage(),
@@ -240,6 +240,7 @@ class BookingController extends Controller
             'guest_name' => $booking->guest_name,
             'note' => $booking->note,
             'status' => $booking->status->value,
+            'is_approved' => $booking->is_approved,
         ];
     }
 

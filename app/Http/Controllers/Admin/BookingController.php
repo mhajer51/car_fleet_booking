@@ -8,6 +8,7 @@ use App\Exceptions\BookingConflictException;
 use App\Http\Requests\Admin\Booking\AdminBookingAvailabilityRequest;
 use App\Http\Requests\Admin\Booking\AdminBookingFilterRequest;
 use App\Http\Requests\Admin\Booking\AdminStoreBookingRequest;
+use App\Http\Requests\Admin\Booking\AdminToggleBookingApprovalRequest;
 use App\Http\Requests\Admin\Booking\AdminUpdateBookingRequest;
 use App\Models\Booking;
 use App\Models\Car;
@@ -137,6 +138,15 @@ class BookingController extends Controller
         return apiResponse('Booking updated successfully.', compact('booking'));
     }
 
+    public function updateApproval(AdminToggleBookingApprovalRequest $request, Booking $booking): JsonResponse
+    {
+        $booking->update($request->validated());
+
+        $booking = $this->transformBooking($booking->load(['user:id,name,username', 'car:id,name,number', 'driver:id,name,license_number']));
+
+        return apiResponse('Booking approval updated successfully.', compact('booking'));
+    }
+
     public function availableUsers(AdminBookingAvailabilityRequest $request): JsonResponse
     {
         [$startDate, $endDate, $search, $perPage, $bookingId] = $this->extractAvailabilityFilters($request);
@@ -237,6 +247,7 @@ class BookingController extends Controller
             'guest_name' => $booking->guest_name,
             'note' => $booking->note,
             'status' => $booking->status->value,
+            'is_approved' => $booking->is_approved,
         ];
     }
 

@@ -16,14 +16,15 @@ class OverviewController extends Controller
         $now = now();
         $today = $now->clone()->startOfDay();
 
-        $bookingsToday = Booking::query()->whereDate('start_date', $today)->count();
-        $bookingsYesterday = Booking::query()->whereDate('start_date', $today->clone()->subDay())->count();
+        $bookingsToday = Booking::query()->where('is_approved', true)->whereDate('start_date', $today)->count();
+        $bookingsYesterday = Booking::query()->where('is_approved', true)->whereDate('start_date', $today->clone()->subDay())->count();
         $statusCounts = $this->bookingStatusCounts();
         $activeBookings = $statusCounts[BookingStatus::ACTIVE->value] ?? 0;
         $totalCars = Car::query()->count();
         $availableCars = Car::query()->available()->count();
         $inactiveCars = Car::query()->where('is_active', false)->count();
         $engagedClients = Booking::query()
+            ->where('is_approved', true)
             ->where('updated_at', '>=', $now->clone()->subHour())
             ->distinct('user_id')
             ->count();
@@ -56,6 +57,7 @@ class OverviewController extends Controller
         ];
 
         $timeline = Booking::query()
+            ->where('is_approved', true)
             ->with(['user:id,name', 'car:id,name,model,number'])
             ->latest('start_date')
             ->limit(5)
@@ -76,6 +78,7 @@ class OverviewController extends Controller
             ->values();
 
         $avgDuration = Booking::query()
+            ->where('is_approved', true)
             ->whereNotNull('end_date')
             ->get()
             ->map(fn (Booking $booking) => $booking->start_date->diffInMinutes($booking->end_date))
@@ -152,6 +155,7 @@ class OverviewController extends Controller
         $start = $end->clone()->subDays(6)->startOfDay();
 
         $records = Booking::query()
+            ->where('is_approved', true)
             ->whereBetween('start_date', [$start, $end])
             ->selectRaw('DATE(start_date) as day, COUNT(*) as total')
             ->groupBy('day')
@@ -198,6 +202,7 @@ class OverviewController extends Controller
     private function buildTopVehicles(): array
     {
         return Booking::query()
+            ->where('is_approved', true)
             ->selectRaw('car_id, COUNT(*) as total')
             ->with(['car:id,name,model,number'])
             ->groupBy('car_id')
@@ -222,7 +227,7 @@ class OverviewController extends Controller
         $counts = [];
 
         foreach (BookingStatus::cases() as $status) {
-            $counts[$status->value] = Booking::query()->status($status, $now)->count();
+            $counts[$status->value] = Booking::query()->approved()->status($status, $now)->count();
         }
 
         return $counts;

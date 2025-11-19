@@ -34,6 +34,7 @@ class BookingApiTest extends TestCase
         $this->assertDatabaseHas('bookings', [
             'user_id' => $user->id,
             'car_id' => $car->id,
+            'is_approved' => false,
         ]);
     }
 

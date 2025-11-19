@@ -51,6 +51,11 @@ const statusTone = {
     completed: { label: 'Completed', color: '#1d4ed8', bg: 'rgba(59,130,246,.12)' },
 };
 
+const approvalTone = {
+    true: { label: 'Approved', color: '#0f766e', bg: 'rgba(16,185,129,.12)' },
+    false: { label: 'Pending review', color: '#b45309', bg: 'rgba(251,191,36,.18)' },
+};
+
 const defaultStartDate = () => {
     const now = new Date();
     now.setSeconds(0, 0);
@@ -441,6 +446,9 @@ const UserBookingsPage = () => {
                     {message}
                 </Alert>
             )}
+            <Alert severity="info" sx={{ mb: 3 }}>
+                New bookings stay in a pending state until an administrator reviews and approves them.
+            </Alert>
 
             <Stack spacing={4}>
                 <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #e2e8f0' }}>
@@ -538,13 +546,14 @@ const UserBookingsPage = () => {
                                         <TableCell>End</TableCell>
                                         <TableCell>Notes</TableCell>
                                         <TableCell>Status</TableCell>
+                                        <TableCell>Approval</TableCell>
                                         <TableCell>Actions</TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
                                     {loading ? (
                                         <TableRow>
-                                            <TableCell colSpan={9} align="center">
+                                            <TableCell colSpan={10} align="center">
                                                 <Stack alignItems="center" py={4} spacing={1}>
                                                     <CircularProgress size={24} />
                                                     <Typography variant="body2" color="text.secondary">
@@ -555,7 +564,7 @@ const UserBookingsPage = () => {
                                         </TableRow>
                                     ) : bookings.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={9} align="center">
+                                            <TableCell colSpan={10} align="center">
                                                 <Typography color="text.secondary" py={3}>
                                                     No bookings match your filters.
                                                 </Typography>
@@ -568,6 +577,7 @@ const UserBookingsPage = () => {
                                                 color: '#334155',
                                                 bg: 'rgba(148,163,184,.24)',
                                             };
+                                            const approvalBadge = approvalTone[booking.is_approved] ?? approvalTone.false;
                                             return (
                                                 <TableRow key={booking.id}>
                                                     <TableCell>#{booking.id}</TableCell>
@@ -604,6 +614,17 @@ const UserBookingsPage = () => {
                                                             sx={{
                                                                 color: tone.color,
                                                                 backgroundColor: tone.bg,
+                                                                fontWeight: 700,
+                                                            }}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Chip
+                                                            label={approvalBadge.label}
+                                                            size="small"
+                                                            sx={{
+                                                                color: approvalBadge.color,
+                                                                backgroundColor: approvalBadge.bg,
                                                                 fontWeight: 700,
                                                             }}
                                                         />

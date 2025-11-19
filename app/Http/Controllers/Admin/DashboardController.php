@@ -22,7 +22,7 @@ class DashboardController extends Controller
         $inactiveCars = Car::query()->where('is_active', false)->count();
         $statusCounts = $this->bookingStatusCounts();
         $activeBookings = $statusCounts[BookingStatus::ACTIVE->value] ?? 0;
-        $bookingsToday = Booking::query()->whereDate('start_date', $today)->count();
+        $bookingsToday = Booking::query()->where('is_approved', true)->whereDate('start_date', $today)->count();
         $newUsersToday = User::query()->whereDate('created_at', $today)->count();
 
         $metrics = [
@@ -50,6 +50,7 @@ class DashboardController extends Controller
         ];
 
         $activity = Booking::query()
+            ->where('is_approved', true)
             ->with(['user:id,name', 'car:id,name,number'])
             ->latest('updated_at')
             ->limit(5)
@@ -170,11 +171,12 @@ class DashboardController extends Controller
     private function highlights($now): array
     {
         $topCar = Car::query()
-            ->withCount('bookings')
+            ->withCount(['bookings' => fn ($query) => $query->where('is_approved', true)])
             ->orderByDesc('bookings_count')
             ->first();
 
         $avgDuration = Booking::query()
+            ->where('is_approved', true)
             ->whereNotNull('end_date')
             ->get()
             ->map(fn (Booking $booking) => $booking->start_date->diffInMinutes($booking->end_date))
@@ -232,7 +234,7 @@ class DashboardController extends Controller
         $counts = [];
 
         foreach (BookingStatus::cases() as $status) {
-            $counts[$status->value] = Booking::query()->status($status, $now)->count();
+            $counts[$status->value] = Booking::query()->approved()->status($status, $now)->count();
         }
 
         return $counts;
@@ -245,6 +247,7 @@ class DashboardController extends Controller
         $records = Booking::query()
             ->selectRaw('DATE(start_date) as day, COUNT(*) as total')
             ->whereBetween('start_date', [$periodStart, $now])
+            ->where('is_approved', true)
             ->groupBy('day')
             ->orderBy('day')
             ->get()
@@ -269,8 +272,8 @@ class DashboardController extends Controller
 
         return Car::query()
             ->withCount([
-                'bookings as completed_bookings_count' => fn ($query) => $query->status(BookingStatus::COMPLETED, $now),
-                'bookings as active_bookings_count' => fn ($query) => $query->status(BookingStatus::ACTIVE, $now),
+                'bookings as completed_bookings_count' => fn ($query) => $query->approved()->status(BookingStatus::COMPLETED, $now),
+                'bookings as active_bookings_count' => fn ($query) => $query->approved()->status(BookingStatus::ACTIVE, $now),
             ])
             ->orderByDesc('completed_bookings_count')
             ->limit(3)
