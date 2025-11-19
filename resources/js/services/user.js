@@ -35,6 +35,9 @@ export const fetchUserCars = (params = {}) =>
 export const createUserCar = (payload) =>
     http.post('/user/cars', payload).then((response) => unwrap(response));
 
+export const fetchUserSponsors = () =>
+    http.get('/user/sponsors').then((response) => unwrap(response));
+
 export const fetchPlateSources = (params = {}) =>
     http.get('/user/plates/sources', { params }).then((response) => unwrap(response));
 
