@@ -79,6 +79,12 @@ const buildViolationSearchUrl = (car) => {
     return `https://ums.rta.ae/violations/public-fines/fines-search?${query.toString()}`;
 };
 
+const normalizePlateValue = (value) => {
+    if (typeof value === 'number') return String(value);
+    if (typeof value === 'string') return value.trim();
+    return value ?? '';
+};
+
 const extractViolations = (payload) => {
     const data = payload?.data ?? payload ?? {};
 
@@ -476,22 +482,39 @@ const AdminCarsPage = () => {
     const handleCheckViolations = async (car) => {
         if (!car) return;
 
+        const requiredFields = [
+            { key: 'plateNumber', label: 'Plate number', value: normalizePlateValue(car.number) },
+            { key: 'plateSource', label: 'Plate source', value: normalizePlateValue(car.plate_source?.title) },
+            { key: 'plateCategory', label: 'Plate category', value: normalizePlateValue(car.plate_category?.title) },
+            { key: 'plateCode', label: 'Plate code', value: normalizePlateValue(car.plate_code?.title) },
+        ];
+
+        const missingFields = requiredFields.filter((field) => !field.value);
+
         setViolationsState({
             open: true,
-            loading: true,
-            error: '',
+            loading: missingFields.length === 0,
+            error:
+                missingFields.length > 0
+                    ? `Missing required plate details: ${missingFields.map((field) => field.label).join(', ')}`
+                    : '',
             car,
             results: [],
             raw: null,
         });
 
+        if (missingFields.length > 0) {
+            return;
+        }
+
         try {
-            const payload = {
-                plateNumber: car.number,
-                plateSource: car.plate_source?.title,
-                plateCategory: car.plate_category?.title,
-                plateCode: car.plate_code?.title,
-            };
+            const payload = requiredFields.reduce(
+                (acc, field) => ({
+                    ...acc,
+                    [field.key]: field.value,
+                }),
+                { language: 'en' },
+            );
 
             const response = await searchViolationsByPlate(payload);
             const normalized = extractViolations(response);
