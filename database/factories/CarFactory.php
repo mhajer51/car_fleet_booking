@@ -16,6 +16,8 @@ class CarFactory extends Factory
             'model' => fake()->year(),
             'color' => fake()->safeColorName(),
             'number' => strtoupper(fake()->unique()->bothify('??##??')),
+            'is_company_owned' => true,
+            'sponsor_id' => null,
             'is_active' => true,
         ];
     }

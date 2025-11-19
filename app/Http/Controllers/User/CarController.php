@@ -22,7 +22,7 @@ class CarController extends Controller
         $isActive = $request->query('is_active');
 
         $query = Car::query()
-            ->with(['plateSource', 'plateCategory', 'plateCode'])
+            ->with(['plateSource', 'plateCategory', 'plateCode', 'sponsor'])
             ->withCount('activeBookings');
 
         if ($search !== '') {
@@ -70,6 +70,8 @@ class CarController extends Controller
     {
         $data = $request->validated();
 
+        $data = $this->normalizeCarData($data);
+
         try {
             $car = Car::create([
                 'name' => $data['name'],
@@ -81,6 +83,8 @@ class CarController extends Controller
                 'plate_code_id' => $data['plate_code_id'],
                 'emirate' => $data['emirate'],
                 'notes' => $data['notes'] ?? null,
+                'is_company_owned' => $data['is_company_owned'],
+                'sponsor_id' => $data['sponsor_id'],
                 'is_active' => $data['is_active'] ?? true,
             ]);
         } catch (QueryException $exception) {
@@ -93,7 +97,7 @@ class CarController extends Controller
             throw $exception;
         }
 
-        $car = $this->transformCar($car->load(['plateSource', 'plateCategory', 'plateCode']), 0);
+        $car = $this->transformCar($car->load(['plateSource', 'plateCategory', 'plateCode', 'sponsor']), 0);
 
         return apiResponse('Car created successfully.', compact('car'));
     }
@@ -137,6 +141,9 @@ class CarController extends Controller
             'plate_source' => $car->plateSource?->only(['id', 'title']),
             'plate_category' => $car->plateCategory?->only(['id', 'title']),
             'plate_code' => $car->plateCode?->only(['id', 'title']),
+            'is_company_owned' => $car->is_company_owned,
+            'sponsor_id' => $car->sponsor_id,
+            'sponsor' => $car->sponsor?->only(['id', 'title']),
             'notes' => $car->notes,
             'status' => $isBooked ? 'booked' : 'available',
             'is_active' => $car->is_active,
@@ -147,5 +154,33 @@ class CarController extends Controller
     {
         return in_array($exception->getCode(), ['23000', '23505'], true)
             || in_array($exception->errorInfo[0] ?? null, ['23000', '23505'], true);
+    }
+
+    private function normalizeCarData(array $data, ?Car $car = null): array
+    {
+        $currentOwnership = $car?->is_company_owned ?? true;
+
+        if (array_key_exists('is_company_owned', $data)) {
+            $boolean = filter_var($data['is_company_owned'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            if (! is_null($boolean)) {
+                $currentOwnership = $boolean;
+            }
+        }
+
+        $data['is_company_owned'] = $currentOwnership;
+
+        if ($currentOwnership) {
+            $data['sponsor_id'] = null;
+
+            return $data;
+        }
+
+        if (array_key_exists('sponsor_id', $data)) {
+            $data['sponsor_id'] = $data['sponsor_id'] ?: null;
+        } else {
+            $data['sponsor_id'] = $car?->sponsor_id ?? null;
+        }
+
+        return $data;
     }
 }
