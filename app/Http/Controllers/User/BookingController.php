@@ -185,15 +185,14 @@ class BookingController extends Controller
             });
         }
 
-        $paginator = $usersQuery->latest()->paginate($perPage);
-        $users = $paginator->getCollection()->map(fn (User $user) => [
+        $users = $usersQuery->latest()->get()->map(fn (User $user) => [
             'id' => $user->id,
             'name' => $user->name,
             'employee_number' => $user->employee_number,
             'username' => $user->username,
         ]);
 
-        return apiResponse('Available users fetched successfully.', $this->buildAvailabilityResponse($paginator, 'users', $users));
+        return apiResponse('Available users fetched successfully.', ['users' => $users, 'total' => $users->count()]);
     }
 
     public function availableCars(AdminBookingAvailabilityRequest $request): JsonResponse
@@ -209,14 +208,13 @@ class BookingController extends Controller
             });
         }
 
-        $paginator = $carsQuery->latest()->paginate($perPage);
-        $cars = $paginator->getCollection()->map(fn (Car $car) => [
+        $cars = $carsQuery->latest()->get()->map(fn (Car $car) => [
             'id' => $car->id,
             'name' => $car->name,
             'number' => $car->number,
         ]);
 
-        return apiResponse('Available cars fetched successfully.', $this->buildAvailabilityResponse($paginator, 'cars', $cars));
+        return apiResponse('Available cars fetched successfully.', ['cars' => $cars, 'total' => $cars->count()]);
     }
 
     public function availableDrivers(AdminBookingAvailabilityRequest $request): JsonResponse
@@ -232,14 +230,13 @@ class BookingController extends Controller
             });
         }
 
-        $paginator = $driversQuery->latest()->paginate($perPage);
-        $drivers = $paginator->getCollection()->map(fn (Driver $driver) => [
+        $drivers = $driversQuery->latest()->get()->map(fn (Driver $driver) => [
             'id' => $driver->id,
             'name' => $driver->name,
             'license_number' => $driver->license_number,
         ]);
 
-        return apiResponse('Available drivers fetched successfully.', $this->buildAvailabilityResponse($paginator, 'drivers', $drivers));
+        return apiResponse('Available drivers fetched successfully.', ['drivers' => $drivers, 'total' => $drivers->count()]);
     }
 
     public function returnCar(Booking $booking): JsonResponse
